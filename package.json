@@ -1,0 +1,30 @@
+{
+  "name": "ms365-password-tool",
+  "version": "1.0.0",
+  "description": "MS-365 Password Update Tool",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "electron .",
+    "build": "electron-builder"
+  },
+  "author": "valueerror",
+  "license": "ISC",
+  "build": {
+    "appId": "eu.life-edu.ms365passwordtool",
+    "productName": "MS-365 Password Update Tool",
+    "icon": "icon.png",
+    "linux": {
+      "target": "AppImage",
+      "category": "Utility"
+    }
+  },
+  "devDependencies": {
+    "@electron/universal": "^2.0.1",
+    "electron": "^38.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "dependencies": {
+    "bootstrap": "^5.3.8"
+  }
+}

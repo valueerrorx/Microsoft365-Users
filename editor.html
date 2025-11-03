@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSV bearbeiten</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self';">
+    <link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css">
+  </head>
+  <body class="p-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">CSV bearbeiten</h5>
+      <div>
+        <button class="btn btn-sm btn-outline-secondary me-2" onclick="addRow()">Zeile hinzufügen</button>
+        <button class="btn btn-sm btn-primary" onclick="saveAndClose()">Speichern & Schließen</button>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered align-middle" id="csvTable">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 35%">UserPrincipalName</th>
+            <th style="width: 45%">NewPassword</th>
+            <th style="width: 10%">ForceChange</th>
+            <th style="width: 10%">Aktionen</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <script>
+      function renderTable(data){
+        const tbody = document.querySelector('#csvTable tbody')
+        tbody.innerHTML = ''
+        data.forEach((row, idx) => addRow(row, idx))
+      }
+
+      function addRow(row={ userPrincipalName:'', newPassword:'', forceChange:false }){
+        const tbody = document.querySelector('#csvTable tbody')
+        const tr = document.createElement('tr')
+        tr.innerHTML = `
+          <td><input class="form-control form-control-sm" value="${row.userPrincipalName || ''}" data-field="userPrincipalName"></td>
+          <td><input class="form-control form-control-sm" value="${row.newPassword || ''}" data-field="newPassword"></td>
+          <td class="text-center"><input type="checkbox" ${row.forceChange ? 'checked' : ''} data-field="forceChange"></td>
+          <td class="text-center"><button class="btn btn-sm btn-outline-danger" onclick="removeRow(this)">Entfernen</button></td>
+        `
+        tbody.appendChild(tr)
+      }
+
+      function removeRow(btn){
+        const tr = btn.closest('tr')
+        tr?.remove()
+      }
+
+      function collectData(){
+        const rows = []
+        document.querySelectorAll('#csvTable tbody tr').forEach(tr => {
+          const upn = tr.querySelector('input[data-field="userPrincipalName"]').value.trim()
+          const pwd = tr.querySelector('input[data-field="newPassword"]').value
+          const force = tr.querySelector('input[data-field="forceChange"]').checked
+          if (upn) rows.push({ userPrincipalName: upn, newPassword: pwd, forceChange: force })
+        })
+        return rows
+      }
+
+      async function saveAndClose(){
+        const data = collectData()
+        try {
+          await window.ipcRenderer.invoke('set-csv-data', data)
+          window.close()
+        } catch (e) {
+          alert('Fehler beim Speichern: ' + (e?.message || e))
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', async () => {
+        try {
+          const res = await window.ipcRenderer.invoke('get-csv-data')
+          if (res && res.status === 'ok') renderTable(res.data || [])
+        } catch {}
+      })
+    </script>
+  </body>
+  </html>
+
+

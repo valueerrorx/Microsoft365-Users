@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Passwort-Update Tool</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self';">
+    <link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css">
+  </head>
+  
+  <body class="d-flex flex-column align-items-center justify-content-start vh-100 bg-light pt-5">
+
+    <div class="mb-4">
+      <img src="icon.png" alt="App Icon" width="128" height="128">
+    </div>
+  
+    <!-- Main Card -->
+    <div class="card shadow p-4 mb-3" style="width: 400px;">
+      <h4 class="text-center mb-3">MS-365</h4>
+        <h5 class="text-center mb-3">Passwort-Update Tool</h5>
+    </div>
+
+
+      <div id="authStatus" class="text-center mt-3" style="min-height: 2rem; overflow: hidden; text-overflow: ellipsis; width: 400px;">
+        <span class="text-muted">Bereit</span>
+      </div>
+
+
+    <!-- Status Overlay (hidden until toggled) -->
+    <div id="statusOverlay" class="position-fixed" style="top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;z-index:2000;" onclick="hideOverlay()">
+      <div class="position-absolute" style="top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; max-width: 600px; max-height: 80%;" onclick="event.stopPropagation()">
+        <div class="card shadow">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Log</h6>
+            <div>
+              <button class="btn btn-sm btn-outline-secondary me-2" onclick="clearHistory()">Löschen</button>
+              <button class="btn btn-sm btn-outline-primary" onclick="hideOverlay()">Schließen</button>
+            </div>
+          </div>
+          <div id="statusContent" class="card-body p-2" style="max-height: 400px; overflow-y: auto;">
+            <div class="text-muted text-center py-2">Keine Meldungen</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info icon (bottom right) -->
+    <div id="infoIcon" class="position-fixed" style="bottom: 20px; right: 20px; z-index: 1000; cursor: pointer;" onclick="toggleInfo()">
+      <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+        </svg>
+      </div>
+    </div>
+
+    <script>
+        // ipcRenderer wird über preload.js bereitgestellt
+        
+        let authInProgress = false
+        let failedUsers = []
+        
+        // Status History Management
+        const statusHistory = {
+            messages: [],
+            maxMessages: 120,
+            
+            add(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString()
+                this.messages.unshift({
+                    timestamp,
+                    message,
+                    type,
+                    id: Date.now() + Math.random()
+                })
+                
+                if (this.messages.length > this.maxMessages) {
+                    this.messages = this.messages.slice(0, this.maxMessages)
+                }
+                
+                this.updateDisplay()
+            },
+            
+            updateDisplay() {
+                const statusDiv = document.getElementById("authStatus")
+                const content = document.getElementById("statusContent")
+                
+                if (this.messages.length === 0) {
+                    statusDiv.innerHTML = '<span class="text-muted">Bereit für Authentifizierung</span>'
+                    content.innerHTML = '<div class="text-muted text-center py-2">Keine Meldungen</div>'
+                    return
+                }
+                
+                // Show latest message in status
+                const latest = this.messages[0]
+                let alertClass = "alert-info"
+                if (latest.type === "error") alertClass = "alert-danger"
+                else if (latest.type === "warning") alertClass = "alert-warning"
+                else if (latest.type === "success" || latest.type === "completed") alertClass = "alert-success"
+                
+                // Truncate long messages for compact status bar
+                const truncated = latest.message.length > 140 ? latest.message.slice(0, 140) + '…' : latest.message
+                statusDiv.innerHTML = `<div class="alert ${alertClass} mb-0" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${truncated}</div>`
+                
+                // Update history content
+                if (content) {
+                    const html = this.messages.map(msg => {
+                        let msgClass = "text-info"
+                        if (msg.type === "error") msgClass = "text-danger"
+                        else if (msg.type === "warning") msgClass = "text-warning"
+                        else if (msg.type === "success" || msg.type === "completed") msgClass = "text-success"
+                        
+                        return `
+                            <div class="small mb-1">
+                                <span class="text-muted">${msg.timestamp}</span>
+                                <span class="${msgClass}">${msg.message}</span>
+                            </div>
+                        `
+                    }).join('')
+                    
+                    content.innerHTML = html
+                }
+            },
+            
+            clear() {
+                this.messages = []
+                this.updateDisplay()
+            }
+        }
+        
+        // (Auth/Sync functions removed)
+
+        // ================= CSV Import & Editor & Execution =================
+        async function importCsv(){
+            try {
+                const res = await window.ipcRenderer.invoke('open-csv-dialog')
+                if (res?.status === 'ok') {
+                    statusHistory.add(`CSV geladen: ${res.count} Einträge`, 'success')
+                } else if (res?.status === 'cancelled') {
+                    statusHistory.add('CSV-Auswahl abgebrochen', 'info')
+                } else if (res?.status === 'error') {
+                    statusHistory.add(`CSV-Fehler: ${res.message}`, 'error')
+                }
+            } catch (e) {
+                statusHistory.add(`CSV-Fehler: ${e?.message || e}`, 'error')
+            }
+        }
+
+        async function openCsvEditor(){
+            try {
+                const res = await window.ipcRenderer.invoke('open-csv-editor')
+                if (res?.status === 'ok') {
+                    statusHistory.add('CSV-Editor geöffnet', 'info')
+                }
+            } catch (e) {
+                statusHistory.add(`Fehler beim Öffnen des CSV-Editors: ${e?.message || e}`, 'error')
+            }
+        }
+
+        async function runPwScript(){
+            failedUsers = []
+            statusHistory.add('Starte Passwort-Update über PowerShell...', 'info')
+            try {
+                const res = await window.ipcRenderer.invoke('run-password-update')
+                if (res?.status === 'ok') {
+                    statusHistory.add('User Passwords Update abgeschlossen', 'success')
+                } else if (res?.status === 'failed') {
+                    statusHistory.add('PowerShell mit Fehlern beendet', 'warning')
+                } else if (res?.status === 'error') {
+                    statusHistory.add(`PowerShell-Fehler: ${res.message}`, 'error')
+                }
+            } catch (e) {
+                statusHistory.add(`PowerShell-Fehler: ${e?.message || e}`, 'error')
+            }
+        }
+        
+        function showOverlay(){
+            document.getElementById('statusOverlay').style.display = 'block'
+            statusHistory.updateDisplay()
+        }
+
+        function hideOverlay(){
+            document.getElementById('statusOverlay').style.display = 'none'
+        }
+
+        // Clear history
+        function clearHistory() {
+            statusHistory.clear()
+            statusHistory.updateDisplay()
+        }
+        
+        // Toggle info (floating button)
+        function toggleInfo() { showOverlay() }
+        
+        // IPC Event Listeners
+        // (Auth/Sync listeners removed)
+        
+        // Live logs from PowerShell
+        window.ipcRenderer.on('pwsh-log', (_e, payload) => {
+            const type = payload?.type || 'info'
+            const message = payload?.message || ''
+            statusHistory.add(message, type === 'error' ? 'error' : 'info')
+        })
+
+        // Completion summary with failed users
+        window.ipcRenderer.on('pwsh-complete', (_e, payload) => {
+            failedUsers = Array.isArray(payload?.failedUsers) ? payload.failedUsers : []
+            // Nur als Erfolg anzeigen, wenn exitCode explizit 0 ist UND kein Fehler-Status
+            const isSuccess = payload?.exitCode === 0 && payload?.status === 'success'
+            
+            if (failedUsers.length > 0) {
+                const list = failedUsers.map(u => `<li class="list-group-item py-1">${u}</li>`).join('')
+                const html = `<div class="card mt-3" style="width: 400px;">
+                    <div class="card-header">Fehlgeschlagene Benutzer (${failedUsers.length})</div>
+                    <ul class="list-group list-group-flush">${list}</ul>
+                </div>`
+                const statusDiv = document.getElementById('authStatus')
+                statusDiv.insertAdjacentHTML('afterend', html)
+            } else if (isSuccess) {
+                statusHistory.add('Alle Benutzer erfolgreich aktualisiert', 'success')
+            }
+        })
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // ensure info button toggles overlay
+            const infoIcon = document.getElementById('infoIcon')
+            if (infoIcon) infoIcon.onclick = showOverlay
+            
+            // Build CSV controls below main card
+            const card = document.querySelector('.card.shadow.p-4.mb-3')
+            const csvDiv = document.createElement('div')
+            csvDiv.className = 'mt-2'
+            csvDiv.innerHTML = `
+                <div class="d-grid gap-2">
+                    <button class="btn btn-secondary" onclick="importCsv()">CSV importieren</button>
+                    <button class="btn btn-outline-secondary" onclick="openCsvEditor()">Einträge bearbeiten</button>
+                    <button class="btn btn-danger" onclick="runPwScript()">Passwörter setzen (PowerShell)</button>
+                </div>
+            `
+            card.appendChild(csvDiv)
+        })
+
+        // Sync now
+        async function syncNow(){
+            const btn = document.getElementById('syncNowButton')
+            btn.disabled = true
+            const original = btn.textContent
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Synchronisiere...'
+            try {
+                const result = await window.ipcRenderer.invoke('force-sync')
+                if (result.status === 'failed') {
+                    if (result.reason === 'no-token') {
+                        statusHistory.add('Kein OneDrive Token gefunden – bitte zuerst authentifizieren', 'error')
+                        // Button-Text anpassen für bessere UX
+                        btn.textContent = 'Jetzt synchronisieren (Authentifizierung erforderlich)'
+                        btn.classList.remove('btn-outline-primary')
+                        btn.classList.add('btn-outline-secondary')
+                    } else if (result.reason === 'onedrive-not-installed') {
+                        statusHistory.add('OneDrive ist nicht installiert. Bitte installieren Sie es zuerst.', 'error')
+                        btn.textContent = 'Jetzt synchronisieren (OneDrive nicht installiert)'
+                        btn.classList.remove('btn-outline-primary')
+                        btn.classList.add('btn-outline-secondary')
+                    }
+                }
+            } catch (err) {
+                statusHistory.add(`Fehler beim Sofort-Sync: ${err?.message || err}`,'error')
+            } finally {
+                btn.disabled = false
+                if (btn.textContent === original) {
+                    btn.textContent = original
+                }
+            }
+        }
+    </script>
+  </body>
+</html>
