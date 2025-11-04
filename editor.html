@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="UTF-8">
     <title>CSV bearbeiten</title>
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self';">
     <link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css">
@@ -17,10 +18,15 @@
       <table class="table table-sm table-bordered align-middle" id="csvTable">
         <thead class="table-light">
           <tr>
-            <th style="width: 35%">UserPrincipalName</th>
-            <th style="width: 45%">NewPassword</th>
-            <th style="width: 10%">ForceChange</th>
-            <th style="width: 10%">Aktionen</th>
+            <th>Vorname</th>
+            <th>Nachname</th>
+            <th>Abteilung</th>
+            <th style="min-width: 120px;">UserType</th>
+            <th>NewPassword</th>
+            <th>UserPrincipalName (Preview)</th>
+            <th>DisplayName (Preview)</th>
+            <th>ForceChange</th>
+            <th>Aktionen</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -28,18 +34,88 @@
     </div>
 
     <script>
+      // Normalisiere String für UPN (lowercase, alle Sonderzeichen ersetzen)
+      // Diese Funktion muss identisch sein mit der in index.js
+      function normalizeForUPN(text) {
+        if (!text) return ''
+        let str = String(text)
+        
+        // Ersetze zuerst alle Sonderzeichen (auch Großbuchstaben-Varianten)
+        // Deutsche Umlaute
+        str = str.replace(/[äÄ]/g, 'ae')
+        str = str.replace(/[öÖ]/g, 'oe')
+        str = str.replace(/[üÜ]/g, 'ue')
+        str = str.replace(/[ß]/g, 'ss')
+        // Französische/Italienische Akzente
+        str = str.replace(/[àáâãÀÁÂÃ]/g, 'a')
+        str = str.replace(/[èéêëÈÉÊË]/g, 'e')
+        str = str.replace(/[ìíîïÌÍÎÏ]/g, 'i')
+        str = str.replace(/[òóôõÒÓÔÕ]/g, 'o')
+        str = str.replace(/[ùúûÙÚÛ]/g, 'u')
+        str = str.replace(/[ýÿÝŸ]/g, 'y')
+        str = str.replace(/[çÇ]/g, 'c')
+        str = str.replace(/[ñÑ]/g, 'n')
+        
+        // Dann zu lowercase konvertieren
+        str = str.toLowerCase()
+        
+        // Zum Schluss alle verbleibenden Sonderzeichen entfernen (außer a-z, 0-9, Punkt)
+        str = str.replace(/[^a-z0-9.]/g, '')
+        
+        return str
+      }
+
+      // Berechne UserPrincipalName und DisplayName aus Vorname/Nachname
+      // Zeigt die finale normalisierte UPN (wie sie im PowerShell-Skript verwendet wird)
+      function calculateUPNAndDisplayName(vorname, nachname) {
+        const normalizedNachname = normalizeForUPN(nachname)
+        const normalizedVorname = normalizeForUPN(vorname)
+        const upn = normalizedNachname && normalizedVorname 
+          ? `${normalizedNachname}.${normalizedVorname}@domain` 
+          : ''
+        const displayName = (nachname && vorname) 
+          ? `${nachname} ${vorname}` 
+          : ''
+        return { upn, displayName }
+      }
+
+      // Aktualisiere Preview-Spalten in einer Zeile
+      function updatePreview(row) {
+        const vorname = row.querySelector('input[data-field="vorname"]')?.value.trim() || ''
+        const nachname = row.querySelector('input[data-field="nachname"]')?.value.trim() || ''
+        const { upn, displayName } = calculateUPNAndDisplayName(vorname, nachname)
+        
+        const upnCell = row.querySelector('td[data-preview="upn"]')
+        const displayNameCell = row.querySelector('td[data-preview="displayname"]')
+        
+        if (upnCell) upnCell.textContent = upn || '-'
+        if (displayNameCell) displayNameCell.textContent = displayName || '-'
+      }
+
       function renderTable(data){
         const tbody = document.querySelector('#csvTable tbody')
         tbody.innerHTML = ''
         data.forEach((row, idx) => addRow(row, idx))
       }
 
-      function addRow(row={ userPrincipalName:'', newPassword:'', forceChange:false }){
+      function addRow(row={ vorname:'', nachname:'', abteilung:'', userType:'Schüler', newPassword:'', forceChange:false }){
         const tbody = document.querySelector('#csvTable tbody')
         const tr = document.createElement('tr')
+        const { upn, displayName } = calculateUPNAndDisplayName(row.vorname || '', row.nachname || '')
+        
         tr.innerHTML = `
-          <td><input class="form-control form-control-sm" value="${row.userPrincipalName || ''}" data-field="userPrincipalName"></td>
-          <td><input class="form-control form-control-sm" value="${row.newPassword || ''}" data-field="newPassword"></td>
+          <td><input class="form-control form-control-sm" value="${(row.vorname || '').replace(/"/g, '&quot;')}" data-field="vorname" oninput="updatePreview(this.closest('tr'))"></td>
+          <td><input class="form-control form-control-sm" value="${(row.nachname || '').replace(/"/g, '&quot;')}" data-field="nachname" oninput="updatePreview(this.closest('tr'))"></td>
+          <td><input class="form-control form-control-sm" value="${(row.abteilung || '').replace(/"/g, '&quot;')}" data-field="abteilung"></td>
+          <td>
+            <select class="form-select form-select-sm" data-field="userType" style="min-width: 120px;">
+              <option value="Schüler" ${row.userType === 'Schüler' || !row.userType ? 'selected' : ''}>Schüler</option>
+              <option value="Lehrer" ${row.userType === 'Lehrer' ? 'selected' : ''}>Lehrer</option>
+            </select>
+          </td>
+          <td><input type="text" class="form-control form-control-sm" value="${(row.newPassword || '').replace(/"/g, '&quot;')}" data-field="newPassword"></td>
+          <td data-preview="upn" class="text-muted small">${upn || '-'}</td>
+          <td data-preview="displayname" class="text-muted small">${displayName || '-'}</td>
           <td class="text-center"><input type="checkbox" ${row.forceChange ? 'checked' : ''} data-field="forceChange"></td>
           <td class="text-center"><button class="btn btn-sm btn-outline-danger" onclick="removeRow(this)">Entfernen</button></td>
         `
@@ -54,10 +130,23 @@
       function collectData(){
         const rows = []
         document.querySelectorAll('#csvTable tbody tr').forEach(tr => {
-          const upn = tr.querySelector('input[data-field="userPrincipalName"]').value.trim()
-          const pwd = tr.querySelector('input[data-field="newPassword"]').value
-          const force = tr.querySelector('input[data-field="forceChange"]').checked
-          if (upn) rows.push({ userPrincipalName: upn, newPassword: pwd, forceChange: force })
+          const vorname = tr.querySelector('input[data-field="vorname"]')?.value.trim() || ''
+          const nachname = tr.querySelector('input[data-field="nachname"]')?.value.trim() || ''
+          const abteilung = tr.querySelector('input[data-field="abteilung"]')?.value.trim() || ''
+          const userType = tr.querySelector('select[data-field="userType"]')?.value || 'Schüler'
+          const pwd = tr.querySelector('input[data-field="newPassword"]')?.value || ''
+          const force = tr.querySelector('input[data-field="forceChange"]')?.checked || false
+          
+          if (vorname && nachname) {
+            rows.push({ 
+              vorname, 
+              nachname, 
+              abteilung, 
+              userType, 
+              newPassword: pwd, 
+              forceChange: force 
+            })
+          }
         })
         return rows
       }

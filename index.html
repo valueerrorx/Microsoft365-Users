@@ -13,20 +13,20 @@
     </div>
   
     <!-- Main Card -->
-    <div class="card shadow p-4 mb-3" style="width: 400px;">
+    <div class="card shadow p-4 mb-3" style="width: 80vw; max-width: 800px;">
       <h4 class="text-center mb-3">MS-365</h4>
-        <h5 class="text-center mb-3">Passwort-Update Tool</h5>
+        <h5 class="text-center mb-3">User Creation/Update Tool</h5>
     </div>
 
 
-      <div id="authStatus" class="text-center mt-3" style="min-height: 2rem; overflow: hidden; text-overflow: ellipsis; width: 400px;">
+      <div id="authStatus" class="text-center mt-3" style="min-height: 2rem; overflow: hidden; text-overflow: ellipsis; width: 80vw; max-width: 800px;">
         <span class="text-muted">Bereit</span>
       </div>
 
 
     <!-- Status Overlay (hidden until toggled) -->
     <div id="statusOverlay" class="position-fixed" style="top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;z-index:2000;" onclick="hideOverlay()">
-      <div class="position-absolute" style="top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; max-width: 600px; max-height: 80%;" onclick="event.stopPropagation()">
+      <div class="position-absolute" style="top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90vw; max-width: 1200px; max-height: 85%;" onclick="event.stopPropagation()">
         <div class="card shadow">
           <div class="card-header d-flex justify-content-between align-items-center">
             <h6 class="mb-0">Log</h6>
@@ -35,7 +35,7 @@
               <button class="btn btn-sm btn-outline-primary" onclick="hideOverlay()">Schließen</button>
             </div>
           </div>
-          <div id="statusContent" class="card-body p-2" style="max-height: 400px; overflow-y: auto;">
+          <div id="statusContent" class="card-body p-2" style="max-height: 70vh; overflow-y: auto; word-wrap: break-word;">
             <div class="text-muted text-center py-2">Keine Meldungen</div>
           </div>
         </div>
@@ -95,8 +95,8 @@
                 else if (latest.type === "warning") alertClass = "alert-warning"
                 else if (latest.type === "success" || latest.type === "completed") alertClass = "alert-success"
                 
-                // Truncate long messages for compact status bar
-                const truncated = latest.message.length > 140 ? latest.message.slice(0, 140) + '…' : latest.message
+                // Truncate long messages for compact status bar (mehr Zeichen wegen breiterem Bereich)
+                const truncated = latest.message.length > 200 ? latest.message.slice(0, 200) + '…' : latest.message
                 statusDiv.innerHTML = `<div class="alert ${alertClass} mb-0" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${truncated}</div>`
                 
                 // Update history content
@@ -156,11 +156,11 @@
 
         async function runPwScript(){
             failedUsers = []
-            statusHistory.add('Starte Passwort-Update über PowerShell...', 'info')
+            statusHistory.add('Starte Benutzer-Aktualisierung/Erstellung über PowerShell...', 'info')
             try {
                 const res = await window.ipcRenderer.invoke('run-password-update')
                 if (res?.status === 'ok') {
-                    statusHistory.add('User Passwords Update abgeschlossen', 'success')
+                    statusHistory.add('Benutzer-Verarbeitung abgeschlossen', 'success')
                 } else if (res?.status === 'failed') {
                     statusHistory.add('PowerShell mit Fehlern beendet', 'warning')
                 } else if (res?.status === 'error') {
@@ -207,14 +207,14 @@
             
             if (failedUsers.length > 0) {
                 const list = failedUsers.map(u => `<li class="list-group-item py-1">${u}</li>`).join('')
-                const html = `<div class="card mt-3" style="width: 400px;">
+                const html = `<div class="card mt-3" style="width: 80vw; max-width: 800px;">
                     <div class="card-header">Fehlgeschlagene Benutzer (${failedUsers.length})</div>
                     <ul class="list-group list-group-flush">${list}</ul>
                 </div>`
                 const statusDiv = document.getElementById('authStatus')
                 statusDiv.insertAdjacentHTML('afterend', html)
             } else if (isSuccess) {
-                statusHistory.add('Alle Benutzer erfolgreich aktualisiert', 'success')
+                statusHistory.add('Alle Benutzer erfolgreich verarbeitet', 'success')
             }
         })
         
@@ -229,10 +229,25 @@
             const csvDiv = document.createElement('div')
             csvDiv.className = 'mt-2'
             csvDiv.innerHTML = `
-                <div class="d-grid gap-2">
-                    <button class="btn btn-secondary" onclick="importCsv()">CSV importieren</button>
-                    <button class="btn btn-outline-secondary" onclick="openCsvEditor()">Einträge bearbeiten</button>
-                    <button class="btn btn-danger" onclick="runPwScript()">Passwörter setzen (PowerShell)</button>
+                <div class="d-flex gap-2 justify-content-center flex-wrap">
+                    <button class="btn btn-secondary d-flex flex-column align-items-center justify-content-center" onclick="importCsv()" style="min-width: 200px; height: 80px; font-size: 1rem;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="margin-bottom: 4px;">
+                            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                        </svg>
+                        <span>CSV importieren</span>
+                    </button>
+                    <button class="btn btn-outline-secondary d-flex flex-column align-items-center justify-content-center" onclick="openCsvEditor()" style="min-width: 200px; height: 80px; font-size: 1rem;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="margin-bottom: 4px;">
+                            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                        </svg>
+                        <span>Einträge bearbeiten</span>
+                    </button>
+                    <button class="btn btn-danger d-flex flex-column align-items-center justify-content-center" onclick="runPwScript()" style="min-width: 200px; height: 80px; font-size: 1rem;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="margin-bottom: 4px;">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+                        </svg>
+                        <span>Benutzer aktualisieren/erstellen</span>
+                    </button>
                 </div>
             `
             card.appendChild(csvDiv)

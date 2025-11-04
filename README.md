@@ -1,14 +1,17 @@
-# MS-365 Passwort-Update Tool
+# MS-365 Benutzer-Verwaltungs Tool
 
-Eine Electron-App zum Massen-Update von Microsoft 365/Entra ID (Azure AD) Benutzerpasswörtern über die Microsoft Graph API.
+Eine Electron-App zum Erstellen und Aktualisieren von Microsoft 365/Entra ID (Azure AD) Benutzern über die Microsoft Graph API.
 
 ## Übersicht
 
-Dieses Tool ermöglicht es Administratoren, Passwörter für mehrere Microsoft 365-Benutzer gleichzeitig zu setzen. Die App verwendet die Microsoft Graph PowerShell SDK und bietet eine benutzerfreundliche GUI für den Prozess.
+Dieses Tool ermöglicht es Administratoren, neue Benutzer in Microsoft 365 zu erstellen oder bestehende Benutzer zu aktualisieren. Neue Benutzer erhalten automatisch MS A3 Lizenzen (Schüler oder Lehrer). Die App verwendet die Microsoft Graph PowerShell SDK und bietet eine benutzerfreundliche GUI für den Prozess.
 
 ## Features
 
-- **CSV-basierte Massenaktualisierung**: Importiere CSV-Dateien mit Benutzerdaten
+- **CSV-basierte Benutzer-Verwaltung**: Importiere CSV-Dateien mit Benutzerdaten
+- **Automatische Benutzer-Erstellung**: Neue Benutzer werden automatisch erstellt, wenn sie nicht existieren
+- **Lizenzzuweisung**: Automatische Zuweisung von MS A3 Lizenzen (Schüler/Lehrer)
+- **Automatische UPN-Generierung**: UserPrincipalName wird aus Vorname/Nachname generiert
 - **Integrierter CSV-Editor**: Bearbeite Benutzerdaten direkt in der App
 - **Microsoft Graph Integration**: Nutzt die offizielle Microsoft Graph API
 - **Linux-Unterstützung**: Funktioniert mit PowerShell Core auf Linux
@@ -23,20 +26,33 @@ Dieses Tool ermöglicht es Administratoren, Passwörter für mehrere Microsoft 3
   - Alternativ: Installiere PowerShell Core über [Microsoft Docs](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-linux)
 - **Microsoft Graph-Berechtigungen**: Ein Microsoft 365-Konto mit `User.ReadWrite.All` Berechtigung
 - **Microsoft.Graph.Users Modul**: Wird automatisch beim ersten Start installiert
+- **Microsoft.Graph.Identity.DirectoryManagement Modul**: Wird automatisch installiert (für Lizenzzuweisung)
 
 ## CSV-Format
 
 Die CSV-Datei muss folgendes Format haben (Semikolon- oder Komma-getrennt):
 
 ```csv
-UserPrincipalName;NewPassword;ForceChange
-demo@example.com;NeuesPasswort123!;1
-user2@example.com;AnderesPW456!;0
+Vorname;Nachname;Abteilung;UserType;NewPassword;ForceChange
+Max;Mustermann;2024;Schüler;Passwort123!;1
+Anna;Schmidt;2024;Lehrer;Passwort456!;0
 ```
 
-- **UserPrincipalName**: Die E-Mail-Adresse oder UPN des Benutzers
-- **NewPassword**: Das neue Passwort
+**Felder:**
+- **Vorname**: Der Vorname des Benutzers (erforderlich)
+- **Nachname**: Der Nachname des Benutzers (erforderlich)
+- **Abteilung**: Die Abteilung (z.B. Erstellungsjahr) - optional
+- **UserType**: "Schüler" oder "Lehrer" (bestimmt die zugewiesene Lizenz) - Standard: "Schüler"
+- **NewPassword**: Das Passwort für den Benutzer (erforderlich)
 - **ForceChange**: `1` = Benutzer muss Passwort bei nächster Anmeldung ändern, `0` = nicht erforderlich
+
+**Automatisch generiert:**
+- **UserPrincipalName**: Wird automatisch als `nachname.vorname@{tenant-domain}` generiert
+- **DisplayName**: Wird automatisch als "Nachname Vorname" generiert
+
+**Verhalten:**
+- Wenn ein Benutzer mit dem generierten UserPrincipalName bereits existiert: Nur das Passwort wird aktualisiert
+- Wenn ein Benutzer nicht existiert: Neuer Benutzer wird erstellt mit allen Feldern und erhält die entsprechende Lizenz (Schüler oder Lehrer)
 
 ## Installation
 
@@ -70,15 +86,16 @@ user2@example.com;AnderesPW456!;0
 - Füge, bearbeite oder entferne Benutzereinträge
 - Änderungen werden automatisch gespeichert
 
-### 3. Passwörter setzen
+### 3. Benutzer aktualisieren/erstellen
 
-- Klicke auf **"Passwörter setzen (PowerShell)"**
+- Klicke auf **"Benutzer aktualisieren/erstellen"**
 - Bei der ersten Ausführung wird die Microsoft Graph-Anmeldung durchgeführt:
   - Ein Browser-Fenster öffnet sich automatisch
   - Melde dich mit deinem Microsoft 365 Admin-Konto an
-  - Gewähre die erforderlichen Berechtigungen
+  - Gewähre die erforderlichen Berechtigungen (`User.ReadWrite.All` und `Organization.Read.All`)
 - Der Fortschritt wird in Echtzeit angezeigt
-- Bei Erfolg erscheint: "Alle Benutzer erfolgreich aktualisiert"
+- Für jeden Benutzer wird angezeigt, ob er erstellt oder aktualisiert wurde
+- Bei Erfolg erscheint: "Alle Benutzer erfolgreich verarbeitet"
 - Bei Fehlern werden die betroffenen Benutzer in einer Liste angezeigt
 
 ### 4. Logs anzeigen
@@ -106,9 +123,15 @@ Electron Main Process (index.js)
 2. **Temporäre CSV**: Daten werden in eine temporäre CSV-Datei geschrieben
 3. **PowerShell-Skript**: Wird mit dem CSV-Pfad als Parameter gestartet
 4. **Graph-Authentifizierung**: `Connect-MgGraph` stellt die Verbindung her
-5. **Passwort-Updates**: Für jeden Benutzer wird `Update-MgUser` aufgerufen
-6. **Fehlerbehandlung**: Fehlgeschlagene Updates werden erfasst und angezeigt
-7. **Aufräumen**: Temporäre Dateien werden gelöscht
+5. **Tenant-Domain ermitteln**: Die Domain wird automatisch aus dem angemeldeten Tenant ermittelt
+6. **Lizenzen ermitteln**: Verfügbare A3-Lizenzen (Schüler/Lehrer) werden identifiziert
+7. **Benutzer-Verarbeitung**: Für jeden CSV-Eintrag:
+   - UserPrincipalName und DisplayName werden generiert
+   - Prüfung ob Benutzer existiert
+   - **Wenn nicht vorhanden**: Neuer Benutzer wird erstellt (`New-MgUser`) und Lizenz zugewiesen (`Set-MgUserLicense`)
+   - **Wenn vorhanden**: Nur Passwort wird aktualisiert (`Update-MgUser`)
+8. **Fehlerbehandlung**: Fehlgeschlagene Operationen werden erfasst und angezeigt
+9. **Aufräumen**: Temporäre Dateien werden gelöscht
 
 ### Dateien
 
@@ -116,7 +139,7 @@ Electron Main Process (index.js)
 - `index.html`: Benutzeroberfläche
 - `editor.html`: CSV-Editor Fenster
 - `preload.js`: IPC-Brücke für sichere Kommunikation
-- `update-user-passwords.ps1`: PowerShell-Skript für Microsoft Graph API-Aufrufe
+- `update-user-passwords.ps1`: PowerShell-Skript für Microsoft Graph API-Aufrufe (Benutzer-Erstellung, Passwort-Update, Lizenzzuweisung)
 
 ## Build
 
@@ -150,13 +173,19 @@ pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass \
 
 ### "PowerShell mit Fehlern beendet"
 - Prüfe die Logs für detaillierte Fehlermeldungen
-- Stelle sicher, dass PowerShell mit `Microsoft.Graph.Users` Modul installiert ist
-- Prüfe die Berechtigungen deines Microsoft 365-Kontos
+- Stelle sicher, dass PowerShell mit `Microsoft.Graph.Users` und `Microsoft.Graph.Identity.DirectoryManagement` Modulen installiert ist
+- Prüfe die Berechtigungen deines Microsoft 365-Kontos (`User.ReadWrite.All` und `Organization.Read.All`)
+- Stelle sicher, dass A3-Lizenzen im Tenant verfügbar sind
 
 ### Authentifizierungsprobleme
 - Beim ersten Start wird ein Browser-Fenster zur Anmeldung geöffnet
-- Stelle sicher, dass du dich mit einem Konto anmeldest, das `User.ReadWrite.All` Berechtigung hat
+- Stelle sicher, dass du dich mit einem Konto anmeldest, das `User.ReadWrite.All` und `Organization.Read.All` Berechtigung hat
 - Die Authentifizierung wird für spätere Ausführungen gespeichert
+
+### Lizenzzuweisung funktioniert nicht
+- Prüfe, ob A3-Lizenzen im Tenant verfügbar sind
+- Stelle sicher, dass genügend Lizenzen vorhanden sind
+- Prüfe die Logs für detaillierte Fehlermeldungen zur Lizenzzuweisung
 
 ### ANSI-Escape-Codes in den Logs
 - Die App filtert automatisch ANSI-Farbcodes aus den Logs

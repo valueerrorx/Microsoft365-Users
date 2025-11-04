@@ -1,7 +1,7 @@
 {
-  "name": "ms365-password-tool",
+  "name": "ms365-user-tool",
   "version": "1.0.0",
-  "description": "MS-365 Password Update Tool",
+  "description": "MS-365 User Creation/Update Tool",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -11,8 +11,8 @@
   "author": "valueerror",
   "license": "ISC",
   "build": {
-    "appId": "eu.life-edu.ms365passwordtool",
-    "productName": "MS-365 Password Update Tool",
+    "appId": "eu.life-edu.ms365usertool",
+    "productName": "MS-365 User Creation/Update Tool",
     "icon": "icon.png",
     "linux": {
       "target": "AppImage",

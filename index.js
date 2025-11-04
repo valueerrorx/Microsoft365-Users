@@ -18,7 +18,7 @@ let csvData = [] // In-memory CSV entries
 function createWindow() {
     win = new BrowserWindow({
         title: "Passwort-Update Tool", // Title
-        width: 760, // Width
+        width: 860, // Width
         height: 700, // Height
         icon: path.join(__dirname, 'icon.png'), // Icon
         webPreferences:{ preload: path.join(__dirname, 'preload.js') } // Preload script
@@ -73,39 +73,112 @@ function uiSend(channel, payload) {
 }
 
 // ===================== CSV Import & Editor =====================
+// Normalisiere String für UPN (lowercase, alle Sonderzeichen ersetzen)
+function normalizeForUPN(text) {
+  if (!text) return ''
+  let str = String(text)
+  
+  // Ersetze zuerst alle Sonderzeichen (auch Großbuchstaben-Varianten)
+  // Deutsche Umlaute
+  str = str.replace(/[äÄ]/g, 'ae')
+  str = str.replace(/[öÖ]/g, 'oe')
+  str = str.replace(/[üÜ]/g, 'ue')
+  str = str.replace(/[ß]/g, 'ss')
+  // Französische/Italienische Akzente
+  str = str.replace(/[àáâãÀÁÂÃ]/g, 'a')
+  str = str.replace(/[èéêëÈÉÊË]/g, 'e')
+  str = str.replace(/[ìíîïÌÍÎÏ]/g, 'i')
+  str = str.replace(/[òóôõÒÓÔÕ]/g, 'o')
+  str = str.replace(/[ùúûÙÚÛ]/g, 'u')
+  str = str.replace(/[ýÿÝŸ]/g, 'y')
+  str = str.replace(/[çÇ]/g, 'c')
+  str = str.replace(/[ñÑ]/g, 'n')
+  
+  // Dann zu lowercase konvertieren
+  str = str.toLowerCase()
+  
+  // Zum Schluss alle verbleibenden Sonderzeichen entfernen (außer a-z, 0-9, Punkt)
+  str = str.replace(/[^a-z0-9.]/g, '')
+  
+  return str
+}
+
 function parseCsvText(text) {
   const lines = String(text).split(/\r?\n/).filter(l => l.trim().length > 0)
   if (lines.length === 0) return []
   const header = lines[0]
   // Detect delimiter (comma or semicolon)
   const delimiter = header.includes(';') && !header.includes(',') ? ';' : ','
-  const [h1, h2, h3] = header.split(delimiter).map(h => h.trim())
-  const mapIndex = {
-    upn: h1,
-    pwd: h2,
-    force: h3
-  }
+  const headerParts = header.split(delimiter).map(h => h.trim().toLowerCase())
+  
   const entries = []
   for (let i = 1; i < lines.length; i++) {
     const parts = lines[i].split(delimiter)
     if (parts.length < 2) continue
-    const upn = (parts[0] || '').trim()
-    const pwd = (parts[1] || '').trim()
-    const forceRaw = (parts[2] || '').trim()
-    if (!upn) continue
-    entries.push({ userPrincipalName: upn, newPassword: pwd, forceChange: forceRaw === '1' || /true/i.test(forceRaw) })
+    
+    // Finde Spaltenindizes basierend auf Header
+    const getIndex = (names) => {
+      for (const name of names) {
+        const idx = headerParts.findIndex(h => h.includes(name.toLowerCase()))
+        if (idx !== -1) return idx
+      }
+      return -1
+    }
+    
+    const vornameIdx = getIndex(['vorname', 'givenname', 'firstname'])
+    const nachnameIdx = getIndex(['nachname', 'surname', 'lastname'])
+    const vornameNormIdx = getIndex(['vornamenormalized'])
+    const nachnameNormIdx = getIndex(['nachnamenormalized'])
+    const abteilungIdx = getIndex(['abteilung', 'department'])
+    const userTypeIdx = getIndex(['usertype', 'type'])
+    const pwdIdx = getIndex(['newpassword', 'password', 'passwort'])
+    const forceIdx = getIndex(['forcechange', 'force'])
+    
+    const vorname = vornameIdx >= 0 ? (parts[vornameIdx] || '').trim() : ''
+    const nachname = nachnameIdx >= 0 ? (parts[nachnameIdx] || '').trim() : ''
+    const abteilung = abteilungIdx >= 0 ? (parts[abteilungIdx] || '').trim() : ''
+    const userType = userTypeIdx >= 0 ? (parts[userTypeIdx] || '').trim() : 'Schüler'
+    const pwd = pwdIdx >= 0 ? (parts[pwdIdx] || '').trim() : ''
+    const forceRaw = forceIdx >= 0 ? (parts[forceIdx] || '').trim() : ''
+    
+    // Wenn Vorname oder Nachname fehlt, überspringe Eintrag
+    if (!vorname || !nachname) continue
+    
+    // Verwende normalisierte Werte aus CSV falls vorhanden, sonst normalisiere selbst
+    let normalizedVorname = vornameNormIdx >= 0 ? (parts[vornameNormIdx] || '').trim() : ''
+    let normalizedNachname = nachnameNormIdx >= 0 ? (parts[nachnameNormIdx] || '').trim() : ''
+    
+    if (!normalizedVorname) normalizedVorname = normalizeForUPN(vorname)
+    if (!normalizedNachname) normalizedNachname = normalizeForUPN(nachname)
+    
+    entries.push({
+      vorname,
+      nachname,
+      vornameNormalized: normalizedVorname,
+      nachnameNormalized: normalizedNachname,
+      abteilung,
+      userType: userType || 'Schüler',
+      newPassword: pwd,
+      forceChange: forceRaw === '1' || /true/i.test(forceRaw)
+    })
   }
   return entries
 }
 
 function toSemicolonCsv(entries) {
-  const lines = ['UserPrincipalName;NewPassword;ForceChange']
+  // CSV enthält auch die normalisierten Werte für PowerShell-Skript
+  const lines = ['Vorname;Nachname;VornameNormalized;NachnameNormalized;Abteilung;UserType;NewPassword;ForceChange']
   for (const e of entries) {
     const force = e.forceChange ? '1' : '0'
-    const upn = e.userPrincipalName ?? ''
-    const pwd = e.newPassword ?? ''
-    // Basic escaping: replace semicolons to avoid delimiter breakage
-    lines.push(`${String(upn).replaceAll(';', ',')};${String(pwd).replaceAll(';', ',')};${force}`)
+    const vorname = String(e.vorname || '').replaceAll(';', ',')
+    const nachname = String(e.nachname || '').replaceAll(';', ',')
+    // Normalisiere falls nicht bereits vorhanden
+    const vornameNorm = e.vornameNormalized || normalizeForUPN(e.vorname || '')
+    const nachnameNorm = e.nachnameNormalized || normalizeForUPN(e.nachname || '')
+    const abteilung = String(e.abteilung || '').replaceAll(';', ',')
+    const userType = String(e.userType || 'Schüler').replaceAll(';', ',')
+    const pwd = String(e.newPassword || '').replaceAll(';', ',')
+    lines.push(`${vorname};${nachname};${vornameNorm};${nachnameNorm};${abteilung};${userType};${pwd};${force}`)
   }
   return lines.join('\n')
 }
@@ -118,8 +191,9 @@ function openCsvEditorWindow() {
   }
   csvEditorWindow = new BrowserWindow({
     title: 'CSV bearbeiten',
-    width: 800,
+    width: 1200,
     height: 600,
+    minWidth: 1200,
     webPreferences:{ preload: path.join(__dirname, 'preload.js') }
   })
   csvEditorWindow.loadFile('editor.html')
@@ -137,7 +211,51 @@ ipcMain.handle('open-csv-dialog', async () => {
     return { status: 'cancelled' }
   }
   try {
-    const content = await fs.readFile(filePaths[0], 'utf8')
+    // Lese Datei als Buffer für Encoding-Erkennung
+    const buffer = await fs.readFile(filePaths[0])
+    let content = null
+    
+    // Prüfe auf UTF-8 BOM
+    if (buffer.length >= 3 && buffer[0] === 0xEF && buffer[1] === 0xBB && buffer[2] === 0xBF) {
+      // UTF-8 mit BOM
+      content = buffer.slice(3).toString('utf8')
+    } else {
+      // Versuche verschiedene Encodings
+      // Excel/Windows speichert CSV oft als Windows-1252 (ähnlich Latin-1), nicht UTF-8
+      const encodings = [
+        { name: 'latin1', func: () => buffer.toString('latin1') }, // Windows-1252 ist fast identisch zu Latin-1
+        { name: 'utf8', func: () => buffer.toString('utf8') }
+      ]
+      
+      // Versuche jedes Encoding und prüfe auf gültige deutsche Umlaute
+      for (const encoding of encodings) {
+        try {
+          const testContent = encoding.func()
+          // Prüfe auf ungültige UTF-8 Replacement Characters
+          if (encoding.name === 'utf8' && testContent.includes('\uFFFD')) {
+            continue // Ungültiges UTF-8, versuche nächstes Encoding
+          }
+          // Prüfe ob deutsche Umlaute korrekt vorhanden sind
+          // Wenn wir "ö", "ä", "ü" oder deren Großbuchstaben finden, ist das Encoding wahrscheinlich richtig
+          const hasGermanChars = /[öäüÖÄÜß]/.test(testContent)
+          if (hasGermanChars || encoding.name === 'latin1') {
+            // Latin-1 bevorzugen wenn es deutsche Zeichen gibt (typisch für Windows CSV)
+            content = testContent
+            if (hasGermanChars && encoding.name === 'latin1') {
+              break // Latin-1 ist wahrscheinlich richtig wenn deutsche Zeichen gefunden wurden
+            }
+          }
+        } catch (e) {
+          continue
+        }
+      }
+      
+      // Fallback: UTF-8 wenn nichts funktioniert
+      if (!content) {
+        content = buffer.toString('utf8')
+      }
+    }
+    
     csvData = parseCsvText(content)
     return { status: 'ok', count: csvData.length }
   } catch (e) {
@@ -156,12 +274,21 @@ ipcMain.handle('get-csv-data', async () => {
 
 ipcMain.handle('set-csv-data', async (_event, data) => {
   if (!Array.isArray(data)) return { status: 'error', message: 'Invalid data' }
-  // Normalize fields
-  csvData = data.map(e => ({
-    userPrincipalName: String(e.userPrincipalName || '').trim(),
-    newPassword: String(e.newPassword || ''),
-    forceChange: Boolean(e.forceChange)
-  })).filter(e => e.userPrincipalName)
+  // Normalize fields und normalisiere Vorname/Nachname für UPN
+  csvData = data.map(e => {
+    const vorname = String(e.vorname || '').trim()
+    const nachname = String(e.nachname || '').trim()
+    return {
+      vorname,
+      nachname,
+      vornameNormalized: normalizeForUPN(vorname),
+      nachnameNormalized: normalizeForUPN(nachname),
+      abteilung: String(e.abteilung || '').trim(),
+      userType: String(e.userType || 'Schüler').trim(),
+      newPassword: String(e.newPassword || ''),
+      forceChange: Boolean(e.forceChange)
+    }
+  }).filter(e => e.vorname && e.nachname) // Mindestens Vorname und Nachname müssen vorhanden sein
   return { status: 'ok', count: csvData.length }
 })
 
@@ -172,9 +299,11 @@ ipcMain.handle('run-password-update', async () => {
       return { status: 'error', message: 'Keine CSV-Daten geladen' }
     }
     // Write temp semicolon-separated CSV to match PowerShell script expectations
+    // UTF-8 mit BOM für PowerShell-Kompatibilität
     const tmpDir = os.tmpdir()
     const tmpCsv = path.join(tmpDir, `user-passwords-${Date.now()}.csv`)
-    await fs.writeFile(tmpCsv, toSemicolonCsv(csvData), 'utf8')
+    const csvContent = '\uFEFF' + toSemicolonCsv(csvData) // UTF-8 BOM hinzufügen
+    await fs.writeFile(tmpCsv, csvContent, 'utf8')
 
     // Copy script to temp dir with adjusted CSV path via env var or working directory
     const scriptPath = path.join(__dirname, 'update-user-passwords.ps1')
