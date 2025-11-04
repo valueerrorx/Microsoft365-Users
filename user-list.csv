@@ -1,0 +1,4 @@
+Vorname;Nachname;Abteilung;UserType;NewPassword;ForceChange
+demo;test1;2025;Schüler;#Europa123;0
+demiè;test2;2025;Schüler;#Europa123;0
+demö;test3;2025;Schüler;#Europa123;0
