@@ -305,8 +305,24 @@ ipcMain.handle('run-password-update', async () => {
     const csvContent = '\uFEFF' + toSemicolonCsv(csvData) // UTF-8 BOM hinzufügen
     await fs.writeFile(tmpCsv, csvContent, 'utf8')
 
-    // Copy script to temp dir with adjusted CSV path via env var or working directory
-    const scriptPath = path.join(__dirname, 'update-user-passwords.ps1')
+    // Get script path - use app.getAppPath() for AppImage compatibility
+    // In AppImages, __dirname may not work correctly
+    const appPath = app.isPackaged ? app.getAppPath() : __dirname
+    const scriptPathSource = path.join(appPath, 'update-user-passwords.ps1')
+    
+    // Copy script to temp dir to ensure it's accessible in AppImage
+    const scriptPath = path.join(tmpDir, `update-user-passwords-${Date.now()}.ps1`)
+    try {
+      await fs.copyFile(scriptPathSource, scriptPath)
+    } catch (err) {
+      // Fallback: try __dirname if app.getAppPath() doesn't work
+      const fallbackPath = path.join(__dirname, 'update-user-passwords.ps1')
+      try {
+        await fs.copyFile(fallbackPath, scriptPath)
+      } catch (err2) {
+        return { status: 'error', message: `PowerShell-Skript nicht gefunden: ${err.message}` }
+      }
+    }
 
     // Detect PowerShell command (pwsh or powershell)
     const powershellCmd = (() => {
@@ -379,11 +395,13 @@ ipcMain.handle('run-password-update', async () => {
     return await new Promise((resolve) => {
       pwsh.on('exit', async (code) => {
         try { await fs.unlink(tmpCsv) } catch {}
+        try { await fs.unlink(scriptPath) } catch {}
         uiSend('pwsh-complete', { status: code === 0 ? 'success' : 'error', failedUsers: Array.from(failedUsers), exitCode: code })
         resolve({ status: code === 0 ? 'ok' : 'failed', failedUsers: Array.from(failedUsers) })
       })
       pwsh.on('error', async (err) => {
         try { await fs.unlink(tmpCsv) } catch {}
+        try { await fs.unlink(scriptPath) } catch {}
         uiSend('pwsh-complete', { status: 'error', message: err?.message || String(err), failedUsers: [] })
         resolve({ status: 'error', message: err?.message || String(err) })
       })

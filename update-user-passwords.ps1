@@ -66,14 +66,11 @@ $teacherLicenseSkuId = $null
 
 try {
     $subscribedSkus = Get-MgSubscribedSku
-    Write-Host "Verfügbare Lizenzen im Tenant:" -ForegroundColor Cyan
+    # Lizenzen werden intern gespeichert, aber nicht in Logs ausgegeben
     foreach ($sku in $subscribedSkus) {
         $skuPartNumber = $sku.SkuPartNumber
         $consumedUnits = $sku.ConsumedUnits
         $prepaidUnits = $sku.PrepaidUnits
-        
-        # Zeige alle Lizenzen an (nicht nur A3) zur Debugging
-        Write-Host "  - $skuPartNumber (SKU ID: $($sku.SkuId), Consumed: $consumedUnits/$($prepaidUnits.Total))" -ForegroundColor Gray
         
         # Suche nach Schüler-Lizenz - verschiedene mögliche Namen
         # Typische Namen: M365EDU_A3_STUDENTUSEQTY, M365EDU_A3_STU, etc.
@@ -84,7 +81,7 @@ try {
                 $skuPartNumber -like "*STUDENT*A3*" -or
                 ($skuPartNumber -like "*A3*" -and $skuPartNumber -like "*STU*" -and $skuPartNumber -notlike "*FACULTY*")) {
                 $studentLicenseSkuId = $sku.SkuId
-                Write-Host "Schüler-Lizenz gefunden: $skuPartNumber (SKU ID: $studentLicenseSkuId)" -ForegroundColor Green
+                Write-Host "Schüler-Lizenz gefunden: $skuPartNumber" -ForegroundColor Green
             }
         }
         
@@ -97,12 +94,10 @@ try {
                 $skuPartNumber -like "*FACULTY*A3*" -or
                 ($skuPartNumber -like "*A3*" -and $skuPartNumber -like "*FAC*" -and $skuPartNumber -notlike "*STUDENT*")) {
                 $teacherLicenseSkuId = $sku.SkuId
-                Write-Host "Lehrer-Lizenz gefunden: $skuPartNumber (SKU ID: $teacherLicenseSkuId)" -ForegroundColor Green
+                Write-Host "Lehrer-Lizenz gefunden: $skuPartNumber" -ForegroundColor Green
             }
         }
     }
-    
-    Write-Host "" # Leerzeile
     
     if ($null -eq $studentLicenseSkuId) {
         Write-Host "Warnung: Keine Schüler-Lizenz gefunden! Bitte prüfe die SKU-PartNumbers oben." -ForegroundColor Yellow
