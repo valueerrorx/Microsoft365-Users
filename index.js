@@ -3,7 +3,7 @@ import os from 'os'
 import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { spawn, execSync } from 'child_process'
+import { spawn, execSync, spawnSync } from 'child_process'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -20,10 +20,10 @@ function createWindow() {
   win = new BrowserWindow({
     title: 'MS365 User Management',
     icon: path.join(__dirname, 'icon.png'),
-    width: 1280,
-    height: 800,
-    minWidth: 1024,
-    minHeight: 600,
+    width: 1600,
+    height: 940,
+    minWidth: 1600,
+    minHeight: 940,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       spellcheck: false
@@ -32,7 +32,6 @@ function createWindow() {
 
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
-    win.webContents.openDevTools()
   } else {
     const indexPath = path.join(
       app.isPackaged ? app.getAppPath() : __dirname,
@@ -80,6 +79,18 @@ function detectPowerShell() {
   try { execSync('where.exe pwsh', { stdio: 'ignore' }); return 'pwsh' } catch {}
   try { execSync('which powershell', { stdio: 'ignore' }); return 'powershell' } catch {}
   return 'pwsh'
+}
+
+/** On Linux/macOS: true if pwsh runs; Windows always returns shouldWarn: false. */
+function checkPwshForDashboard() {
+  if (process.platform === 'win32') return { shouldWarn: false }
+  const r = spawnSync('pwsh', ['-NoLogo', '-NoProfile', '-Command', 'exit 0'], {
+    stdio: 'ignore',
+    timeout: 15000,
+    windowsHide: true
+  })
+  const ok = r.status === 0 && !r.error
+  return { shouldWarn: !ok }
 }
 
 async function getScriptPath(scriptRelPath) {
@@ -270,6 +281,10 @@ function toSemicolonCsv(entries) {
   }
   return lines.join('\n')
 }
+
+// ===================== IPC: Environment =====================
+
+ipcMain.handle('check-pwsh', async () => checkPwshForDashboard())
 
 // ===================== IPC: CSV Import =====================
 

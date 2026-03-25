@@ -12,6 +12,19 @@
       </button>
     </div>
 
+    <!-- PowerShell Core missing (Linux/macOS) -->
+    <div v-if="pwshWarning" class="p-3 rounded mb-4 d-flex align-items-start gap-3" style="background:rgba(210,153,34,0.12);border:1px solid rgba(210,153,34,0.35);color:#e6edf3;" role="alert">
+      <i class="bi bi-exclamation-triangle-fill fs-5 mt-1" style="flex-shrink:0;color:#d29922;"></i>
+      <div>
+        <strong style="color:#d29922;">PowerShell Core (<code class="text-light">pwsh</code>) nicht gefunden</strong>
+        <p class="mb-0 mt-1" style="font-size:0.85rem;color:#8b949e;">
+          Auf Linux und macOS muss PowerShell installiert und im <code class="text-secondary">PATH</code> sein (z.&nbsp;B. Paketmanager oder
+          <a href="https://learn.microsoft.com/powershell/scripting/install/installing-powershell" target="_blank" rel="noopener noreferrer" class="link-light">Microsoft-Dokumentation</a>).
+          Ohne <code class="text-secondary">pwsh</code> funktionieren MS365-Aktionen nicht.
+        </p>
+      </div>
+    </div>
+
     <!-- Connection Alert -->
     <div v-if="!authStore.connected && !usersStore.loading && !usersStore.users.length" class="alert-dark-info p-3 rounded mb-4 d-flex align-items-start gap-3">
       <i class="bi bi-info-circle-fill fs-5 mt-1" style="flex-shrink:0"></i>
@@ -186,7 +199,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useUsersStore } from '../stores/usersStore'
 import { humanLicenseLabel } from '../utils/licenseLabel.js'
@@ -196,6 +209,16 @@ const usersStore = useUsersStore()
 
 const defaultLicenseCount = 6
 const showAllLicenses = ref(false)
+const pwshWarning = ref(false)
+
+onMounted(async () => {
+  try {
+    const r = await window.ipcRenderer.invoke('check-pwsh')
+    pwshWarning.value = Boolean(r?.shouldWarn)
+  } catch {
+    pwshWarning.value = false
+  }
+})
 
 const displayedLicenses = computed(() => {
   const list = usersStore.licenses || []

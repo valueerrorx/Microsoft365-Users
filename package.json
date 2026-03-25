@@ -1,5 +1,5 @@
 {
-  "name": "ms365-user-tool",
+  "name": "microsoft365-users",
   "version": "2.0.0",
   "description": "MS-365 User Management Dashboard",
   "main": "index.js",
@@ -11,11 +11,11 @@
     "build:renderer": "vite build",
     "build": "npm run build:renderer && electron-builder"
   },
-  "author": "valueerror",
+  "author": "Thomas Michael Weissel <valueerror@gmail.com>",
   "license": "ISC",
   "build": {
-    "appId": "eu.life-edu.ms365usertool",
-    "productName": "MS-365-User-Tool",
+    "appId": "eu.life-edu.microsoft365users",
+    "productName": "Microsoft365Users",
     "icon": "icon.png",
     "files": [
       "dist/**/*",
@@ -27,13 +27,72 @@
     ],
     "linux": {
       "target": "AppImage",
-      "category": "Utility"
+      "icon": "icon.png",
+      "category": "Utility",
+      "synopsis": "Microsoft 365 Benutzer- und Lizenzverwaltung",
+      "description": "MS-365 User Management Dashboard",
+      "maintainer": "Thomas Michael Weissel <valueerror@gmail.com>",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "desktop": {
+        "StartupWMClass": "microsoft365-users"
+      }
     },
     "win": {
-      "target": "nsis"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "icon.png",
+      "artifactName": "${productName}-${version}-Setup-${arch}.${ext}",
+      "publisherName": "Thomas Michael Weissel <valueerror@gmail.com>"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Microsoft 365 Users",
+      "menuCategory": "Microsoft 365",
+      "installerIcon": "icon.png",
+      "uninstallerIcon": "icon.png",
+      "installerHeaderIcon": "icon.png",
+      "deleteAppDataOnUninstall": false,
+      "differentialPackage": false
     },
     "mac": {
-      "target": "dmg"
+      "category": "public.app-category.utilities",
+      "icon": "icon.png",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "target": [
+        "dmg"
+      ],
+      "darkModeSupport": true
+    },
+    "dmg": {
+      "title": "${productName} ${version}",
+      "icon": "icon.png",
+      "window": {
+        "width": 540,
+        "height": 380
+      },
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
     }
   },
   "devDependencies": {
