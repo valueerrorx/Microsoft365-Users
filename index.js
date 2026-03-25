@@ -1,34 +1,48 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron' // Electron core modules
-import os from 'os' // OS utilities
-import fs from 'fs/promises' // Promise-based FS API
-import path from 'path' // Path utilities
-import { fileURLToPath } from 'url' // ESM helpers
-import { spawn, execSync } from 'child_process' // Process spawning
+import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import os from 'os'
+import fs from 'fs/promises'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import { spawn, execSync } from 'child_process'
 
-const __filename = fileURLToPath(import.meta.url) // Current file path
-const __dirname = path.dirname(__filename) // Current dir path
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
-let win // BrowserWindow ref
-let authWindow = null // (unused placeholder for potential extra windows)
-let isQuitting = false // App shutdown flag
-let csvData = [] // In-memory CSV entries
+const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 
-// (OneDrive-specific configuration removed)
+let win
+let isQuitting = false
+let csvData = []
+
+// ===================== Window Management =====================
 
 function createWindow() {
-    win = new BrowserWindow({
-        title: "Passwort-Update Tool", // Title
-        width: 860, // Width
-        height: 700, // Height
-        icon: path.join(__dirname, 'icon.png'), // Icon
-        webPreferences:{ preload: path.join(__dirname, 'preload.js') } // Preload script
-    })
+  win = new BrowserWindow({
+    title: 'MS365 User Management',
+    icon: path.join(__dirname, 'icon.png'),
+    width: 1280,
+    height: 800,
+    minWidth: 1024,
+    minHeight: 600,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      spellcheck: false
+    }
+  })
 
-    win.loadFile('index.html') // Load UI
-    win.removeMenu() // Hide menu
+  if (VITE_DEV_SERVER_URL) {
+    win.loadURL(VITE_DEV_SERVER_URL)
+    win.webContents.openDevTools()
+  } else {
+    const indexPath = path.join(
+      app.isPackaged ? app.getAppPath() : __dirname,
+      'dist', 'index.html'
+    )
+    win.loadFile(indexPath)
+  }
+  win.removeMenu()
 }
 
-// Enforce single-instance behavior; on second start, focus/show existing window
 const gotTheLock = app.requestSingleInstanceLock()
 if (!gotTheLock) {
   app.quit()
@@ -39,30 +53,15 @@ if (!gotTheLock) {
         if (win.isMinimized()) win.restore()
         win.show()
         win.focus()
-      } else {
-        // In rare cases, recreate if no window exists yet
-        createWindow()
       }
     } catch {}
   })
 }
 
-app.whenReady().then(() => { createWindow() }) // Init app
+app.whenReady().then(() => { createWindow() })
+app.on('window-all-closed', () => { app.quit() })
+app.on('before-quit', async () => { isQuitting = true })
 
-// Quit the app when all windows are closed (including on macOS for simplicity)
-app.on('window-all-closed', () => {
-  app.quit()
-})
-
-// Cleanup beim Beenden
-app.on('before-quit', async () => {
-  isQuitting = true
-  if (authWindow) {
-    authWindow.close()
-  }
-})
-
-// Safe UI sender
 function uiSend(channel, payload) {
   if (isQuitting) return
   try {
@@ -72,90 +71,155 @@ function uiSend(channel, payload) {
   } catch {}
 }
 
-// ===================== CSV Import & Editor =====================
-// Normalisiere String für UPN (lowercase, alle Sonderzeichen ersetzen)
+// ===================== PowerShell Utilities =====================
+
+const stripAnsi = (t) => t.replace(/\x1b\[[0-9;]*[mGK]/g, '').replace(/\x1b\[[0-9;]*[HJ]/g, '')
+
+function detectPowerShell() {
+  try { execSync('which pwsh', { stdio: 'ignore' }); return 'pwsh' } catch {}
+  try { execSync('where.exe pwsh', { stdio: 'ignore' }); return 'pwsh' } catch {}
+  try { execSync('which powershell', { stdio: 'ignore' }); return 'powershell' } catch {}
+  return 'pwsh'
+}
+
+async function getScriptPath(scriptRelPath) {
+  const appPath = app.isPackaged ? app.getAppPath() : __dirname
+  const tmpScript = path.join(os.tmpdir(), `ms365-${Date.now()}-${path.basename(scriptRelPath)}`)
+  const candidates = [
+    path.join(appPath, scriptRelPath),
+    path.join(__dirname, scriptRelPath)
+  ]
+  for (const src of candidates) {
+    try {
+      await fs.copyFile(src, tmpScript)
+      return tmpScript
+    } catch {}
+  }
+  throw new Error(`Skript nicht gefunden: ${scriptRelPath}`)
+}
+
+async function runPsScript(scriptRelPath, args = [], onLog = null) {
+  let tmpScript = null
+  try {
+    tmpScript = await getScriptPath(scriptRelPath)
+  } catch (err) {
+    return { exitCode: -1, stdout: '', stderr: err.message }
+  }
+
+  const psCmd = detectPowerShell()
+  const env = {
+    ...process.env,
+    POWERSHELL_UPDATECHECK: 'Off',
+    POWERSHELL_TELEMETRY_OPTOUT: '1'
+  }
+
+  return new Promise((resolve) => {
+    let stdout = ''
+    let stderr = ''
+    const ps = spawn(
+      psCmd,
+      ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', tmpScript, ...args],
+      { cwd: path.dirname(tmpScript), env }
+    )
+
+    ps.stdout?.on('data', (d) => {
+      const text = d.toString()
+      stdout += text
+      if (onLog) {
+        for (const line of text.split(/\r?\n/)) {
+          const clean = stripAnsi(line.trim())
+          if (clean && !clean.includes('###JSON_')) onLog({ type: 'info', message: clean })
+        }
+      }
+    })
+
+    ps.stderr?.on('data', (d) => {
+      const text = d.toString()
+      stderr += text
+      if (onLog) {
+        for (const line of text.split(/\r?\n/)) {
+          const clean = stripAnsi(line.trim())
+          if (clean) onLog({ type: 'error', message: clean })
+        }
+      }
+    })
+
+    ps.on('exit', async (code) => {
+      try { if (tmpScript) await fs.unlink(tmpScript) } catch {}
+      resolve({ exitCode: code, stdout: stdout.trim(), stderr: stderr.trim() })
+    })
+
+    ps.on('error', async (err) => {
+      try { if (tmpScript) await fs.unlink(tmpScript) } catch {}
+      resolve({ exitCode: -1, stdout: '', stderr: err.message })
+    })
+  })
+}
+
+function parseJsonFromOutput(stdout) {
+  const match = stdout.match(/###JSON_START###\r?\n([\s\S]*?)\r?\n###JSON_END###/)
+  if (match) {
+    try { return JSON.parse(match[1]) } catch {}
+  }
+  try { return JSON.parse(stdout) } catch {}
+  return null
+}
+
+// ===================== CSV Utilities =====================
+
 function normalizeForUPN(text) {
   if (!text) return ''
-  let str = String(text)
-  
-  // Ersetze zuerst alle Sonderzeichen (auch Großbuchstaben-Varianten)
-  // Deutsche Umlaute
-  str = str.replace(/[äÄ]/g, 'ae')
-  str = str.replace(/[öÖ]/g, 'oe')
-  str = str.replace(/[üÜ]/g, 'ue')
-  str = str.replace(/[ß]/g, 'ss')
-  // Französische/Italienische Akzente
-  str = str.replace(/[àáâãÀÁÂÃ]/g, 'a')
-  str = str.replace(/[èéêëÈÉÊË]/g, 'e')
-  str = str.replace(/[ìíîïÌÍÎÏ]/g, 'i')
-  str = str.replace(/[òóôõÒÓÔÕ]/g, 'o')
-  str = str.replace(/[ùúûÙÚÛ]/g, 'u')
-  str = str.replace(/[ýÿÝŸ]/g, 'y')
-  str = str.replace(/[çÇ]/g, 'c')
-  str = str.replace(/[ñÑ]/g, 'n')
-  
-  // Dann zu lowercase konvertieren
-  str = str.toLowerCase()
-  
-  // Zum Schluss alle verbleibenden Sonderzeichen entfernen (außer a-z, 0-9, Punkt)
-  str = str.replace(/[^a-z0-9.]/g, '')
-  
-  return str
+  let s = String(text)
+  s = s.replace(/[äÄ]/g, 'ae').replace(/[öÖ]/g, 'oe').replace(/[üÜ]/g, 'ue').replace(/[ß]/g, 'ss')
+  s = s.replace(/[àáâãÀÁÂÃ]/g, 'a').replace(/[èéêëÈÉÊË]/g, 'e').replace(/[ìíîïÌÍÎÏ]/g, 'i')
+  s = s.replace(/[òóôõÒÓÔÕ]/g, 'o').replace(/[ùúûÙÚÛ]/g, 'u').replace(/[ýÿÝŸ]/g, 'y')
+  s = s.replace(/[çÇ]/g, 'c').replace(/[ñÑ]/g, 'n')
+  return s.toLowerCase().replace(/[^a-z0-9.]/g, '')
 }
 
 function parseCsvText(text) {
   const lines = String(text).split(/\r?\n/).filter(l => l.trim().length > 0)
   if (lines.length === 0) return []
   const header = lines[0]
-  // Detect delimiter (comma or semicolon)
   const delimiter = header.includes(';') && !header.includes(',') ? ';' : ','
   const headerParts = header.split(delimiter).map(h => h.trim().toLowerCase())
-  
+
+  const getIdx = (names) => {
+    for (const n of names) {
+      const i = headerParts.findIndex(h => h.includes(n.toLowerCase()))
+      if (i !== -1) return i
+    }
+    return -1
+  }
+
   const entries = []
   for (let i = 1; i < lines.length; i++) {
     const parts = lines[i].split(delimiter)
     if (parts.length < 2) continue
-    
-    // Finde Spaltenindizes basierend auf Header
-    const getIndex = (names) => {
-      for (const name of names) {
-        const idx = headerParts.findIndex(h => h.includes(name.toLowerCase()))
-        if (idx !== -1) return idx
-      }
-      return -1
-    }
-    
-    const vornameIdx = getIndex(['vorname', 'givenname', 'firstname'])
-    const nachnameIdx = getIndex(['nachname', 'surname', 'lastname'])
-    const vornameNormIdx = getIndex(['vornamenormalized'])
-    const nachnameNormIdx = getIndex(['nachnamenormalized'])
-    const abteilungIdx = getIndex(['abteilung', 'department'])
-    const userTypeIdx = getIndex(['usertype', 'type'])
-    const pwdIdx = getIndex(['newpassword', 'password', 'passwort'])
-    const forceIdx = getIndex(['forcechange', 'force'])
-    
-    const vorname = vornameIdx >= 0 ? (parts[vornameIdx] || '').trim() : ''
-    const nachname = nachnameIdx >= 0 ? (parts[nachnameIdx] || '').trim() : ''
-    const abteilung = abteilungIdx >= 0 ? (parts[abteilungIdx] || '').trim() : ''
-    const userType = userTypeIdx >= 0 ? (parts[userTypeIdx] || '').trim() : 'Schüler'
-    const pwd = pwdIdx >= 0 ? (parts[pwdIdx] || '').trim() : ''
-    const forceRaw = forceIdx >= 0 ? (parts[forceIdx] || '').trim() : ''
-    
-    // Wenn Vorname oder Nachname fehlt, überspringe Eintrag
+    const vi = getIdx(['vorname', 'givenname', 'firstname'])
+    const ni = getIdx(['nachname', 'surname', 'lastname'])
+    const vorname = vi >= 0 ? (parts[vi] || '').trim() : ''
+    const nachname = ni >= 0 ? (parts[ni] || '').trim() : ''
     if (!vorname || !nachname) continue
-    
-    // Verwende normalisierte Werte aus CSV falls vorhanden, sonst normalisiere selbst
-    let normalizedVorname = vornameNormIdx >= 0 ? (parts[vornameNormIdx] || '').trim() : ''
-    let normalizedNachname = nachnameNormIdx >= 0 ? (parts[nachnameNormIdx] || '').trim() : ''
-    
-    if (!normalizedVorname) normalizedVorname = normalizeForUPN(vorname)
-    if (!normalizedNachname) normalizedNachname = normalizeForUPN(nachname)
-    
+
+    const vni = getIdx(['vornamenormalized'])
+    const nni = getIdx(['nachnamenormalized'])
+    const ai = getIdx(['abteilung', 'department'])
+    const ti = getIdx(['usertype', 'type'])
+    const pi = getIdx(['newpassword', 'password', 'passwort'])
+    const fi = getIdx(['forcechange', 'force'])
+
+    const abteilung = ai >= 0 ? (parts[ai] || '').trim() : ''
+    const userType = ti >= 0 ? (parts[ti] || '').trim() : 'Schüler'
+    const pwd = pi >= 0 ? (parts[pi] || '').trim() : ''
+    const forceRaw = fi >= 0 ? (parts[fi] || '').trim() : ''
+    const vnorm = vni >= 0 ? (parts[vni] || '').trim() : ''
+    const nnorm = nni >= 0 ? (parts[nni] || '').trim() : ''
+
     entries.push({
-      vorname,
-      nachname,
-      vornameNormalized: normalizedVorname,
-      nachnameNormalized: normalizedNachname,
+      vorname, nachname,
+      vornameNormalized: vnorm || normalizeForUPN(vorname),
+      nachnameNormalized: nnorm || normalizeForUPN(nachname),
       abteilung,
       userType: userType || 'Schüler',
       newPassword: pwd,
@@ -166,40 +230,17 @@ function parseCsvText(text) {
 }
 
 function toSemicolonCsv(entries) {
-  // CSV enthält auch die normalisierten Werte für PowerShell-Skript
   const lines = ['Vorname;Nachname;VornameNormalized;NachnameNormalized;Abteilung;UserType;NewPassword;ForceChange']
   for (const e of entries) {
-    const force = e.forceChange ? '1' : '0'
-    const vorname = String(e.vorname || '').replaceAll(';', ',')
-    const nachname = String(e.nachname || '').replaceAll(';', ',')
-    // Normalisiere falls nicht bereits vorhanden
-    const vornameNorm = e.vornameNormalized || normalizeForUPN(e.vorname || '')
-    const nachnameNorm = e.nachnameNormalized || normalizeForUPN(e.nachname || '')
-    const abteilung = String(e.abteilung || '').replaceAll(';', ',')
-    const userType = String(e.userType || 'Schüler').replaceAll(';', ',')
-    const pwd = String(e.newPassword || '').replaceAll(';', ',')
-    lines.push(`${vorname};${nachname};${vornameNorm};${nachnameNorm};${abteilung};${userType};${pwd};${force}`)
+    const esc = (s) => String(s || '').replaceAll(';', ',')
+    const vn = e.vornameNormalized || normalizeForUPN(e.vorname || '')
+    const nn = e.nachnameNormalized || normalizeForUPN(e.nachname || '')
+    lines.push(`${esc(e.vorname)};${esc(e.nachname)};${vn};${nn};${esc(e.abteilung)};${esc(e.userType)};${esc(e.newPassword)};${e.forceChange ? '1' : '0'}`)
   }
   return lines.join('\n')
 }
 
-let csvEditorWindow = null
-function openCsvEditorWindow() {
-  if (csvEditorWindow && !csvEditorWindow.isDestroyed()) {
-    csvEditorWindow.focus()
-    return
-  }
-  csvEditorWindow = new BrowserWindow({
-    title: 'CSV bearbeiten',
-    width: 1200,
-    height: 600,
-    minWidth: 1200,
-    webPreferences:{ preload: path.join(__dirname, 'preload.js') }
-  })
-  csvEditorWindow.loadFile('editor.html')
-  csvEditorWindow.removeMenu()
-  csvEditorWindow.on('closed', () => { csvEditorWindow = null })
-}
+// ===================== IPC: CSV Import =====================
 
 ipcMain.handle('open-csv-dialog', async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog(win, {
@@ -207,55 +248,16 @@ ipcMain.handle('open-csv-dialog', async () => {
     properties: ['openFile'],
     filters: [{ name: 'CSV', extensions: ['csv'] }]
   })
-  if (canceled || !filePaths || filePaths.length === 0) {
-    return { status: 'cancelled' }
-  }
+  if (canceled || !filePaths?.length) return { status: 'cancelled' }
   try {
-    // Lese Datei als Buffer für Encoding-Erkennung
     const buffer = await fs.readFile(filePaths[0])
-    let content = null
-    
-    // Prüfe auf UTF-8 BOM
+    let content
     if (buffer.length >= 3 && buffer[0] === 0xEF && buffer[1] === 0xBB && buffer[2] === 0xBF) {
-      // UTF-8 mit BOM
       content = buffer.slice(3).toString('utf8')
     } else {
-      // Versuche verschiedene Encodings
-      // Excel/Windows speichert CSV oft als Windows-1252 (ähnlich Latin-1), nicht UTF-8
-      const encodings = [
-        { name: 'latin1', func: () => buffer.toString('latin1') }, // Windows-1252 ist fast identisch zu Latin-1
-        { name: 'utf8', func: () => buffer.toString('utf8') }
-      ]
-      
-      // Versuche jedes Encoding und prüfe auf gültige deutsche Umlaute
-      for (const encoding of encodings) {
-        try {
-          const testContent = encoding.func()
-          // Prüfe auf ungültige UTF-8 Replacement Characters
-          if (encoding.name === 'utf8' && testContent.includes('\uFFFD')) {
-            continue // Ungültiges UTF-8, versuche nächstes Encoding
-          }
-          // Prüfe ob deutsche Umlaute korrekt vorhanden sind
-          // Wenn wir "ö", "ä", "ü" oder deren Großbuchstaben finden, ist das Encoding wahrscheinlich richtig
-          const hasGermanChars = /[öäüÖÄÜß]/.test(testContent)
-          if (hasGermanChars || encoding.name === 'latin1') {
-            // Latin-1 bevorzugen wenn es deutsche Zeichen gibt (typisch für Windows CSV)
-            content = testContent
-            if (hasGermanChars && encoding.name === 'latin1') {
-              break // Latin-1 ist wahrscheinlich richtig wenn deutsche Zeichen gefunden wurden
-            }
-          }
-        } catch (e) {
-          continue
-        }
-      }
-      
-      // Fallback: UTF-8 wenn nichts funktioniert
-      if (!content) {
-        content = buffer.toString('utf8')
-      }
+      const latin1 = buffer.toString('latin1')
+      content = /[öäüÖÄÜß]/.test(latin1) ? latin1 : buffer.toString('utf8')
     }
-    
     csvData = parseCsvText(content)
     return { status: 'ok', count: csvData.length }
   } catch (e) {
@@ -263,24 +265,15 @@ ipcMain.handle('open-csv-dialog', async () => {
   }
 })
 
-ipcMain.handle('open-csv-editor', async () => {
-  openCsvEditorWindow()
-  return { status: 'ok' }
-})
-
-ipcMain.handle('get-csv-data', async () => {
-  return { status: 'ok', data: csvData }
-})
+ipcMain.handle('get-csv-data', async () => ({ status: 'ok', data: csvData }))
 
 ipcMain.handle('set-csv-data', async (_event, data) => {
   if (!Array.isArray(data)) return { status: 'error', message: 'Invalid data' }
-  // Normalize fields und normalisiere Vorname/Nachname für UPN
   csvData = data.map(e => {
     const vorname = String(e.vorname || '').trim()
     const nachname = String(e.nachname || '').trim()
     return {
-      vorname,
-      nachname,
+      vorname, nachname,
       vornameNormalized: normalizeForUPN(vorname),
       nachnameNormalized: normalizeForUPN(nachname),
       abteilung: String(e.abteilung || '').trim(),
@@ -288,107 +281,59 @@ ipcMain.handle('set-csv-data', async (_event, data) => {
       newPassword: String(e.newPassword || ''),
       forceChange: Boolean(e.forceChange)
     }
-  }).filter(e => e.vorname && e.nachname) // Mindestens Vorname und Nachname müssen vorhanden sein
+  }).filter(e => e.vorname && e.nachname)
   return { status: 'ok', count: csvData.length }
 })
 
-// ===================== PowerShell Execution =====================
+ipcMain.handle('normalize-for-upn', async (_event, text) => normalizeForUPN(text))
+
+// ===================== IPC: Bulk Create/Update =====================
+
 ipcMain.handle('run-password-update', async () => {
   try {
-    if (!csvData || csvData.length === 0) {
+    if (!csvData?.length) {
+      uiSend('pwsh-log', { type: 'error', message: 'FEHLER: Keine CSV-Daten vorhanden. Bitte zuerst Daten hinzufügen.' })
+      uiSend('pwsh-complete', { status: 'error', message: 'Keine CSV-Daten geladen', exitCode: -1, failedUsers: [] })
       return { status: 'error', message: 'Keine CSV-Daten geladen' }
     }
-    // Write temp semicolon-separated CSV to match PowerShell script expectations
-    // UTF-8 mit BOM für PowerShell-Kompatibilität
+
     const tmpDir = os.tmpdir()
     const tmpCsv = path.join(tmpDir, `user-passwords-${Date.now()}.csv`)
-    const csvContent = '\uFEFF' + toSemicolonCsv(csvData) // UTF-8 BOM hinzufügen
-    await fs.writeFile(tmpCsv, csvContent, 'utf8')
+    await fs.writeFile(tmpCsv, '\uFEFF' + toSemicolonCsv(csvData), 'utf8')
 
-    // Get script path - use app.getAppPath() for AppImage compatibility
-    // In AppImages, __dirname may not work correctly
-    const appPath = app.isPackaged ? app.getAppPath() : __dirname
-    const scriptPathSource = path.join(appPath, 'update-user-passwords.ps1')
-    
-    // Copy script to temp dir to ensure it's accessible in AppImage
-    const scriptPath = path.join(tmpDir, `update-user-passwords-${Date.now()}.ps1`)
-    try {
-      await fs.copyFile(scriptPathSource, scriptPath)
-    } catch (err) {
-      // Fallback: try __dirname if app.getAppPath() doesn't work
-      const fallbackPath = path.join(__dirname, 'update-user-passwords.ps1')
-      try {
-        await fs.copyFile(fallbackPath, scriptPath)
-      } catch (err2) {
-        return { status: 'error', message: `PowerShell-Skript nicht gefunden: ${err.message}` }
-      }
+    let scriptPath
+    for (const rel of ['scripts/update-user-passwords.ps1', 'update-user-passwords.ps1']) {
+      try { scriptPath = await getScriptPath(rel); break } catch {}
     }
+    if (!scriptPath) return { status: 'error', message: 'PowerShell-Skript nicht gefunden' }
 
-    // Detect PowerShell command (pwsh or powershell)
-    const powershellCmd = (() => {
-      try { execSync('which pwsh', { stdio: 'ignore' }); return 'pwsh' } catch {}
-      try { execSync('which powershell', { stdio: 'ignore' }); return 'powershell' } catch {}
-      return 'pwsh' // fallback
-    })()
-
-    const env = { 
-      ...process.env,
-      POWERSHELL_UPDATECHECK: 'Off',
-      POWERSHELL_TELEMETRY_OPTOUT: '1',
-      CSV_PATH: tmpCsv  // Übergebe CSV-Pfad als Umgebungsvariable
-    }
+    const psCmd = detectPowerShell()
     const failedUsers = new Set()
-    const pwsh = spawn(powershellCmd, ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, '-CSVPath', tmpCsv], {
-      cwd: path.dirname(tmpCsv),
-      env
+    const env = { ...process.env, POWERSHELL_UPDATECHECK: 'Off', POWERSHELL_TELEMETRY_OPTOUT: '1' }
+
+    const pwsh = spawn(psCmd, ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, '-CSVPath', tmpCsv], {
+      cwd: path.dirname(tmpCsv), env
     })
 
-    const sendLog = (type, message) => uiSend('pwsh-log', { type, message })
-
     const parseFail = (line) => {
-      // Expect lines like: "-> FEHLER ... für <UPN>: <message>"
       const m = /FEHLER.*(?:für|for)\s+([^:\s]+)\s*:/.exec(line)
-      if (m && m[1]) failedUsers.add(m[1])
-    }
-
-    // Remove ANSI escape codes from text
-    const stripAnsiCodes = (text) => {
-      return text.replace(/\x1b\[[0-9;]*[mGK]/g, '').replace(/\x1b\[[0-9;]*[HJ]/g, '')
-    }
-
-    // Filter out PowerShell help messages
-    const isHelpMessage = (line) => {
-      const helpPatterns = [
-        /^All parameters are case-insensitive/i,
-        /^PowerShell Online Help/i,
-        /^pwsh\[?\.exe\]?.*-h.*-Help/i,
-        /^\[-.*\]$/,
-        /^\[-Version\]/,
-        /^\[-WindowStyle/,
-        /^\[-WorkingDirectory/
-      ]
-      return helpPatterns.some(pattern => pattern.test(line))
+      if (m?.[1]) failedUsers.add(m[1])
     }
 
     pwsh.stdout?.on('data', (d) => {
-      const text = d.toString()
-      for (const line of text.split(/\r?\n/)) {
-        if (!line.trim()) continue
-        const cleanLine = stripAnsiCodes(line)
-        if (isHelpMessage(cleanLine)) continue // Skip help messages
-        sendLog('info', cleanLine)
-        if (/FEHLER/i.test(cleanLine)) parseFail(cleanLine)
+      for (const line of d.toString().split(/\r?\n/)) {
+        const clean = stripAnsi(line.trim())
+        if (!clean) continue
+        uiSend('pwsh-log', { type: /FEHLER/i.test(clean) ? 'error' : 'info', message: clean })
+        if (/FEHLER/i.test(clean)) parseFail(clean)
       }
     })
     pwsh.stderr?.on('data', (d) => {
-      const text = d.toString()
-      for (const line of text.split(/\r?\n/)) {
-        if (!line.trim()) continue
-        const cleanLine = stripAnsiCodes(line)
-        if (isHelpMessage(cleanLine)) continue // Skip help messages
-        sendLog('error', cleanLine)
-        // Sometimes errors include UPN
-        parseFail(cleanLine)
+      for (const line of d.toString().split(/\r?\n/)) {
+        const clean = stripAnsi(line.trim())
+        if (!clean) continue
+        uiSend('pwsh-log', { type: 'error', message: clean })
+        parseFail(clean)
       }
     })
 
@@ -396,17 +341,91 @@ ipcMain.handle('run-password-update', async () => {
       pwsh.on('exit', async (code) => {
         try { await fs.unlink(tmpCsv) } catch {}
         try { await fs.unlink(scriptPath) } catch {}
-        uiSend('pwsh-complete', { status: code === 0 ? 'success' : 'error', failedUsers: Array.from(failedUsers), exitCode: code })
-        resolve({ status: code === 0 ? 'ok' : 'failed', failedUsers: Array.from(failedUsers) })
+        uiSend('pwsh-complete', { status: code === 0 ? 'success' : 'error', failedUsers: [...failedUsers], exitCode: code })
+        resolve({ status: code === 0 ? 'ok' : 'failed', failedUsers: [...failedUsers] })
       })
       pwsh.on('error', async (err) => {
         try { await fs.unlink(tmpCsv) } catch {}
         try { await fs.unlink(scriptPath) } catch {}
-        uiSend('pwsh-complete', { status: 'error', message: err?.message || String(err), failedUsers: [] })
-        resolve({ status: 'error', message: err?.message || String(err) })
+        uiSend('pwsh-complete', { status: 'error', message: err?.message, failedUsers: [] })
+        resolve({ status: 'error', message: err?.message })
       })
     })
   } catch (e) {
-    return { status: 'error', message: e?.message || 'Fehler beim Ausführen' }
+    return { status: 'error', message: e?.message }
+  }
+})
+
+// ===================== IPC: User Management =====================
+
+ipcMain.handle('get-users', async () => {
+  try {
+    const result = await runPsScript('scripts/get-ms365-users.ps1', [], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    if (result.exitCode === -1 && !result.stdout) {
+      return { status: 'error', message: result.stderr || 'PowerShell konnte nicht gestartet werden' }
+    }
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) {
+      return { status: 'error', message: result.stderr || 'Keine Daten von PowerShell erhalten. Bitte prüfe ob pwsh installiert ist.' }
+    }
+    uiSend('ps-operation-complete', { status: data.status })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
+
+ipcMain.handle('reset-password', async (_event, { upn, newPassword, forceChange }) => {
+  try {
+    const args = ['-UPN', upn, '-NewPassword', newPassword, '-ForceChange', forceChange ? '1' : '0']
+    const result = await runPsScript('scripts/reset-password.ps1', args, (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Fehler beim Passwort-Reset' }
+    uiSend('ps-operation-complete', { status: data.status, upn })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
+
+ipcMain.handle('reset-mfa', async (_event, { upn }) => {
+  try {
+    const result = await runPsScript('scripts/reset-mfa.ps1', ['-UPN', upn], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Fehler beim MFA-Reset' }
+    uiSend('ps-operation-complete', { status: data.status, upn })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
+
+ipcMain.handle('update-user', async (_event, params) => {
+  try {
+    const { upn, displayName, givenName, surname, department, jobTitle, accountEnabled, usageLocation } = params
+    const args = ['-UPN', upn]
+    if (displayName !== undefined) args.push('-DisplayName', displayName)
+    if (givenName !== undefined) args.push('-GivenName', givenName)
+    if (surname !== undefined) args.push('-Surname', surname)
+    if (department !== undefined) args.push('-Department', department)
+    if (jobTitle !== undefined) args.push('-JobTitle', jobTitle)
+    if (accountEnabled !== undefined) args.push('-AccountEnabled', accountEnabled ? '1' : '0')
+    if (usageLocation !== undefined) args.push('-UsageLocation', usageLocation)
+
+    const result = await runPsScript('scripts/update-user.ps1', args, (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Fehler beim Aktualisieren' }
+    uiSend('ps-operation-complete', { status: data.status, upn })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message }
   }
 })
