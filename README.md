@@ -74,72 +74,75 @@ Anna;Schmidt;2024;Lehrer;Passwort456!;0
 
 ## Verwendung
 
-### 1. CSV-Datei importieren
+### 1. Verbindung herstellen / Benutzer laden
 
-- Klicke auf **"CSV importieren"**
-- Wähle eine CSV-Datei im oben beschriebenen Format aus
-- Die Anzahl der importierten Einträge wird angezeigt
+- Öffne **Dashboard** und klicke auf **"Benutzer laden"**
+- Beim ersten Start öffnet sich ein Browser-Fenster zur Microsoft-Graph-Anmeldung
+- Danach werden Benutzerliste und Lizenz-SKUs geladen
 
-### 2. Einträge bearbeiten (optional)
+### 2. Benutzer verwalten (Einzeloperationen)
 
-- Klicke auf **"Einträge bearbeiten"** um den integrierten CSV-Editor zu öffnen
-- Füge, bearbeite oder entferne Benutzereinträge
-- Änderungen werden automatisch gespeichert
+- Öffne **"Benutzerliste"** (`/users`)
+- Dort kannst du:
+  - Benutzer bearbeiten (z.B. DisplayName, Abteilung, Jobtitel, UsageLocation, aktiv/deaktiviert)
+  - Passwort zurücksetzen
+  - MFA/2FA zurücksetzen
 
-### 3. Benutzer aktualisieren/erstellen
+### 3. Benutzer erstellen / importieren (Bulk)
 
-- Klicke auf **"Benutzer aktualisieren/erstellen"**
-- Bei der ersten Ausführung wird die Microsoft Graph-Anmeldung durchgeführt:
-  - Ein Browser-Fenster öffnet sich automatisch
-  - Melde dich mit deinem Microsoft 365 Admin-Konto an
-  - Gewähre die erforderlichen Berechtigungen (`User.ReadWrite.All` und `Organization.Read.All`)
-- Der Fortschritt wird in Echtzeit angezeigt
-- Für jeden Benutzer wird angezeigt, ob er erstellt oder aktualisiert wurde
-- Bei Erfolg erscheint: "Alle Benutzer erfolgreich verarbeitet"
-- Bei Fehlern werden die betroffenen Benutzer in einer Liste angezeigt
+- Öffne **"Erstellen / Import"** (`/create`)
+- **Einzeln**: Benutzer ausfüllen → **"Zur Liste hinzufügen"**
+- **CSV Import**: CSV auswählen → Einträge werden in einer Tabelle angezeigt und können direkt angepasst werden
+- Danach **"Benutzer erstellen / aktualisieren"** starten
 
 ### 4. Logs anzeigen
 
-- Klicke auf das Info-Icon (unten rechts) um das detaillierte Log zu öffnen
-- Alle Vorgänge werden mit Zeitstempel angezeigt
+- Unten gibt es eine **Ausgabe-Konsole** (klappbar), die PowerShell/Graph Logs live anzeigt
+- Toasts (rechts unten) zeigen Erfolg/Fehler kurz an
 
 ## Technische Details
 
 ### Architektur
 
 ```
+Renderer (Vue + Vite)
+└── window.ipcRenderer.invoke(...)
+    ↓
 Electron Main Process (index.js)
-├── CSV Import & Editor
-├── PowerShell Process Spawn
-│   └── update-user-passwords.ps1
-│       ├── Microsoft Graph Authentication
-│       └── Batch Password Updates
-└── UI Communication (IPC)
+├── IPC Handler (get-users, update-user, reset-password, reset-mfa, bulk)
+├── CSV Parsing + Temp CSV (os.tmpdir)
+└── PowerShell Spawn (pwsh/powershell) → scripts/*.ps1
+    ↓
+Microsoft Graph PowerShell SDK (Connect-MgGraph, Get/Update/New user, Assign license, Auth methods)
 ```
 
 ### Workflow
 
-1. **CSV-Import**: Datei wird geladen und geparst
-2. **Temporäre CSV**: Daten werden in eine temporäre CSV-Datei geschrieben
-3. **PowerShell-Skript**: Wird mit dem CSV-Pfad als Parameter gestartet
-4. **Graph-Authentifizierung**: `Connect-MgGraph` stellt die Verbindung her
-5. **Tenant-Domain ermitteln**: Die Domain wird automatisch aus dem angemeldeten Tenant ermittelt
-6. **Lizenzen ermitteln**: Verfügbare A3-Lizenzen (Schüler/Lehrer) werden identifiziert
-7. **Benutzer-Verarbeitung**: Für jeden CSV-Eintrag:
-   - UserPrincipalName und DisplayName werden generiert
-   - Prüfung ob Benutzer existiert
-   - **Wenn nicht vorhanden**: Neuer Benutzer wird erstellt (`New-MgUser`) und Lizenz zugewiesen (`Set-MgUserLicense`)
-   - **Wenn vorhanden**: Nur Passwort wird aktualisiert (`Update-MgUser`)
-8. **Fehlerbehandlung**: Fehlgeschlagene Operationen werden erfasst und angezeigt
-9. **Aufräumen**: Temporäre Dateien werden gelöscht
+**Benutzerliste laden**
+1. Renderer ruft `get-users` per IPC auf
+2. Main startet `scripts/get-ms365-users.ps1`
+3. PowerShell verbindet sich mit Graph (`Connect-MgGraph`) und gibt JSON zurück (`###JSON_START/END###`)
+4. Renderer zeigt Users/Lizenzen an
+
+**Bulk Create/Update (CSV)**
+1. CSV wird im Main Process geparst und normalisiert
+2. Einträge werden als temporäre CSV ins System-Temp geschrieben
+3. Main startet `scripts/update-user-passwords.ps1 -CSVPath <tmp>`
+4. Script ermittelt Tenant-Domain, SKUs (A3 Schüler/Lehrer) und verarbeitet jede Zeile:
+   - existiert User? → Passwort aktualisieren
+   - sonst → User anlegen + UsageLocation setzen + Lizenz zuweisen
+5. Logs werden live an die UI gestreamt, Temp-Dateien werden gelöscht
 
 ### Dateien
 
 - `index.js`: Electron Main Process mit CSV-Handling und PowerShell-Integration
-- `index.html`: Benutzeroberfläche
-- `editor.html`: CSV-Editor Fenster
+- `index.html`: Renderer-Entry (Vite) → `src/main.js`
 - `preload.js`: IPC-Brücke für sichere Kommunikation
-- `update-user-passwords.ps1`: PowerShell-Skript für Microsoft Graph API-Aufrufe (Benutzer-Erstellung, Passwort-Update, Lizenzzuweisung)
+- `scripts/get-ms365-users.ps1`: Benutzer + Lizenzen laden (JSON Output)
+- `scripts/update-user.ps1`: Benutzerattribute aktualisieren (JSON Output)
+- `scripts/reset-password.ps1`: Passwort zurücksetzen (JSON Output)
+- `scripts/reset-mfa.ps1`: MFA/2FA Methoden entfernen (JSON Output)
+- `scripts/update-user-passwords.ps1`: Bulk Create/Update aus CSV + Lizenzzuweisung (Log streaming)
 
 ## Build
 
@@ -161,7 +164,7 @@ Falls du das Skript manuell testen möchtest:
 
 ```bash
 pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass \
-  -File update-user-passwords.ps1 \
+  -File scripts/update-user-passwords.ps1 \
   -CSVPath /pfad/zur/user-passwords.csv
 ```
 
@@ -174,12 +177,12 @@ pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass \
 ### "PowerShell mit Fehlern beendet"
 - Prüfe die Logs für detaillierte Fehlermeldungen
 - Stelle sicher, dass PowerShell mit `Microsoft.Graph.Users` und `Microsoft.Graph.Identity.DirectoryManagement` Modulen installiert ist
-- Prüfe die Berechtigungen deines Microsoft 365-Kontos (`User.ReadWrite.All` und `Organization.Read.All`)
+- Prüfe die Berechtigungen deines Microsoft 365-Kontos (je nach Aktion z.B. `User.ReadWrite.All`, `Organization.Read.All`, `UserAuthenticationMethod.ReadWrite.All`)
 - Stelle sicher, dass A3-Lizenzen im Tenant verfügbar sind
 
 ### Authentifizierungsprobleme
 - Beim ersten Start wird ein Browser-Fenster zur Anmeldung geöffnet
-- Stelle sicher, dass du dich mit einem Konto anmeldest, das `User.ReadWrite.All` und `Organization.Read.All` Berechtigung hat
+- Stelle sicher, dass du dich mit einem Konto anmeldest, das die jeweils benötigten Scopes hat (z.B. `User.ReadWrite.All`, `Organization.Read.All`, `Directory.Read.All`)
 - Die Authentifizierung wird für spätere Ausführungen gespeichert
 
 ### Lizenzzuweisung funktioniert nicht

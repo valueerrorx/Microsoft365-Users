@@ -56,7 +56,6 @@ try {
     Write-Host "Tenant-Domain ermittelt: $tenantDomain" -ForegroundColor Cyan
 } catch {
     Write-Error "Konnte Tenant-Domain nicht ermitteln: $($_.Exception.Message)"
-    Disconnect-MgGraph | Out-Null
     return
 }
 
@@ -150,16 +149,18 @@ if ($csvContent.StartsWith([char]0xFEFF)) {
 # Konvertiere zu CSV-Objekt
 $csvData = $csvContent | ConvertFrom-Csv -Delimiter ';'
 
-$csvData | ForEach-Object {
-    $Vorname = "$($_.Vorname)".Trim()
-    $Nachname = "$($_.Nachname)".Trim()
-    $Abteilung = "$($_.Abteilung)".Trim()
-    $UserType = "$($_.UserType)".Trim()
-    $Password = "$($_.NewPassword)".Trim()
+$failedUsers = @()
+
+foreach ($row in $csvData) {
+    $Vorname = "$($row.Vorname)".Trim()
+    $Nachname = "$($row.Nachname)".Trim()
+    $Abteilung = "$($row.Abteilung)".Trim()
+    $UserType = "$($row.UserType)".Trim()
+    $Password = "$($row.NewPassword)".Trim()
     
     # Verwende bereits normalisierte Werte aus CSV, falls vorhanden
-    $VornameNormalized = "$($_.VornameNormalized)".Trim()
-    $NachnameNormalized = "$($_.NachnameNormalized)".Trim()
+    $VornameNormalized = "$($row.VornameNormalized)".Trim()
+    $NachnameNormalized = "$($row.NachnameNormalized)".Trim()
     
     # Falls normalisierte Werte nicht vorhanden, normalisiere selbst (für Rückwärtskompatibilität)
     if ([string]::IsNullOrWhiteSpace($VornameNormalized)) {
@@ -183,7 +184,7 @@ $csvData | ForEach-Object {
     # Validiere erforderliche Felder
     if ([string]::IsNullOrWhiteSpace($Vorname) -or [string]::IsNullOrWhiteSpace($Nachname) -or [string]::IsNullOrWhiteSpace($Password)) {
         Write-Host "FEHLER: Vorname, Nachname oder Passwort fehlt für: $Vorname $Nachname" -ForegroundColor Red
-        return
+        continue
     }
 
     # Generiere UserPrincipalName aus bereits normalisierten Werten: nachname.vorname@{tenant-domain}
@@ -298,29 +299,35 @@ $csvData | ForEach-Object {
                         }
                         Write-Host "FEHLER bei Lizenzzuweisung für ${UPN}: $errorMessage" -ForegroundColor Red
                         Write-Host "SKU ID: $licenseSkuId" -ForegroundColor Yellow
+                        Write-Host "###USER_FAIL###$UPN###$errorMessage"
+                        $failedUsers += $UPN
+                        continue
                     }
                 } else {
                     Write-Host "Warnung: Keine passende Lizenz gefunden für UserType: $UserType" -ForegroundColor Yellow
                 }
             } else {
                 Write-Host "FEHLER: Benutzer konnte nicht erstellt werden (keine Antwort von API)" -ForegroundColor Red
+                Write-Host "###USER_FAIL###$UPN###Benutzer konnte nicht erstellt werden"
+                $failedUsers += $UPN
+                continue
             }
         } catch {
-            Write-Host "FEHLER beim Erstellen des Benutzers ${UPN}: $($_.Exception.Message)" -ForegroundColor Red
-            # Fehler weiterwerfen, damit der Benutzer in der fehlgeschlagenen Liste landet
-            throw
+            $msg = $_.Exception.Message
+            Write-Host "FEHLER beim Erstellen des Benutzers ${UPN}: $msg" -ForegroundColor Red
+            Write-Host "###USER_FAIL###$UPN###$msg"
+            $failedUsers += $UPN
+            continue
         }
     } else {
-        # Benutzer existiert bereits, nur Passwort aktualisieren
-        Write-Host "Benutzer existiert bereits, Passwort wird aktualisiert..." -ForegroundColor Cyan
-        
-        try {
-            Update-MgUser -UserId $UPN -PasswordProfile $PasswordProfile
-            Write-Host "Passwort erfolgreich aktualisiert. Benutzer muss PW bei nächster Anmeldung ändern: $($ForceChange)" -ForegroundColor Green
-        } catch {
-            Write-Host "FEHLER beim Aktualisieren des Passworts für ${UPN}: $($_.Exception.Message)" -ForegroundColor Red
-        }
+        Write-Host "FEHLER: Benutzer existiert bereits: $UPN" -ForegroundColor Red
+        Write-Host "###USER_FAIL###$UPN###Benutzer existiert bereits"
+        $failedUsers += $UPN
+        continue
     }
 }
 
-Disconnect-MgGraph | Out-Null
+if ($failedUsers.Count -gt 0) {
+    Write-Host "FEHLER: $($failedUsers.Count) Benutzer fehlgeschlagen" -ForegroundColor Red
+    exit 1
+}

@@ -73,8 +73,6 @@ try {
     # Aktuellen Benutzer-Status abrufen
     $updatedUser = Get-MgUser -UserId $UPN -Property "id,userPrincipalName,displayName,givenName,surname,department,jobTitle,accountEnabled,usageLocation,mail"
 
-    Disconnect-MgGraph | Out-Null
-
     $userObj = @{
         id                = $updatedUser.Id
         userPrincipalName = $updatedUser.UserPrincipalName
@@ -99,7 +97,6 @@ try {
     Write-Output "###JSON_END###"
 
 } catch {
-    Disconnect-MgGraph | Out-Null
     $errMsg = $_.Exception.Message
     Write-Host "FEHLER: $errMsg"
     $result = @{

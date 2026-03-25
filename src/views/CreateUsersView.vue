@@ -35,14 +35,6 @@
             <label class="form-label">Nachname <span style="color:#f85149;">*</span></label>
             <input v-model="singleForm.nachname" type="text" class="form-control" placeholder="Mustermann" />
           </div>
-          <div class="col-12" v-if="singlePreview.upn">
-            <div style="background:rgba(88,166,255,0.08);border:1px solid rgba(88,166,255,0.2);border-radius:6px;padding:0.6rem 0.875rem;font-size:0.82rem;">
-              <span style="color:#8b949e;">UPN Vorschau: </span>
-              <span style="font-family:monospace;color:#58a6ff;">{{ singlePreview.upn }}</span>
-              <span style="color:#8b949e;margin-left:0.75rem;">Anzeigename: </span>
-              <span style="color:#e6edf3;">{{ singlePreview.displayName }}</span>
-            </div>
-          </div>
           <div class="col-6">
             <label class="form-label">Abteilung</label>
             <input v-model="singleForm.abteilung" type="text" class="form-control" placeholder="z.B. 3AHIT" />
@@ -54,69 +46,36 @@
               <option>Lehrer</option>
             </select>
           </div>
-          <div class="col-6">
+          <div class="col-12">
             <label class="form-label">Passwort <span style="color:#f85149;">*</span></label>
-            <PasswordInput v-model="singleForm.newPassword" />
-          </div>
-          <div class="col-6 d-flex align-items-end">
-            <div class="form-check mb-2">
-              <input class="form-check-input" type="checkbox" v-model="singleForm.forceChange" id="singleForce" />
-              <label class="form-check-label" for="singleForce">PW bei nächster Anmeldung ändern</label>
-            </div>
+            <PasswordInput v-model="singleForm.newPassword" hints-position="side">
+              <template #below>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" v-model="singleForm.forceChange" id="singleForce" />
+                  <label class="form-check-label" for="singleForce">PW bei nächster Anmeldung ändern</label>
+                </div>
+              </template>
+            </PasswordInput>
           </div>
           <div class="col-12">
             <button
               class="btn btn-success"
-              @click="addSingleToList"
-              :disabled="!singleForm.vorname || !singleForm.nachname || !pwValid"
+              @click="createSingleUser"
+              :disabled="usersStore.bulkRunning || !singleForm.vorname || !singleForm.nachname || !pwValid"
               :title="!pwValid && singleForm.newPassword ? 'Passwort erfüllt nicht die Komplexitätsanforderungen' : ''"
             >
-              <i class="bi bi-plus-circle me-1"></i> Zur Liste hinzufügen
+              <i class="bi" :class="usersStore.bulkRunning ? 'bi-arrow-repeat spin' : 'bi-person-plus'"></i>
+              {{ usersStore.bulkRunning ? 'Erstellt...' : 'Benutzer erstellen' }}
             </button>
           </div>
         </div>
 
-        <!-- Added entries preview -->
-        <div v-if="usersStore.csvEntries.length" class="mt-4">
-          <div class="d-flex align-items-center justify-content-between mb-2">
-            <span style="font-size:0.875rem;font-weight:600;">Wartende Benutzer ({{ usersStore.csvEntries.length }})</span>
-            <div class="d-flex gap-2">
-              <button class="btn btn-outline-danger btn-sm" @click="usersStore.csvEntries = []">Alle entfernen</button>
-              <button class="btn btn-primary btn-sm" @click="runBulk" :disabled="usersStore.bulkRunning">
-                <i class="bi" :class="usersStore.bulkRunning ? 'bi-arrow-repeat spin' : 'bi-play-fill'"></i>
-                {{ usersStore.bulkRunning ? 'Läuft...' : 'Alle erstellen / aktualisieren' }}
-              </button>
-            </div>
-          </div>
-          <div style="overflow-x:auto;">
-            <table class="table table-ms365 csv-preview-table">
-              <thead>
-                <tr>
-                  <th>Vorname</th>
-                  <th>Nachname</th>
-                  <th>UPN</th>
-                  <th>Abteilung</th>
-                  <th>Typ</th>
-                  <th>PW ändern</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(e, i) in usersStore.csvEntries" :key="i">
-                  <td>{{ e.vorname }}</td>
-                  <td>{{ e.nachname }}</td>
-                  <td style="font-family:monospace;font-size:0.75rem;color:#8b949e;">{{ e.nachnameNormalized }}.{{ e.vornameNormalized }}@...</td>
-                  <td>{{ e.abteilung || '—' }}</td>
-                  <td><span class="badge-license">{{ e.userType }}</span></td>
-                  <td><i class="bi" :class="e.forceChange ? 'bi-check2 text-success' : 'bi-x text-secondary'"></i></td>
-                  <td>
-                    <button class="btn-action danger" @click="usersStore.csvEntries.splice(i, 1)">
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+        <div v-if="singlePreview.upn" style="max-width:700px;margin-top:1rem;">
+          <div style="background:rgba(88,166,255,0.08);border:1px solid rgba(88,166,255,0.2);border-radius:6px;padding:0.6rem 0.875rem;font-size:0.82rem;">
+            <span style="color:#8b949e;">UPN Vorschau: </span>
+            <span style="font-family:monospace;color:#58a6ff;">{{ singlePreview.upn }}</span>
+            <span style="color:#8b949e;margin-left:0.75rem;">Anzeigename: </span>
+            <span style="color:#e6edf3;">{{ singlePreview.displayName }}</span>
           </div>
         </div>
       </div>
@@ -164,6 +123,7 @@ Anna;Schmidt;LehrerInnenzimmer;Lehrer;Passwort456!;0</pre>
             <table class="table table-ms365 csv-preview-table">
               <thead>
                 <tr>
+                  <th style="width:28px;"></th>
                   <th>#</th>
                   <th>Vorname</th>
                   <th>Nachname</th>
@@ -176,7 +136,15 @@ Anna;Schmidt;LehrerInnenzimmer;Lehrer;Passwort456!;0</pre>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(entry, i) in usersStore.csvEntries" :key="i">
+                <tr v-for="(entry, i) in usersStore.csvEntries" :key="i" :class="{ 'row-has-error': entryError(entry) }">
+                  <td class="text-center">
+                    <i
+                      v-if="entryError(entry)"
+                      class="bi bi-exclamation-triangle-fill"
+                      style="color:#f85149;"
+                      :title="entryError(entry)"
+                    ></i>
+                  </td>
                   <td style="color:#8b949e;">{{ i + 1 }}</td>
                   <td><input v-model="entry.vorname" type="text" class="form-control form-control-sm" /></td>
                   <td><input v-model="entry.nachname" type="text" class="form-control form-control-sm" /></td>
@@ -265,11 +233,24 @@ function normalizeForUPN(text) {
   return s.toLowerCase().replace(/[^a-z0-9.]/g, '')
 }
 
-function addSingleToList() {
+function entryUpn(entry) {
+  const domain = authStore.tenantDomain || ''
+  if (!entry?.vornameNormalized || !entry?.nachnameNormalized || !domain) return ''
+  return `${entry.nachnameNormalized}.${entry.vornameNormalized}@${domain}`
+}
+
+function entryError(entry) {
+  const upn = entryUpn(entry)
+  return upn ? (usersStore.failedUserDetails?.[upn] || '') : ''
+}
+
+async function createSingleUser() {
+  usersStore.bulkLogs = []
+  usersStore.failedUsers = []
+  usersStore.failedUserDetails = {}
   const vn = normalizeForUPN(singleForm.vorname)
   const nn = normalizeForUPN(singleForm.nachname)
-  const addedName = `${singleForm.nachname} ${singleForm.vorname}`
-  usersStore.csvEntries.push({
+  usersStore.csvEntries = [{
     vorname: singleForm.vorname,
     nachname: singleForm.nachname,
     vornameNormalized: vn,
@@ -278,13 +259,19 @@ function addSingleToList() {
     userType: singleForm.userType,
     newPassword: singleForm.newPassword,
     forceChange: singleForm.forceChange
-  })
-  // Reset form
-  singleForm.vorname = ''
-  singleForm.nachname = ''
-  singleForm.newPassword = ''
-  singleForm.abteilung = ''
-  authStore.showToast(`${addedName} zur Liste hinzugefügt`, 'success')
+  }]
+  await usersStore.runBulkCreate()
+  const upn = `${nn}.${vn}@${authStore.tenantDomain || ''}`
+  const err = usersStore.failedUserDetails?.[upn]
+  if (err) authStore.showToast(err, 'error')
+  else {
+    authStore.showToast('Benutzer erstellt', 'success')
+    singleForm.vorname = ''
+    singleForm.nachname = ''
+    singleForm.newPassword = ''
+    singleForm.abteilung = ''
+  }
+  usersStore.csvEntries = []
 }
 
 async function importCsv() {
@@ -309,6 +296,7 @@ async function runBulk() {
   if (!usersStore.csvEntries.length) return
   usersStore.bulkLogs = []
   usersStore.failedUsers = []
+  usersStore.failedUserDetails = {}
   await usersStore.runBulkCreate()
 }
 </script>
@@ -316,4 +304,5 @@ async function runBulk() {
 <style scoped>
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.row-has-error { background: rgba(248,81,73,0.06); }
 </style>

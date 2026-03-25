@@ -11,7 +11,8 @@ export const useUsersStore = defineStore('users', {
     csvEntries: [],
     bulkRunning: false,
     bulkLogs: [],
-    failedUsers: []
+    failedUsers: [],
+    failedUserDetails: {}
   }),
 
   getters: {
@@ -39,7 +40,12 @@ export const useUsersStore = defineStore('users', {
         const result = await window.ipcRenderer.invoke('get-users')
         if (result.status === 'ok') {
           this.users = result.users || []
-          this.licenses = result.licenses || []
+          this.licenses = [...(result.licenses || [])].sort((a, b) => {
+            const ac = Number.isFinite(a?.consumedUnits) ? a.consumedUnits : 0
+            const bc = Number.isFinite(b?.consumedUnits) ? b.consumedUnits : 0
+            if (bc !== ac) return bc - ac
+            return String(a?.skuPartNumber || '').localeCompare(String(b?.skuPartNumber || ''))
+          })
           this.lastFetched = new Date()
           auth.setConnected(result.tenantDomain || 'unbekannt')
           auth.addLog({ type: 'success', message: `${this.users.length} Benutzer geladen` })
@@ -122,6 +128,57 @@ export const useUsersStore = defineStore('users', {
       }
     },
 
+    async updateUserLicenses({ upn, addSkuIds, removeSkuIds }) {
+      const auth = useAuthStore()
+      auth.addLog({ type: 'info', message: `Lizenzen aktualisieren: ${upn}` })
+      try {
+        const result = await window.ipcRenderer.invoke('update-user-licenses', {
+          upn,
+          addSkuIds: addSkuIds || [],
+          removeSkuIds: removeSkuIds || []
+        })
+        if (result.status === 'ok') {
+          const idx = this.users.findIndex(u => u.userPrincipalName === upn)
+          const list = result.assignedLicenses || result.AssignedLicenses
+          if (idx !== -1 && list) {
+            this.users[idx].assignedLicenses = list
+          }
+          auth.addLog({ type: 'success', message: `Lizenzen für ${upn} aktualisiert` })
+          auth.showToast('Lizenzen aktualisiert', 'success')
+          return true
+        }
+        auth.addLog({ type: 'error', message: `Fehler: ${result.message}` })
+        auth.showToast(result.message, 'error')
+        return false
+      } catch (e) {
+        auth.addLog({ type: 'error', message: e.message })
+        auth.showToast(e.message, 'error')
+        return false
+      }
+    },
+
+    async deleteUser(upn) {
+      const auth = useAuthStore()
+      auth.addLog({ type: 'info', message: `Benutzer löschen: ${upn}` })
+      try {
+        const result = await window.ipcRenderer.invoke('delete-user', { upn })
+        if (result.status === 'ok') {
+          const idx = this.users.findIndex(u => u.userPrincipalName === upn)
+          if (idx !== -1) this.users.splice(idx, 1)
+          auth.addLog({ type: 'success', message: `Benutzer gelöscht: ${upn}` })
+          auth.showToast(`Benutzer gelöscht`, 'success')
+          return true
+        }
+        auth.addLog({ type: 'error', message: `Fehler: ${result.message}` })
+        auth.showToast(result.message, 'error')
+        return false
+      } catch (e) {
+        auth.addLog({ type: 'error', message: e.message })
+        auth.showToast(e.message, 'error')
+        return false
+      }
+    },
+
     setCsvEntries(entries) {
       this.csvEntries = entries
     },
@@ -147,6 +204,7 @@ export const useUsersStore = defineStore('users', {
       this.bulkRunning = true
       this.bulkLogs = []
       this.failedUsers = []
+      this.failedUserDetails = {}
 
       // Serialize to plain objects — Vue reactive proxies don't clone correctly over IPC
       const plainEntries = JSON.parse(JSON.stringify(this.csvEntries))
@@ -167,11 +225,12 @@ export const useUsersStore = defineStore('users', {
       try {
         const result = await window.ipcRenderer.invoke('run-password-update')
         this.failedUsers = result.failedUsers || []
+        this.failedUserDetails = result.failedUserDetails || {}
         if (result.status === 'ok') {
           auth.addLog({ type: 'success', message: 'Massenoperation erfolgreich abgeschlossen.' })
           auth.showToast(`Operation erfolgreich abgeschlossen`, 'success')
         } else {
-          const msg = result.message || 'Unbekannter Fehler'
+          const msg = result.message || (this.failedUsers.length ? 'Ein oder mehrere Benutzer sind fehlgeschlagen' : 'Unbekannter Fehler')
           auth.addLog({ type: 'error', message: `Fehler: ${msg}` })
           auth.showToast(`Fehler: ${msg}`, 'error')
         }

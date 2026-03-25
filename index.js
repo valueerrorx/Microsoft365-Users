@@ -113,14 +113,31 @@ async function runPsScript(scriptRelPath, args = [], onLog = null) {
     POWERSHELL_TELEMETRY_OPTOUT: '1'
   }
 
+  const PS_TIMEOUT_MS = 5 * 60 * 1000
+
   return new Promise((resolve) => {
     let stdout = ''
     let stderr = ''
+    let timedOut = false
+    let settled = false
     const ps = spawn(
       psCmd,
       ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', tmpScript, ...args],
-      { cwd: path.dirname(tmpScript), env }
+      { cwd: path.dirname(tmpScript), env, stdio: ['ignore', 'pipe', 'pipe'] }
     )
+
+    const timer = setTimeout(() => {
+      timedOut = true
+      try { ps.kill('SIGTERM') } catch {}
+    }, PS_TIMEOUT_MS)
+
+    const finish = async (payload) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      try { if (tmpScript) await fs.unlink(tmpScript) } catch {}
+      resolve(payload)
+    }
 
     ps.stdout?.on('data', (d) => {
       const text = d.toString()
@@ -145,21 +162,35 @@ async function runPsScript(scriptRelPath, args = [], onLog = null) {
     })
 
     ps.on('exit', async (code) => {
-      try { if (tmpScript) await fs.unlink(tmpScript) } catch {}
-      resolve({ exitCode: code, stdout: stdout.trim(), stderr: stderr.trim() })
+      const out = stdout.trim()
+      const err = stderr.trim()
+      if (timedOut) {
+        await finish({
+          exitCode: -1,
+          stdout: out,
+          stderr: err || 'Timeout: PowerShell hat zu lange gebraucht (z. B. Browser-Anmeldung bei Microsoft Graph abschließen).'
+        })
+        return
+      }
+      await finish({ exitCode: code, stdout: out, stderr: err })
     })
 
     ps.on('error', async (err) => {
-      try { if (tmpScript) await fs.unlink(tmpScript) } catch {}
-      resolve({ exitCode: -1, stdout: '', stderr: err.message })
+      await finish({ exitCode: -1, stdout: '', stderr: err.message })
     })
   })
 }
 
 function parseJsonFromOutput(stdout) {
-  const match = stdout.match(/###JSON_START###\r?\n([\s\S]*?)\r?\n###JSON_END###/)
-  if (match) {
-    try { return JSON.parse(match[1]) } catch {}
+  const patterns = [
+    /###JSON_START###\s*\r?\n([\s\S]*?)\r?\n\s*###JSON_END###/,
+    /###JSON_START###\s*([\s\S]*?)\s*###JSON_END###/
+  ]
+  for (const re of patterns) {
+    const match = stdout.match(re)
+    if (match) {
+      try { return JSON.parse(match[1].trim()) } catch {}
+    }
   }
   try { return JSON.parse(stdout) } catch {}
   return null
@@ -309,6 +340,7 @@ ipcMain.handle('run-password-update', async () => {
 
     const psCmd = detectPowerShell()
     const failedUsers = new Set()
+    const failedUserDetails = {}
     const env = { ...process.env, POWERSHELL_UPDATECHECK: 'Off', POWERSHELL_TELEMETRY_OPTOUT: '1' }
 
     const pwsh = spawn(psCmd, ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, '-CSVPath', tmpCsv], {
@@ -316,6 +348,18 @@ ipcMain.handle('run-password-update', async () => {
     })
 
     const parseFail = (line) => {
+      const markerIdx = line.indexOf('###USER_FAIL###')
+      if (markerIdx !== -1) {
+        const payload = line.slice(markerIdx)
+        const parts = payload.split('###')
+        const upn = parts?.[2]?.trim()
+        const message = parts?.slice(3).join('###')?.trim()
+        if (upn) {
+          failedUsers.add(upn)
+          failedUserDetails[upn] = message || 'Unbekannter Fehler'
+        }
+        return
+      }
       const m = /FEHLER.*(?:für|for)\s+([^:\s]+)\s*:/.exec(line)
       if (m?.[1]) failedUsers.add(m[1])
     }
@@ -324,8 +368,9 @@ ipcMain.handle('run-password-update', async () => {
       for (const line of d.toString().split(/\r?\n/)) {
         const clean = stripAnsi(line.trim())
         if (!clean) continue
+        parseFail(clean)
+        if (clean.startsWith('###USER_FAIL###')) continue
         uiSend('pwsh-log', { type: /FEHLER/i.test(clean) ? 'error' : 'info', message: clean })
-        if (/FEHLER/i.test(clean)) parseFail(clean)
       }
     })
     pwsh.stderr?.on('data', (d) => {
@@ -341,14 +386,20 @@ ipcMain.handle('run-password-update', async () => {
       pwsh.on('exit', async (code) => {
         try { await fs.unlink(tmpCsv) } catch {}
         try { await fs.unlink(scriptPath) } catch {}
-        uiSend('pwsh-complete', { status: code === 0 ? 'success' : 'error', failedUsers: [...failedUsers], exitCode: code })
-        resolve({ status: code === 0 ? 'ok' : 'failed', failedUsers: [...failedUsers] })
+        const ok = code === 0
+        const message = ok
+          ? undefined
+          : (Object.keys(failedUserDetails).length
+            ? 'Ein oder mehrere Benutzer sind fehlgeschlagen'
+            : 'PowerShell-Fehler')
+        uiSend('pwsh-complete', { status: ok ? 'success' : 'error', message, failedUsers: [...failedUsers], failedUserDetails, exitCode: code })
+        resolve({ status: ok ? 'ok' : 'failed', message, failedUsers: [...failedUsers], failedUserDetails })
       })
       pwsh.on('error', async (err) => {
         try { await fs.unlink(tmpCsv) } catch {}
         try { await fs.unlink(scriptPath) } catch {}
-        uiSend('pwsh-complete', { status: 'error', message: err?.message, failedUsers: [] })
-        resolve({ status: 'error', message: err?.message })
+        uiSend('pwsh-complete', { status: 'error', message: err?.message, failedUsers: [], failedUserDetails: {} })
+        resolve({ status: 'error', message: err?.message, failedUsers: [], failedUserDetails: {} })
       })
     })
   } catch (e) {
@@ -423,6 +474,36 @@ ipcMain.handle('update-user', async (_event, params) => {
     })
     const data = parseJsonFromOutput(result.stdout)
     if (!data) return { status: 'error', message: result.stderr || 'Fehler beim Aktualisieren' }
+    uiSend('ps-operation-complete', { status: data.status, upn })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
+
+ipcMain.handle('delete-user', async (_event, { upn }) => {
+  try {
+    const result = await runPsScript('scripts/delete-user.ps1', ['-UPN', upn], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Fehler beim Löschen' }
+    uiSend('ps-operation-complete', { status: data.status, upn })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
+
+ipcMain.handle('update-user-licenses', async (_event, { upn, addSkuIds = [], removeSkuIds = [] }) => {
+  try {
+    const add = Array.isArray(addSkuIds) ? addSkuIds.filter(Boolean).join(',') : ''
+    const rem = Array.isArray(removeSkuIds) ? removeSkuIds.filter(Boolean).join(',') : ''
+    const result = await runPsScript('scripts/update-user-licenses.ps1', ['-UPN', upn, '-AddSkuIds', add, '-RemoveSkuIds', rem], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Fehler bei Lizenzen' }
     uiSend('ps-operation-complete', { status: data.status, upn })
     return data
   } catch (e) {

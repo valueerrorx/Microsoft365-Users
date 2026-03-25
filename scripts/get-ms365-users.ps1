@@ -101,7 +101,6 @@ try {
     }
     Write-Host "Benutzer geladen: $($usersData.Count)"
 } catch {
-    Disconnect-MgGraph | Out-Null
     $result = @{
         status  = "error"
         message = "Fehler beim Laden der Benutzer: $($_.Exception.Message)"
@@ -114,8 +113,6 @@ try {
     Write-Output "###JSON_END###"
     exit 1
 }
-
-Disconnect-MgGraph | Out-Null
 
 $output = @{
     status       = "ok"

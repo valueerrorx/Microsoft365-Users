@@ -146,11 +146,12 @@
               Noch keine Lizenzdaten geladen
             </div>
             <div v-else class="d-flex flex-column gap-2">
-              <div v-for="sku in usersStore.licenses.slice(0, 8)" :key="sku.skuId"
+              <div v-for="sku in displayedLicenses" :key="sku.skuId"
                 class="d-flex align-items-center justify-content-between p-2 rounded"
                 style="background:rgba(88,166,255,0.04);border:1px solid rgba(88,166,255,0.1);">
                 <div>
-                  <div style="font-size:0.82rem;font-weight:500;color:#e6edf3;">{{ sku.skuPartNumber }}</div>
+                  <div style="font-size:0.82rem;font-weight:500;color:#e6edf3;">{{ humanLicenseLabel(sku.skuPartNumber) }}</div>
+                  <div style="font-size:0.72rem;color:#8b949e;font-family:monospace;">{{ sku.skuPartNumber }}</div>
                   <div style="font-size:0.72rem;color:#8b949e;">{{ sku.consumedUnits }} / {{ sku.prepaidUnits?.enabled || '?' }} genutzt</div>
                 </div>
                 <div class="text-end">
@@ -166,8 +167,15 @@
                   </div>
                 </div>
               </div>
-              <div v-if="usersStore.licenses.length > 8" style="font-size:0.78rem;color:#8b949e;text-align:center;">
-                + {{ usersStore.licenses.length - 8 }} weitere
+              <div v-if="usersStore.licenses.length > defaultLicenseCount" class="d-flex justify-content-center">
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  style="background:transparent;border:1px solid rgba(88,166,255,0.2);color:#58a6ff;"
+                  @click="showAllLicenses = !showAllLicenses"
+                >
+                  {{ showAllLicenses ? 'Weniger anzeigen' : `Alle anzeigen (${usersStore.licenses.length - defaultLicenseCount} weitere)` }}
+                </button>
               </div>
             </div>
           </div>
@@ -178,11 +186,21 @@
 </template>
 
 <script setup>
+import { computed, ref } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useUsersStore } from '../stores/usersStore'
+import { humanLicenseLabel } from '../utils/licenseLabel.js'
 
 const authStore = useAuthStore()
 const usersStore = useUsersStore()
+
+const defaultLicenseCount = 6
+const showAllLicenses = ref(false)
+
+const displayedLicenses = computed(() => {
+  const list = usersStore.licenses || []
+  return showAllLicenses.value ? list : list.slice(0, defaultLicenseCount)
+})
 
 function loadUsers() {
   if (!usersStore.loading) usersStore.fetchUsers()

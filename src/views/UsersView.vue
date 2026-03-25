@@ -139,6 +139,9 @@
                   >
                     <i class="bi" :class="user.accountEnabled ? 'bi-person-slash' : 'bi-person-check'"></i>
                   </button>
+                  <button class="btn-action danger" @click="openDelete(user)" title="Löschen">
+                    <i class="bi bi-trash"></i>
+                  </button>
                 </div>
               </td>
             </tr>
@@ -210,6 +213,29 @@
                   <label class="form-check-label" for="editEnabled">Konto aktiv</label>
                 </div>
               </div>
+              <div v-if="usersStore.licenses.length" class="col-12">
+                <label class="form-label">Lizenzen (Tenant-SKUs)</label>
+                <div class="license-edit-list">
+                  <div v-for="sku in usersStore.licenses" :key="sku.skuId" class="form-check mb-1">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      :id="'lic-edit-' + sku.skuId"
+                      :checked="isLicenseSelected(sku.skuId)"
+                      @change="toggleEditLicense(sku.skuId)"
+                    />
+                    <label class="form-check-label" :for="'lic-edit-' + sku.skuId" style="font-size:0.85rem;">
+                      {{ licenseLabel(sku.skuId) }} — <span style="font-family:monospace;color:#8b949e;">{{ sku.skuPartNumber }}</span>
+                      <span v-if="sku.prepaidUnits?.enabled != null" style="color:#484f58;font-size:0.72rem;margin-left:0.35rem;">
+                        ({{ licenseFreeTenant(sku) }} frei im Tenant)
+                      </span>
+                    </label>
+                  </div>
+                </div>
+                <div style="font-size:0.72rem;color:#8b949e;margin-top:0.35rem;">
+                  Zum Zuweisen neuer Lizenzen ist ein Nutzungsstandort erforderlich.
+                </div>
+              </div>
               <div class="col-12">
                 <label class="form-label">UPN (nicht änderbar)</label>
                 <input :value="editModal.user?.userPrincipalName" type="text" class="form-control" disabled />
@@ -229,7 +255,7 @@
 
     <!-- Password Reset Modal -->
     <div v-if="pwModal.show" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.6);">
-      <div class="modal-dialog">
+      <div class="modal-dialog modal-lg pw-modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">
@@ -238,9 +264,10 @@
             </h5>
             <button type="button" class="btn-close" @click="pwModal.show = false"></button>
           </div>
-          <div class="modal-body">
-            <div style="font-size:0.85rem;color:#8b949e;margin-bottom:1rem;">
-              Benutzer: <strong style="color:#e6edf3;">{{ pwModal.user?.userPrincipalName }}</strong>
+          <div class="modal-body pw-modal-body">
+            <div class="pw-modal-user-line">
+              <span style="color:#8b949e;font-size:0.85rem;">Benutzer</span>
+              <span class="pw-modal-upn">{{ pwModal.user?.userPrincipalName }}</span>
             </div>
             <div class="mb-3">
               <label class="form-label">Neues Passwort</label>
@@ -327,16 +354,64 @@
         </div>
       </div>
     </div>
+
+    <!-- Delete User Modal -->
+    <div v-if="deleteModal.show" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.6);">
+      <div class="modal-dialog modal-lg delete-modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-trash me-2" style="color:#f85149;"></i>
+              Benutzer löschen
+            </h5>
+            <button type="button" class="btn-close" @click="closeDelete"></button>
+          </div>
+          <div class="modal-body delete-modal-body" style="font-size:0.9rem;">
+            <div class="alert" style="background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.25);color:#f85149;border-radius:6px;">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+              <strong>Achtung:</strong> Dieser Benutzer wird endgültig gelöscht.
+            </div>
+            <div class="delete-modal-user-info">
+              Benutzer: <strong class="delete-modal-display-name">{{ deleteModal.user?.displayName }}</strong>
+              <div class="delete-modal-upn-row">
+                <span class="delete-modal-label">UPN:</span>
+                <span class="delete-modal-upn">{{ deleteModal.user?.userPrincipalName }}</span>
+              </div>
+            </div>
+            <label class="form-label">UPN zur Bestätigung eintippen</label>
+            <input v-model="deleteModal.confirmUpn" type="text" class="form-control" style="font-family:monospace;" />
+            <div v-if="deleteModal.error" class="mt-2" style="color:#f85149;font-size:0.83rem;">
+              <i class="bi bi-exclamation-triangle me-1"></i>{{ deleteModal.error }}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" @click="closeDelete" :disabled="deleteModal.saving">Abbrechen</button>
+            <button
+              type="button"
+              class="btn btn-danger btn-sm"
+              @click="doDeleteUser"
+              :disabled="deleteModal.saving || deleteModal.confirmUpn !== deleteModal.user?.userPrincipalName"
+            >
+              <i class="bi bi-trash me-1"></i>
+              {{ deleteModal.saving ? 'Löscht...' : 'Endgültig löschen' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, reactive } from 'vue'
 import { useUsersStore } from '../stores/usersStore'
+import { useAuthStore } from '../stores/authStore'
 import PasswordInput from '../components/PasswordInput.vue'
 import { validatePassword } from '../utils/passwordValidator.js'
+import { humanLicenseLabel } from '../utils/licenseLabel.js'
 
 const usersStore = useUsersStore()
+const authStore = useAuthStore()
 
 // ---- Filters & Sorting ----
 const searchQuery = ref('')
@@ -399,18 +474,34 @@ function initials(name) {
 function licenseLabel(skuId) {
   const sku = usersStore.licenseMap[skuId]
   if (!sku) return skuId?.slice(0, 8) || '?'
-  const name = sku.skuPartNumber || ''
-  if (name.includes('A3') && name.includes('STUDENT')) return 'A3 Schüler'
-  if (name.includes('A3') && name.includes('FACULTY')) return 'A3 Lehrer'
-  if (name.includes('A1')) return 'A1'
-  if (name.includes('A3')) return 'A3'
-  if (name.includes('A5')) return 'A5'
-  return name.slice(0, 12)
+  return humanLicenseLabel(sku.skuPartNumber)
+}
+
+function licenseFreeTenant(sku) {
+  const cap = sku?.prepaidUnits?.enabled
+  if (cap == null) return '—'
+  const free = Math.max(0, cap - (sku.consumedUnits || 0))
+  return String(free)
 }
 
 // ---- Edit Modal ----
 const editModal = reactive({ show: false, user: null, saving: false })
 const editForm = reactive({ givenName: '', surname: '', displayName: '', department: '', jobTitle: '', accountEnabled: true, usageLocation: '' })
+const editInitialLicenseIds = ref([])
+const editSelectedLicenseIds = ref([])
+
+function isLicenseSelected(skuId) {
+  const id = String(skuId || '')
+  return editSelectedLicenseIds.value.some((x) => String(x) === id)
+}
+
+function toggleEditLicense(skuId) {
+  const id = String(skuId || '')
+  const arr = editSelectedLicenseIds.value
+  const i = arr.findIndex((x) => String(x) === id)
+  if (i >= 0) arr.splice(i, 1)
+  else arr.push(id)
+}
 
 function openEdit(user) {
   editModal.user = user
@@ -421,22 +512,46 @@ function openEdit(user) {
   editForm.jobTitle = user.jobTitle || ''
   editForm.accountEnabled = user.accountEnabled !== false
   editForm.usageLocation = user.usageLocation || ''
+  editInitialLicenseIds.value = (user.assignedLicenses || []).map((l) => String(l.skuId)).filter(Boolean)
+  editSelectedLicenseIds.value = [...editInitialLicenseIds.value]
   editModal.show = true
 }
 
 async function saveUser() {
+  const upn = editModal.user.userPrincipalName
   editModal.saving = true
   const ok = await usersStore.updateUser({
-    upn: editModal.user.userPrincipalName,
+    upn,
     ...editForm
   })
-  editModal.saving = false
-  if (ok) {
-    // Update local user data
-    const idx = usersStore.users.findIndex(u => u.userPrincipalName === editModal.user.userPrincipalName)
-    if (idx !== -1) Object.assign(usersStore.users[idx], editForm)
-    editModal.show = false
+  if (!ok) {
+    editModal.saving = false
+    return
   }
+  const idx = usersStore.users.findIndex((u) => u.userPrincipalName === upn)
+  if (idx !== -1) Object.assign(usersStore.users[idx], editForm)
+
+  const initial = editInitialLicenseIds.value
+  const selected = [...editSelectedLicenseIds.value]
+  const add = selected.filter((id) => !initial.some((x) => String(x) === String(id)))
+  const remove = initial.filter((id) => !selected.some((x) => String(x) === String(id)))
+
+  if (add.length > 0 || remove.length > 0) {
+    const usage = String(usersStore.users[idx]?.usageLocation || editForm.usageLocation || '').trim()
+    if (add.length > 0 && !usage) {
+      authStore.showToast('Bitte Nutzungsstandort setzen, bevor Lizenzen zugewiesen werden.', 'error')
+      editModal.saving = false
+      return
+    }
+    const licOk = await usersStore.updateUserLicenses({ upn, addSkuIds: add, removeSkuIds: remove })
+    if (!licOk) {
+      editModal.saving = false
+      return
+    }
+  }
+
+  editModal.saving = false
+  editModal.show = false
 }
 
 // ---- Password Modal ----
@@ -501,9 +616,80 @@ async function doToggleUser() {
   }
   toggleModal.saving = false
 }
+
+// ---- Delete Modal ----
+const deleteModal = reactive({ show: false, user: null, saving: false, confirmUpn: '', error: '' })
+
+function openDelete(user) {
+  deleteModal.user = user
+  deleteModal.confirmUpn = ''
+  deleteModal.error = ''
+  deleteModal.saving = false
+  deleteModal.show = true
+}
+
+function closeDelete() {
+  if (deleteModal.saving) return
+  deleteModal.show = false
+}
+
+async function doDeleteUser() {
+  const upn = deleteModal.user?.userPrincipalName
+  if (!upn) return
+  if (deleteModal.confirmUpn !== upn) {
+    deleteModal.error = 'UPN stimmt nicht überein.'
+    return
+  }
+  deleteModal.saving = true
+  deleteModal.error = ''
+  const ok = await usersStore.deleteUser(upn)
+  deleteModal.saving = false
+  if (ok) deleteModal.show = false
+  else deleteModal.error = 'Benutzer konnte nicht gelöscht werden. Prüfe das Ausgabefenster.'
+}
 </script>
 
 <style scoped>
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+.delete-modal-dialog { max-width: min(640px, calc(100vw - 2rem)); }
+.delete-modal-body { min-width: 0; overflow-wrap: anywhere; }
+.delete-modal-user-info { color: #8b949e; margin-bottom: 0.75rem; min-width: 0; }
+.delete-modal-display-name { color: #e6edf3; word-break: break-word; overflow-wrap: anywhere; }
+.delete-modal-upn-row { margin-top: 0.35rem; min-width: 0; }
+.delete-modal-label { color: #8b949e; font-size: 0.85rem; }
+.delete-modal-upn {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: monospace;
+  font-size: 0.82rem;
+  color: #e6edf3;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+.license-edit-list {
+  max-height: 220px;
+  overflow: auto;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.pw-modal-dialog { max-width: min(640px, calc(100vw - 2rem)); }
+.pw-modal-body { min-width: 0; overflow-wrap: anywhere; }
+.pw-modal-user-line { margin-bottom: 1rem; min-width: 0; }
+.pw-modal-upn {
+  display: block;
+  margin-top: 0.25rem;
+  font-family: monospace;
+  font-size: 0.82rem;
+  color: #e6edf3;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
 </style>

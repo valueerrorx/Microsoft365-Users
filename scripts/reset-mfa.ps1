@@ -96,8 +96,6 @@ try {
         }
     }
 
-    Disconnect-MgGraph | Out-Null
-
     $msg = if ($removedCount -gt 0) {
         "$removedCount Authentifizierungsmethode(n) entfernt"
     } else {
@@ -118,7 +116,6 @@ try {
     Write-Output "###JSON_END###"
 
 } catch {
-    Disconnect-MgGraph | Out-Null
     $errMsg = $_.Exception.Message
     Write-Host "FEHLER: $errMsg"
     $result = @{
