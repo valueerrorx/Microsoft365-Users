@@ -348,10 +348,11 @@ ipcMain.handle('run-password-update', async () => {
     await fs.writeFile(tmpCsv, '\uFEFF' + toSemicolonCsv(csvData), 'utf8')
 
     let scriptPath
-    for (const rel of ['scripts/update-user-passwords.ps1', 'update-user-passwords.ps1']) {
-      try { scriptPath = await getScriptPath(rel); break } catch {}
+    try {
+      scriptPath = await getScriptPath('scripts/update-user-passwords.ps1')
+    } catch {
+      return { status: 'error', message: 'PowerShell-Skript nicht gefunden' }
     }
-    if (!scriptPath) return { status: 'error', message: 'PowerShell-Skript nicht gefunden' }
 
     const psCmd = detectPowerShell()
     const failedUsers = new Set()
