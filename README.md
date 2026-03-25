@@ -2,6 +2,8 @@
 
 Eine Electron-App zum Erstellen und Aktualisieren von Microsoft 365/Entra ID (Azure AD) Benutzern über die Microsoft Graph API.
 
+![App UI](./ui.png)
+
 ## Übersicht
 
 Dieses Tool ermöglicht es Administratoren, neue Benutzer in Microsoft 365 zu erstellen oder bestehende Benutzer zu aktualisieren. Neue Benutzer erhalten automatisch MS A3 Lizenzen (Schüler oder Lehrer). Die App verwendet die Microsoft Graph PowerShell SDK und bietet eine benutzerfreundliche GUI für den Prozess.
@@ -204,9 +206,3 @@ pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass \
 ## Lizenz
 
 ISC
-
-## Autor
-
-valueerror
-
-![App UI](./ui.png)
