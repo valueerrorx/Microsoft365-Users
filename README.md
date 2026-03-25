@@ -6,26 +6,24 @@ Eine Electron-App zum Erstellen und Aktualisieren von Microsoft 365/Entra ID (Az
 
 ## Übersicht
 
-Dieses Tool ermöglicht es Administratoren, neue Benutzer in Microsoft 365 zu erstellen oder bestehende Benutzer zu aktualisieren. Neue Benutzer erhalten automatisch MS A3 Lizenzen (Schüler oder Lehrer). Die App verwendet die Microsoft Graph PowerShell SDK und bietet eine benutzerfreundliche GUI für den Prozess.
+Administratoren können **neue** Microsoft-365-/Entra-ID-Konten anlegen (Einzeln oder per CSV) und **bestehende** Benutzer in der **Benutzerliste** pflegen. Neuanlagen über den Erstellungs-Workflow erhalten passende **A3-Edu-Lizenzen** (Schüler/Lehrer), sofern die SKUs im Tenant gefunden werden. Die App nutzt die Microsoft Graph PowerShell SDK und eine Electron-Oberfläche.
 
 ## Features
 
-- **CSV-basierte Benutzer-Verwaltung**: Importiere CSV-Dateien mit Benutzerdaten
-- **Automatische Benutzer-Erstellung**: Neue Benutzer werden automatisch erstellt, wenn sie nicht existieren
-- **Lizenzzuweisung**: Automatische Zuweisung von MS A3 Lizenzen (Schüler/Lehrer)
-- **Automatische UPN-Generierung**: UserPrincipalName wird aus Vorname/Nachname generiert
-- **Integrierter CSV-Editor**: Bearbeite Benutzerdaten direkt in der App
-- **Microsoft Graph Integration**: Nutzt die offizielle Microsoft Graph API
-- **Linux-Unterstützung**: Funktioniert mit PowerShell Core auf Linux
-- **Echtzeit-Logging**: Sieh alle Vorgänge in Echtzeit
-- **Fehlerbehandlung**: Zeigt fehlgeschlagene Benutzer an
+- **Dashboard**: Übersicht Benutzer/Lizenzen; unter Linux/macOS Hinweis, wenn **PowerShell Core (`pwsh`)** fehlt
+- **Benutzerliste** (`/users`): Suche, Filter, Sortierung; pro Benutzer **Bearbeiten** (Stammdaten), **Passwort**, **MFA zurücksetzen**, **Konto aktivieren/deaktivieren**, **Lizenzen** (Tenant-SKUs zuweisen/entfernen, mit Nutzungsstandort), **Löschen** (mit UPN-Bestätigung)
+- **Benutzer erstellen / importieren** (`/create`): **Einzelner Benutzer** oder **CSV-Import** — es werden nur **neue** Konten angelegt (UPN noch frei)
+- **CSV-basierter Massenimport**: Tabelle in der App bearbeiten, dann Anlage starten
+- **Automatische UPN-/Anzeigenamen-Generierung** aus Vorname/Nachname
+- **Lizenzzuweisung bei Neuanlage**: A3 Schüler/Lehrer gemäß `UserType`, wenn die passende SKU im Tenant erkannt wird
+- **Microsoft Graph** über PowerShell; **Echtzeit-Logs** und Toasts bei Fehlern
 
 ## Voraussetzungen
 
 - **Node.js** und **npm** (für die Entwicklung)
-- **PowerShell Core** (`pwsh`) oder **PowerShell** (auf Linux installiert)
-  - Auf Arch Linux: `yay -S powershell-bin` oder `paru -S powershell-bin`
-  - Alternativ: Installiere PowerShell Core über [Microsoft Docs](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-linux)
+- **PowerShell**: Unter **Linux und macOS** ist **PowerShell Core (`pwsh`)** erforderlich und sollte im `PATH` liegen (die App prüft das und warnt im Dashboard, falls nichts startet). Unter Windows nutzt die App `pwsh`, falls vorhanden, sonst passende PowerShell-Installationen.
+  - Linux z. B. Arch: `yay -S powershell-bin` oder [Microsoft: Installation](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-linux)
+  - macOS: z. B. Homebrew oder [Microsoft: Installation](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-macos)
 - **Microsoft Graph-Berechtigungen**: Ein Microsoft 365-Konto mit `User.ReadWrite.All` Berechtigung
 - **Microsoft.Graph.Users Modul**: Wird automatisch beim ersten Start installiert
 - **Microsoft.Graph.Identity.DirectoryManagement Modul**: Wird automatisch installiert (für Lizenzzuweisung)
@@ -52,9 +50,11 @@ Anna;Schmidt;2024;Lehrer;Passwort456!;0
 - **UserPrincipalName**: Wird automatisch als `nachname.vorname@{tenant-domain}` generiert
 - **DisplayName**: Wird automatisch als "Nachname Vorname" generiert
 
-**Verhalten:**
-- Wenn ein Benutzer mit dem generierten UserPrincipalName bereits existiert: Nur das Passwort wird aktualisiert
-- Wenn ein Benutzer nicht existiert: Neuer Benutzer wird erstellt mit allen Feldern und erhält die entsprechende Lizenz (Schüler oder Lehrer)
+**Verhalten (Erstellen / CSV / Einzeln):**
+
+- Es wird ein fester **UserPrincipalName** aus Vorname/Nachname und der **Tenant-Domain** gebildet (`nachname.vorname@…`).
+- **Existiert dieser Benutzer bereits**, schlägt der Vorgang für diese Zeile fehl (**kein** Passwort-Update und **keine** Stammdaten-Änderung über diesen Weg — dafür **Benutzerliste** nutzen).
+- **Existiert er nicht**, wird ein neues Konto angelegt; bei Erfolg werden **UsageLocation** (Standard AT) und die passende **A3-Lizenz** (Schüler/Lehrer) zugewiesen, sofern die SKU im Tenant gefunden wird.
 
 ## Installation
 
@@ -82,20 +82,23 @@ Anna;Schmidt;2024;Lehrer;Passwort456!;0
 - Beim ersten Start öffnet sich ein Browser-Fenster zur Microsoft-Graph-Anmeldung
 - Danach werden Benutzerliste und Lizenz-SKUs geladen
 
-### 2. Benutzer verwalten (Einzeloperationen)
+### 2. Benutzer verwalten (Benutzerliste)
 
-- Öffne **"Benutzerliste"** (`/users`)
-- Dort kannst du:
-  - Benutzer bearbeiten (z.B. DisplayName, Abteilung, Jobtitel, UsageLocation, aktiv/deaktiviert)
-  - Passwort zurücksetzen
-  - MFA/2FA zurücksetzen
+- Öffne **Benutzerliste** (`/users`)
+- Pro Zeile (Aktionen):
+  - **Bearbeiten**: Stammdaten (z. B. Anzeigename, Abteilung, Jobtitel, UsageLocation, Konto aktiv)
+  - **Passwort**: neues Passwort setzen, optional „bei nächster Anmeldung ändern“
+  - **MFA**: registrierte Anmeldemethoden entfernen (2FA zurücksetzen)
+  - **Aktivieren / Deaktivieren**: Konto ein- oder ausschalten
+  - **Löschen**: UPN zur Bestätigung erneut eingeben — Benutzer wird in Entra ID entfernt
+- Im Bearbeiten-Dialog: **Lizenzen** aus den Tenant-SKUs an- oder abwählen (für Zuweisungen ist ein **Nutzungsstandort** nötig)
 
-### 3. Benutzer erstellen / importieren (Bulk)
+### 3. Neue Benutzer anlegen (Einzeln oder CSV)
 
-- Öffne **"Erstellen / Import"** (`/create`)
-- **Einzeln**: Benutzer ausfüllen → **"Zur Liste hinzufügen"**
-- **CSV Import**: CSV auswählen → Einträge werden in einer Tabelle angezeigt und können direkt angepasst werden
-- Danach **"Benutzer erstellen / aktualisieren"** starten
+- Öffne **Benutzer erstellen / importieren** (`/create`)
+- **Einzelner Benutzer**: Formular ausfüllen → **Benutzer erstellen** (nur wenn der erzeugte UPN noch **frei** ist)
+- **CSV Import**: Datei wählen → Zeilen in der Tabelle prüfen/anpassen → Massenoperation starten
+- Existiert der UPN bereits, meldet das Skript einen Fehler — Änderungen an bestehenden Konten erfolgen über die **Benutzerliste**
 
 ### 4. Logs anzeigen
 
@@ -111,9 +114,9 @@ Renderer (Vue + Vite)
 └── window.ipcRenderer.invoke(...)
     ↓
 Electron Main Process (index.js)
-├── IPC Handler (get-users, update-user, reset-password, reset-mfa, bulk)
+├── IPC (u. a. check-pwsh, get-users, update-user, update-user-licenses, reset-password, reset-mfa, delete-user, CSV / run-password-update)
 ├── CSV Parsing + Temp CSV (os.tmpdir)
-└── PowerShell Spawn (pwsh/powershell) → scripts/*.ps1
+└── PowerShell Spawn (pwsh / powershell) → scripts/*.ps1
     ↓
 Microsoft Graph PowerShell SDK (Connect-MgGraph, Get/Update/New user, Assign license, Auth methods)
 ```
@@ -126,14 +129,16 @@ Microsoft Graph PowerShell SDK (Connect-MgGraph, Get/Update/New user, Assign lic
 3. PowerShell verbindet sich mit Graph (`Connect-MgGraph`) und gibt JSON zurück (`###JSON_START/END###`)
 4. Renderer zeigt Users/Lizenzen an
 
-**Bulk Create/Update (CSV)**
+**Bulk Create (CSV / Einzeln → gleiches Skript)**
 1. CSV wird im Main Process geparst und normalisiert
 2. Einträge werden als temporäre CSV ins System-Temp geschrieben
 3. Main startet `scripts/update-user-passwords.ps1 -CSVPath <tmp>`
 4. Script ermittelt Tenant-Domain, SKUs (A3 Schüler/Lehrer) und verarbeitet jede Zeile:
-   - existiert User? → Passwort aktualisieren
-   - sonst → User anlegen + UsageLocation setzen + Lizenz zuweisen
+   - **UPN existiert bereits** → Fehler für diese Zeile (kein Update)
+   - **sonst** → `New-MgUser`, UsageLocation, Lizenzzuweisung
 5. Logs werden live an die UI gestreamt, Temp-Dateien werden gelöscht
+
+**Einzelkonten in der Benutzerliste** laufen über andere Skripte (`update-user.ps1`, `reset-password.ps1`, `reset-mfa.ps1`, `delete-user.ps1`, Lizenzen über Graph-Aktionen).
 
 ### Dateien
 
@@ -144,17 +149,18 @@ Microsoft Graph PowerShell SDK (Connect-MgGraph, Get/Update/New user, Assign lic
 - `scripts/update-user.ps1`: Benutzerattribute aktualisieren (JSON Output)
 - `scripts/reset-password.ps1`: Passwort zurücksetzen (JSON Output)
 - `scripts/reset-mfa.ps1`: MFA/2FA Methoden entfernen (JSON Output)
-- `scripts/update-user-passwords.ps1`: Bulk Create/Update aus CSV + Lizenzzuweisung (Log streaming)
+- `scripts/delete-user.ps1`: Benutzer löschen (JSON Output)
+- `scripts/update-user-passwords.ps1`: **nur Neuanlage** aus CSV/Einzelbatch + Lizenzzuweisung für neue Konten (Log-Streaming)
 
 ## Build
 
-Erstelle eine AppImage für Linux:
+Installierbare Pakete (je nach Plattform) erzeugen:
 
 ```bash
 npm run build
 ```
 
-Die AppImage wird im `dist/` Verzeichnis erstellt.
+Ausgabe liegt unter `dist/` (z. B. **Linux AppImage**, **Windows NSIS-Setup**, **macOS DMG** — je nachdem, auf welchem OS du baust).
 
 ## PowerShell-Kompatibilität
 
