@@ -9,7 +9,7 @@
     "dev:vite": "vite",
     "dev:electron": "cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
     "build:renderer": "vite build",
-    "build": "npm run build:renderer && electron-builder"
+    "build": "npm run build:renderer && electron-builder --publish never"
   },
   "author": "Thomas Michael Weissel <valueerror@gmail.com>",
   "license": "ISC",
@@ -17,6 +17,7 @@
     "appId": "eu.life-edu.microsoft365users",
     "productName": "Microsoft365Users",
     "icon": "icon.png",
+    "publish": null,
     "files": [
       "dist/**/*",
       "index.js",
