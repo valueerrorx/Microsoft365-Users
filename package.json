@@ -26,7 +26,10 @@
       "icon.png"
     ],
     "linux": {
-      "target": "AppImage",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "icon": "icon.png",
       "category": "Utility",
       "synopsis": "Microsoft 365 Benutzer- und Lizenzverwaltung",
@@ -40,30 +43,15 @@
     "win": {
       "target": [
         {
-          "target": "nsis",
+          "target": "portable",
           "arch": [
             "x64"
           ]
         }
       ],
       "icon": "icon.png",
-      "artifactName": "${productName}-${version}-Setup-${arch}.${ext}",
+      "artifactName": "${productName}-${version}-portable-${arch}.${ext}",
       "publisherName": "Thomas Michael Weissel <valueerror@gmail.com>"
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowElevation": true,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": "always",
-      "createStartMenuShortcut": true,
-      "shortcutName": "Microsoft 365 Users",
-      "menuCategory": "Microsoft 365",
-      "installerIcon": "icon.png",
-      "uninstallerIcon": "icon.png",
-      "installerHeaderIcon": "icon.png",
-      "deleteAppDataOnUninstall": false,
-      "differentialPackage": false
     },
     "mac": {
       "category": "public.app-category.utilities",
