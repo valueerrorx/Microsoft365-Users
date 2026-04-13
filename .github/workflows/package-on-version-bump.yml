@@ -1,0 +1,170 @@
+# Builds AppImage + deb (Linux), portable exe (Windows), DMG (macOS) and publishes one GitHub Release when package.json "version" changes on main.
+name: Package on version bump
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'package.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.diff.outputs.build }}
+      version: ${{ steps.diff.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: diff
+        run: |
+          set -euo pipefail
+          CURR=$(node -p "require('./package.json').version")
+          echo "version=$CURR" >> "$GITHUB_OUTPUT"
+          BEFORE="${{ github.event.before }}"
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            echo "No parent SHA; treating as first push — building."
+            exit 0
+          fi
+          if ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            echo "Parent commit not in history; building."
+            exit 0
+          fi
+          PREV=$(git show "$BEFORE:package.json" 2>/dev/null | jq -r '.version // empty' 2>/dev/null || true)
+          if [ -z "$PREV" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            echo "Could not read previous version; building."
+            exit 0
+          fi
+          if [ "$PREV" != "$CURR" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            echo "Version changed: $PREV -> $CURR"
+          else
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            echo "package.json changed but version is still $CURR — skipping build."
+          fi
+
+  build-linux:
+    needs: check-version
+    if: needs.check-version.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          ELECTRON_BUILDER_PUBLISH: never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-dist
+          path: dist/*
+
+  build-windows:
+    needs: check-version
+    if: needs.check-version.outputs.build == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          ELECTRON_BUILDER_PUBLISH: never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-dist
+          path: dist/*
+
+  build-mac:
+    needs: check-version
+    if: needs.check-version.outputs.build == 'true'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          ELECTRON_BUILDER_PUBLISH: never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac-dist
+          path: dist/*
+
+  release:
+    needs: [check-version, build-linux, build-windows, build-mac]
+    if: needs.check-version.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Changelog
+        run: |
+          set -euo pipefail
+          BEFORE="${{ github.event.before }}"
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            NOTES=$(git log --no-merges -n 40 --pretty=format:'- %s (%h)' HEAD)
+          else
+            NOTES=$(git log --no-merges --pretty=format:'- %s (%h)' "$BEFORE..HEAD" || true)
+          fi
+          if [ -z "$NOTES" ]; then
+            NOTES="- (no commits in range)"
+          fi
+          {
+            echo "## Changes"
+            echo ""
+            echo "$NOTES"
+          } > release-notes.md
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-dist
+          path: release-assets
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-dist
+          path: release-assets
+      - uses: actions/download-artifact@v4
+        with:
+          name: mac-dist
+          path: release-assets
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          TAG="v${{ needs.check-version.outputs.version }}"
+          NAME="Microsoft365Users ${{ needs.check-version.outputs.version }}"
+          echo "Creating release ${TAG}"
+          ASSET_FILES=(release-assets/*)
+          if [ "${#ASSET_FILES[@]}" -eq 0 ]; then
+            echo "No release assets found in release-assets/"
+            exit 1
+          fi
+          gh release create "$TAG" "${ASSET_FILES[@]}" \
+            --title "$NAME" \
+            --notes-file release-notes.md
