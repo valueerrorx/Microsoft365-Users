@@ -1,5 +1,5 @@
-# Manual packaging: Linux (AppImage + deb), Windows (portable exe), macOS (DMG) as CI artifacts only (no GitHub Release).
-name: Package
+# Manual: Linux (AppImage + deb) → artifact linux-dist
+name: Package (Linux)
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-linux:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,5 +27,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: linux-dist
-          path: dist/*
-
+          if-no-files-found: error
+          path: |
+            dist/*.AppImage
+            dist/*.deb

@@ -72,7 +72,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: linux-dist
-          path: dist/*
+          if-no-files-found: error
+          path: |
+            dist/*.AppImage
+            dist/*.deb
 
   build-windows:
     needs: check-version
@@ -91,7 +94,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows-dist
-          path: dist/*
+          if-no-files-found: error
+          path: dist/*.exe
 
   build-mac:
     needs: check-version
@@ -110,7 +114,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: mac-dist
-          path: dist/*
+          if-no-files-found: error
+          path: dist/*.dmg
 
   release:
     needs: [check-version, build-linux, build-windows, build-mac]
@@ -157,15 +162,17 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          shopt -s nullglob
           TAG="v${{ needs.check-version.outputs.version }}"
           NAME="Microsoft365Users ${{ needs.check-version.outputs.version }}"
           echo "Creating release ${TAG}"
-          ASSET_FILES=(release-assets/*)
+          mapfile -t ASSET_FILES < <(find release-assets -maxdepth 1 -type f | sort)
           if [ "${#ASSET_FILES[@]}" -eq 0 ]; then
-            echo "No release assets found in release-assets/"
+            echo "No release asset files in release-assets/"
+            ls -la release-assets || true
             exit 1
           fi
+          printf 'Assets:\n'
+          printf ' %s\n' "${ASSET_FILES[@]}"
           gh release create "$TAG" "${ASSET_FILES[@]}" \
             --title "$NAME" \
             --notes-file release-notes.md
