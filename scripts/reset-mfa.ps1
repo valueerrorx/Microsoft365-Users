@@ -20,9 +20,11 @@ function Ensure-Module {
 Ensure-Module "Microsoft.Graph.Identity.SignIns"
 Ensure-Module "Microsoft.Graph.Users"
 
+$__ms365ConnRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+. (Join-Path $__ms365ConnRoot 'Connect-Mg365App.ps1')
 Write-Host "Verbinde mit Microsoft Graph..."
 try {
-    Connect-MgGraph -Scopes "UserAuthenticationMethod.ReadWrite.All", "User.Read.All" -NoWelcome -ErrorAction Stop
+    Connect-Mg365App -ErrorAction Stop
 } catch {
     $result = @{ status = "error"; message = "Verbindung fehlgeschlagen: $($_.Exception.Message)" } | ConvertTo-Json -Compress
     Write-Output "###JSON_START###"

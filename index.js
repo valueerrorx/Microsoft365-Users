@@ -93,23 +93,68 @@ function checkPwshForDashboard() {
   return { shouldWarn: !ok }
 }
 
+// Copy main script plus Connect-Mg365App.ps1 into one temp dir so pwsh can dot-source shared Graph scopes.
 async function getScriptPath(scriptRelPath) {
   const appPath = app.isPackaged ? app.getAppPath() : __dirname
-  const tmpScript = path.join(os.tmpdir(), `ms365-${Date.now()}-${path.basename(scriptRelPath)}`)
+  const workDir = path.join(os.tmpdir(), `ms365-run-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`)
+  await fs.mkdir(workDir, { recursive: true })
+  const mainName = path.basename(scriptRelPath)
+  const tmpScript = path.join(workDir, mainName)
   const candidates = [
     path.join(appPath, scriptRelPath),
     path.join(__dirname, scriptRelPath)
   ]
+  let copied = false
   for (const src of candidates) {
     try {
       await fs.copyFile(src, tmpScript)
-      return tmpScript
+      copied = true
+      break
     } catch {}
   }
-  throw new Error(`Skript nicht gefunden: ${scriptRelPath}`)
+  if (!copied) {
+    try { await fs.rm(workDir, { recursive: true, force: true }) } catch {}
+    throw new Error(`Skript nicht gefunden: ${scriptRelPath}`)
+  }
+  const helperName = 'Connect-Mg365App.ps1'
+  const helperDest = path.join(workDir, helperName)
+  const helperCandidates = [
+    path.join(appPath, 'scripts', helperName),
+    path.join(__dirname, 'scripts', helperName)
+  ]
+  let helperOk = false
+  for (const hsrc of helperCandidates) {
+    try {
+      await fs.copyFile(hsrc, helperDest)
+      helperOk = true
+      break
+    } catch {}
+  }
+  if (!helperOk) {
+    try { await fs.rm(workDir, { recursive: true, force: true }) } catch {}
+    throw new Error(`Hilfsskript nicht gefunden: scripts/${helperName}`)
+  }
+  return tmpScript
 }
 
+// Serialize Graph PowerShell runs so concurrent Connect-MgGraph does not race MSAL token cache (duplicate browser prompts).
+let psScriptQueueTail = Promise.resolve()
+
 async function runPsScript(scriptRelPath, args = [], onLog = null) {
+  const prev = psScriptQueueTail
+  let release
+  psScriptQueueTail = new Promise((r) => {
+    release = r
+  })
+  await prev.catch(() => {})
+  try {
+    return await runPsScriptBody(scriptRelPath, args, onLog)
+  } finally {
+    release()
+  }
+}
+
+async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
   let tmpScript = null
   try {
     tmpScript = await getScriptPath(scriptRelPath)
@@ -146,7 +191,9 @@ async function runPsScript(scriptRelPath, args = [], onLog = null) {
       if (settled) return
       settled = true
       clearTimeout(timer)
-      try { if (tmpScript) await fs.unlink(tmpScript) } catch {}
+      try {
+        if (tmpScript) await fs.rm(path.dirname(tmpScript), { recursive: true, force: true })
+      } catch {}
       resolve(payload)
     }
 
@@ -401,7 +448,7 @@ ipcMain.handle('run-password-update', async () => {
     return await new Promise((resolve) => {
       pwsh.on('exit', async (code) => {
         try { await fs.unlink(tmpCsv) } catch {}
-        try { await fs.unlink(scriptPath) } catch {}
+        try { await fs.rm(path.dirname(scriptPath), { recursive: true, force: true }) } catch {}
         const ok = code === 0
         const message = ok
           ? undefined
@@ -413,7 +460,7 @@ ipcMain.handle('run-password-update', async () => {
       })
       pwsh.on('error', async (err) => {
         try { await fs.unlink(tmpCsv) } catch {}
-        try { await fs.unlink(scriptPath) } catch {}
+        try { await fs.rm(path.dirname(scriptPath), { recursive: true, force: true }) } catch {}
         uiSend('pwsh-complete', { status: 'error', message: err?.message, failedUsers: [], failedUserDetails: {} })
         resolve({ status: 'error', message: err?.message, failedUsers: [], failedUserDetails: {} })
       })
@@ -524,5 +571,273 @@ ipcMain.handle('update-user-licenses', async (_event, { upn, addSkuIds = [], rem
     return data
   } catch (e) {
     return { status: 'error', message: e?.message }
+  }
+})
+
+ipcMain.handle('get-directory-groups', async () => {
+  try {
+    const result = await runPsScript('scripts/get-groups.ps1', [], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    if (result.exitCode === -1 && !result.stdout) {
+      return { status: 'error', message: result.stderr || 'PowerShell konnte nicht gestartet werden', groups: [] }
+    }
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) {
+      return { status: 'error', message: result.stderr || 'Keine Gruppendaten von PowerShell erhalten.', groups: [] }
+    }
+    uiSend('ps-operation-complete', { status: data.status })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message, groups: [] }
+  }
+})
+
+ipcMain.handle('add-group-members', async (_event, { groupId, userIds = [] }) => {
+  try {
+    const gid = String(groupId || '').trim()
+    const ids = Array.isArray(userIds) ? userIds.filter(Boolean).join(',') : ''
+    if (!gid || !ids) {
+      return { status: 'error', message: 'groupId und userIds erforderlich', added: 0, skipped: 0, failed: 0, errors: [] }
+    }
+    const result = await runPsScript('scripts/add-group-members.ps1', ['-GroupId', gid, '-UserIds', ids], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    if (result.exitCode === -1 && !result.stdout) {
+      return { status: 'error', message: result.stderr || 'PowerShell konnte nicht gestartet werden', added: 0, skipped: 0, failed: 0, errors: [] }
+    }
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) {
+      return { status: 'error', message: result.stderr || 'Keine Antwort von PowerShell.', added: 0, skipped: 0, failed: 0, errors: [] }
+    }
+    uiSend('ps-operation-complete', { status: data.status, groupId: gid })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message, added: 0, skipped: 0, failed: 0, errors: [] }
+  }
+})
+
+ipcMain.handle('get-groups-detail', async () => {
+  try {
+    const result = await runPsScript('scripts/get-groups-detail.ps1', [], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    if (result.exitCode === -1 && !result.stdout) {
+      return { status: 'error', message: result.stderr || 'PowerShell konnte nicht gestartet werden', groups: [] }
+    }
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) {
+      return { status: 'error', message: result.stderr || 'Keine Gruppendaten erhalten.', groups: [] }
+    }
+    uiSend('ps-operation-complete', { status: data.status })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message, groups: [] }
+  }
+})
+
+ipcMain.handle('get-group-owners', async (_event, { groupId }) => {
+  try {
+    const gid = String(groupId || '').trim()
+    if (!gid) return { status: 'error', message: 'groupId erforderlich', ownerEmails: [] }
+    const result = await runPsScript('scripts/get-group-owners.ps1', ['-GroupId', gid], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    if (result.exitCode === -1 && !result.stdout) {
+      return { status: 'error', message: result.stderr || 'PowerShell konnte nicht gestartet werden', ownerEmails: [] }
+    }
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) {
+      return { status: 'error', message: result.stderr || 'Keine Besitzerdaten erhalten.', ownerEmails: [] }
+    }
+    uiSend('ps-operation-complete', { status: data.status, groupId: gid })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message, ownerEmails: [] }
+  }
+})
+
+ipcMain.handle('get-group-members', async (_event, { groupId }) => {
+  try {
+    const gid = String(groupId || '').trim()
+    if (!gid) return { status: 'error', message: 'groupId erforderlich', members: [] }
+    const result = await runPsScript('scripts/get-group-members.ps1', ['-GroupId', gid], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    if (result.exitCode === -1 && !result.stdout) {
+      return { status: 'error', message: result.stderr || 'PowerShell konnte nicht gestartet werden', members: [] }
+    }
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) {
+      return { status: 'error', message: result.stderr || 'Keine Mitgliederdaten erhalten.', members: [] }
+    }
+    uiSend('ps-operation-complete', { status: data.status, groupId: gid })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message, members: [] }
+  }
+})
+
+ipcMain.handle('update-group', async (_event, { groupId, displayName, description }) => {
+  try {
+    const gid = String(groupId || '').trim()
+    if (!gid) return { status: 'error', message: 'groupId erforderlich' }
+    const args = ['-GroupId', gid]
+    if (displayName !== undefined && displayName !== null) args.push('-DisplayName', String(displayName))
+    if (description !== undefined && description !== null) args.push('-Description', String(description))
+    if (args.length === 2) return { status: 'error', message: 'Keine Felder zum Aktualisieren' }
+    const result = await runPsScript('scripts/update-group.ps1', args, (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Fehler beim Aktualisieren der Gruppe' }
+    uiSend('ps-operation-complete', { status: data.status, groupId: gid })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
+
+ipcMain.handle('delete-group', async (_event, { groupId }) => {
+  try {
+    const gid = String(groupId || '').trim()
+    if (!gid) return { status: 'error', message: 'groupId erforderlich' }
+    const result = await runPsScript('scripts/delete-group.ps1', ['-GroupId', gid], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Fehler beim Löschen der Gruppe' }
+    uiSend('ps-operation-complete', { status: data.status, groupId: gid })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
+
+ipcMain.handle('remove-group-member', async (_event, { groupId, memberId }) => {
+  try {
+    const gid = String(groupId || '').trim()
+    const mid = String(memberId || '').trim()
+    if (!gid || !mid) return { status: 'error', message: 'groupId und memberId erforderlich' }
+    const result = await runPsScript('scripts/remove-group-member.ps1', ['-GroupId', gid, '-MemberId', mid], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Mitglied konnte nicht entfernt werden' }
+    uiSend('ps-operation-complete', { status: data.status, groupId: gid })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
+
+ipcMain.handle('list-group-lifecycle-policies', async () => {
+  try {
+    const result = await runPsScript('scripts/group-lifecycle.ps1', ['-Action', 'list'], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    if (result.exitCode === -1 && !result.stdout) {
+      return { status: 'error', message: result.stderr || 'PowerShell konnte nicht gestartet werden', policies: [] }
+    }
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Keine Policy-Daten', policies: [] }
+    uiSend('ps-operation-complete', { status: data.status })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message, policies: [] }
+  }
+})
+
+ipcMain.handle('list-group-lifecycle-policies-for-group', async (_event, { groupId } = {}) => {
+  try {
+    const gid = String(groupId || '').trim()
+    if (!gid) return { status: 'error', message: 'groupId erforderlich', policies: [] }
+    const result = await runPsScript(
+      'scripts/group-lifecycle.ps1',
+      ['-Action', 'listForGroup', '-GroupId', gid],
+      (log) => {
+        uiSend('ps-operation-log', log)
+      }
+    )
+    if (result.exitCode === -1 && !result.stdout) {
+      return { status: 'error', message: result.stderr || 'PowerShell konnte nicht gestartet werden', policies: [] }
+    }
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Keine Policy-Daten', policies: [] }
+    uiSend('ps-operation-complete', { status: data.status })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message, policies: [] }
+  }
+})
+
+ipcMain.handle('save-group-lifecycle-policy', async (_event, body = {}) => {
+  try {
+    const mode = String(body.mode || '').toLowerCase() === 'update' ? 'update' : 'create'
+    const days = Number(body.groupLifetimeInDays)
+    const mgt = String(body.managedGroupTypes || '').trim()
+    const alt = body.alternateNotificationEmails != null ? String(body.alternateNotificationEmails).trim() : ''
+    if (!Number.isFinite(days) || days < 1) return { status: 'error', message: 'Ungültige Lebensdauer (Tage)' }
+    if (mgt !== 'All' && mgt !== 'Selected') return { status: 'error', message: 'managedGroupTypes muss All oder Selected sein' }
+    const args = ['-Action', mode, '-GroupLifetimeInDays', String(Math.floor(days)), '-ManagedGroupTypes', mgt]
+    if (alt) args.push('-AlternateNotificationEmails', alt)
+    if (mode === 'update') {
+      const pid = String(body.policyId || '').trim()
+      if (!pid) return { status: 'error', message: 'policyId für Update erforderlich' }
+      args.push('-PolicyId', pid)
+    }
+    const result = await runPsScript('scripts/group-lifecycle.ps1', args, (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Policy speichern fehlgeschlagen' }
+    uiSend('ps-operation-complete', { status: data.status })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
+
+ipcMain.handle('add-groups-to-lifecycle-policy', async (_event, { policyId, groupIds = [] }) => {
+  try {
+    const pid = String(policyId || '').trim()
+    if (!pid) return { status: 'error', message: 'policyId erforderlich', results: [], added: 0, failed: 0 }
+    const ids = Array.isArray(groupIds) ? groupIds.map((x) => String(x).trim()).filter(Boolean) : []
+    if (!ids.length) return { status: 'error', message: 'Keine Gruppen-IDs', results: [], added: 0, failed: 0 }
+    const result = await runPsScript(
+      'scripts/group-lifecycle.ps1',
+      ['-Action', 'addGroups', '-PolicyId', pid, '-GroupIdsJson', JSON.stringify(ids)],
+      (log) => {
+        uiSend('ps-operation-log', log)
+      }
+    )
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'addGroup fehlgeschlagen', results: [], added: 0, failed: 0 }
+    uiSend('ps-operation-complete', { status: data.status })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message, results: [], added: 0, failed: 0 }
+  }
+})
+
+ipcMain.handle('remove-groups-from-lifecycle-policy', async (_event, { policyId, groupIds = [] }) => {
+  try {
+    const pid = String(policyId || '').trim()
+    if (!pid) return { status: 'error', message: 'policyId erforderlich', results: [], removed: 0, failed: 0 }
+    const ids = Array.isArray(groupIds) ? groupIds.map((x) => String(x).trim()).filter(Boolean) : []
+    if (!ids.length) return { status: 'error', message: 'Keine Gruppen-IDs', results: [], removed: 0, failed: 0 }
+    const result = await runPsScript(
+      'scripts/group-lifecycle.ps1',
+      ['-Action', 'removeGroups', '-PolicyId', pid, '-GroupIdsJson', JSON.stringify(ids)],
+      (log) => {
+        uiSend('ps-operation-log', log)
+      }
+    )
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'removeGroup fehlgeschlagen', results: [], removed: 0, failed: 0 }
+    uiSend('ps-operation-complete', { status: data.status })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message, results: [], removed: 0, failed: 0 }
   }
 })

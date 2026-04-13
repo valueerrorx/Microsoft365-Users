@@ -1,0 +1,60 @@
+---
+description: Graphify-Wissensgraph wie in Claude Code nutzen (Kontext, Abfragen, Aktualisierung)
+alwaysApply: true
+---
+
+# Graphify (Projekt-Wissensgraph)
+
+Dieses Repository pflegt einen **graphify**-Knowledge-Graph unter `graphify-out/`. Alle Cursor-Agenten sollen ihn **parallel zu `project.md`** nutzen — analog zu Claude Code mit dem Graphify-Skill: zuerst persistenter Graph-Kontext, dann gezielte Recherche, Kanten nur mit Graph-Beleg (EXTRACTED / INFERRED / AMBIGUOUS).
+
+## Vor Architektur-, Struktur- und „Wo ist was?“-Fragen
+
+Wenn `graphify-out/graph.json` existiert:
+
+1. **`graphify-out/GRAPH_REPORT.md`** lesen — mindestens die Abschnitte **God Nodes**, **Surprising Connections**, **Suggested Questions** (wie nach einem abgeschlossenen `/graphify`-Lauf).
+2. Bei Bedarf **`graphify-out/graph.html`** öffnen bzw. zu Rate ziehen (Communities, lokale Nachbarschaft) statt den ganzen Codebaum zu durchsuchen.
+3. Wenn **`graphify-out/wiki/index.md`** existiert: dort starten (über **`graphify-out/wiki/`** navigieren).
+
+`project.md` bleibt die menschliche Single Source of Truth; der Graph liefert **Beziehungen, Cluster und Überraschungs-Kanten**, die in Prosa-Docs leicht fehlen.
+
+## Im Graph „nachfragen“ (CLI, Projektroot)
+
+Im **Repository-Root** ausführen (Default-Pfad `graphify-out/graph.json`):
+
+```bash
+graphify query "<Frage>"
+graphify query "<Frage>" --dfs
+graphify query "<Frage>" --budget 4000
+```
+
+Antworten **aus dem Graph ableiten**; `source_file` und Relation/Konfidenz nennen, wo relevant. Fehlt der Kontext im Graph, das **explizit** sagen — nichts erfinden.
+
+## Feedback-Loop (wie im Graphify-Skill)
+
+Nach einer substanziellen, graph-gestützten Antwort optional persistieren:
+
+```bash
+graphify save-result --question "…" --answer "…" --type query --nodes "…"
+```
+
+(`--type` auch `path_query` / `explain` wenn passend.)
+
+## Graph aktualisieren
+
+- **Nur Code geändert** (keine neuen Docs/Bilder): nach größeren Edits oder vor Abschluss der Aufgabe den **schnellen Code-Rebuild** aus dem Projektroot:
+
+```bash
+"$(cat graphify-out/.graphify_python)" -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"
+```
+
+(Falls `graphify-out/.graphify_python` fehlt: dieselbe Python-Umgebung wie bei `which graphify` / pipx-Installation von **graphifyy** verwenden.)
+
+- **Dokumentation, Bilder, große neue Bereiche**, oder Graph fehlt noch: vollständigen Lauf wie unter Claude auslösen — **`/graphify .`** bzw. **`/graphify . --update`** im Graphify-Skill —, weil die Cursor-CLI nur `query` / `save-result` / Hooks bietet, nicht die komplette semantische Pipeline.
+
+Optional: **`graphify hook install`** für automatische Code-Rebuilds nach Commits; semantische Corpus-Änderungen weiter per vollem Graphify-Lauf aktualisieren.
+
+## Vermeiden
+
+- Ohne Blick in `GRAPH_REPORT.md` / `query` den gesamten Ordner „per Bauchgefühl“ explorieren, obwohl der Graph existiert.
+- Kanten oder Abhängigkeiten behaupten, die im Graph nicht vorkommen.
+- `node_modules/` ändern; `graphify-out/cache/` nur bei bewusstem Clean-Rebuild löschen.

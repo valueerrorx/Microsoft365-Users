@@ -12,7 +12,10 @@ export const useUsersStore = defineStore('users', {
     bulkRunning: false,
     bulkLogs: [],
     failedUsers: [],
-    failedUserDetails: {}
+    failedUserDetails: {},
+    directoryGroups: [],
+    directoryGroupsLoading: false,
+    directoryGroupsError: null
   }),
 
   getters: {
@@ -83,14 +86,15 @@ export const useUsersStore = defineStore('users', {
       }
     },
 
-    async resetMfa(upn) {
+    async resetMfa(upn, opts = {}) {
+      const quietToast = opts.quietToast === true
       const auth = useAuthStore()
       auth.addLog({ type: 'info', message: `MFA zurücksetzen für: ${upn}` })
       try {
         const result = await window.ipcRenderer.invoke('reset-mfa', { upn })
         if (result.status === 'ok') {
           auth.addLog({ type: 'success', message: `MFA für ${upn} zurückgesetzt` })
-          auth.showToast(`MFA für ${upn} zurückgesetzt`, 'success')
+          if (!quietToast) auth.showToast(`MFA für ${upn} zurückgesetzt`, 'success')
           return true
         } else {
           auth.addLog({ type: 'error', message: `Fehler: ${result.message}` })
@@ -103,7 +107,8 @@ export const useUsersStore = defineStore('users', {
       }
     },
 
-    async updateUser(params) {
+    async updateUser(params, opts = {}) {
+      const quietToast = opts.quietToast === true
       const auth = useAuthStore()
       auth.addLog({ type: 'info', message: `Benutzer aktualisieren: ${params.upn}` })
       try {
@@ -115,7 +120,7 @@ export const useUsersStore = defineStore('users', {
             this.users[idx] = { ...this.users[idx], ...result.user }
           }
           auth.addLog({ type: 'success', message: `Benutzer ${params.upn} aktualisiert` })
-          auth.showToast(`Benutzer aktualisiert`, 'success')
+          if (!quietToast) auth.showToast(`Benutzer aktualisiert`, 'success')
           return true
         } else {
           auth.addLog({ type: 'error', message: `Fehler: ${result.message}` })
@@ -157,7 +162,8 @@ export const useUsersStore = defineStore('users', {
       }
     },
 
-    async deleteUser(upn) {
+    async deleteUser(upn, opts = {}) {
+      const quietToast = opts.quietToast === true
       const auth = useAuthStore()
       auth.addLog({ type: 'info', message: `Benutzer löschen: ${upn}` })
       try {
@@ -166,7 +172,7 @@ export const useUsersStore = defineStore('users', {
           const idx = this.users.findIndex(u => u.userPrincipalName === upn)
           if (idx !== -1) this.users.splice(idx, 1)
           auth.addLog({ type: 'success', message: `Benutzer gelöscht: ${upn}` })
-          auth.showToast(`Benutzer gelöscht`, 'success')
+          if (!quietToast) auth.showToast(`Benutzer gelöscht`, 'success')
           return true
         }
         auth.addLog({ type: 'error', message: `Fehler: ${result.message}` })
@@ -176,6 +182,68 @@ export const useUsersStore = defineStore('users', {
         auth.addLog({ type: 'error', message: e.message })
         auth.showToast(e.message, 'error')
         return false
+      }
+    },
+
+    async fetchDirectoryGroups() {
+      const auth = useAuthStore()
+      this.directoryGroupsLoading = true
+      this.directoryGroupsError = null
+      auth.addLog({ type: 'info', message: 'Lade Verzeichnisgruppen...' })
+      try {
+        const result = await window.ipcRenderer.invoke('get-directory-groups')
+        if (result.status === 'ok') {
+          const list = result.groups || []
+          this.directoryGroups = [...list].sort((a, b) =>
+            String(a?.displayName || '').localeCompare(String(b?.displayName || ''), undefined, { sensitivity: 'base' })
+          )
+          auth.addLog({ type: 'success', message: `${this.directoryGroups.length} Gruppen geladen` })
+          return true
+        }
+        this.directoryGroups = []
+        this.directoryGroupsError = result.message || 'Gruppen konnten nicht geladen werden'
+        auth.addLog({ type: 'error', message: this.directoryGroupsError })
+        auth.showToast(this.directoryGroupsError, 'error')
+        return false
+      } catch (e) {
+        this.directoryGroups = []
+        this.directoryGroupsError = e.message
+        auth.addLog({ type: 'error', message: e.message })
+        auth.showToast(e.message, 'error')
+        return false
+      } finally {
+        this.directoryGroupsLoading = false
+      }
+    },
+
+    async addUsersToGroup({ groupId, userIds }) {
+      const auth = useAuthStore()
+      const ids = (userIds || []).filter(Boolean)
+      if (!groupId || !ids.length) {
+        auth.showToast('Gruppe und Benutzer-IDs erforderlich', 'error')
+        return { ok: false, result: null }
+      }
+      auth.addLog({ type: 'info', message: `Füge ${ids.length} Benutzer zur Gruppe hinzu...` })
+      try {
+        const result = await window.ipcRenderer.invoke('add-group-members', { groupId, userIds: ids })
+        if (result.status === 'error') {
+          auth.addLog({ type: 'error', message: result.message || 'Gruppenzuweisung fehlgeschlagen' })
+          auth.showToast(result.message || 'Gruppenzuweisung fehlgeschlagen', 'error')
+          return { ok: false, result }
+        }
+        const msg = result.message || `${result.added ?? 0} hinzugefügt`
+        if (result.status === 'partial') {
+          auth.addLog({ type: 'info', message: msg })
+          auth.showToast(msg, 'warning')
+        } else {
+          auth.addLog({ type: 'success', message: msg })
+          auth.showToast(msg, 'success')
+        }
+        return { ok: true, result }
+      } catch (e) {
+        auth.addLog({ type: 'error', message: e.message })
+        auth.showToast(e.message, 'error')
+        return { ok: false, result: null }
       }
     },
 

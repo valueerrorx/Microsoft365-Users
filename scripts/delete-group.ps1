@@ -1,13 +1,7 @@
-# Setzt das Passwort eines einzelnen Benutzers zurück
+# Deletes a directory group
 param(
     [Parameter(Mandatory = $true)]
-    [string]$UPN,
-
-    [Parameter(Mandatory = $true)]
-    [string]$NewPassword,
-
-    [Parameter(Mandatory = $false)]
-    [string]$ForceChange = "1"
+    [string]$GroupId
 )
 
 $ErrorActionPreference = 'Continue'
@@ -22,7 +16,7 @@ function Ensure-Module {
     Import-Module $Name -Force -ErrorAction SilentlyContinue
 }
 
-Ensure-Module "Microsoft.Graph.Users"
+Ensure-Module "Microsoft.Graph.Groups"
 
 $__ms365ConnRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 . (Join-Path $__ms365ConnRoot 'Connect-Mg365App.ps1')
@@ -37,33 +31,15 @@ try {
     exit 1
 }
 
-$forceChangeBool = ($ForceChange -eq "1") -or ($ForceChange -ieq "true")
-
-Write-Host "Setze Passwort für: $UPN"
 try {
-    $passwordProfile = @{
-        Password                      = $NewPassword
-        ForceChangePasswordNextSignIn = $forceChangeBool
-    }
-    Update-MgUser -UserId $UPN -PasswordProfile $passwordProfile -ErrorAction Stop
-    Write-Host "Passwort erfolgreich zurückgesetzt für: $UPN"
-
-    $result = @{
-        status  = "ok"
-        message = "Passwort erfolgreich zurückgesetzt"
-        upn     = $UPN
-    } | ConvertTo-Json -Compress
+    Remove-MgGroup -GroupId $GroupId -ErrorAction Stop
+    $result = @{ status = "ok"; message = "Gruppe geloescht"; groupId = $GroupId } | ConvertTo-Json -Compress
     Write-Output "###JSON_START###"
     Write-Output $result
     Write-Output "###JSON_END###"
+    exit 0
 } catch {
-    $errMsg = $_.Exception.Message
-    Write-Host "FEHLER: $errMsg"
-    $result = @{
-        status  = "error"
-        message = "Fehler beim Zurücksetzen des Passworts: $errMsg"
-        upn     = $UPN
-    } | ConvertTo-Json -Compress
+    $result = @{ status = "error"; message = "Fehler: $($_.Exception.Message)"; groupId = $GroupId } | ConvertTo-Json -Compress
     Write-Output "###JSON_START###"
     Write-Output $result
     Write-Output "###JSON_END###"

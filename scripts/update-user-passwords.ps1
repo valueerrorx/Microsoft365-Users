@@ -43,8 +43,9 @@ if (-not (Get-Module -ListAvailable -Name Microsoft.Graph.Identity.DirectoryMana
 }
 Import-Module Microsoft.Graph.Identity.DirectoryManagement -Force
 
-# Verbinde mit Microsoft Graph
-Connect-MgGraph -Scopes "User.ReadWrite.All", "Organization.Read.All" -NoWelcome
+$__ms365ConnRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+. (Join-Path $__ms365ConnRoot 'Connect-Mg365App.ps1')
+Connect-Mg365App
 
 # Ermittle Tenant-Domain
 try {

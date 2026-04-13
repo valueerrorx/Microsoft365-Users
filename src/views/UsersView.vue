@@ -45,10 +45,47 @@
               <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
             </select>
           </div>
+          <div class="col-auto">
+            <select v-model="filterLicenseSku" class="form-select form-select-sm" style="min-width:200px;">
+              <option value="">Alle Lizenzen</option>
+              <option v-for="sku in usersStore.licenses" :key="sku.skuId" :value="String(sku.skuId)">
+                {{ licenseLabel(sku.skuId) }}
+              </option>
+            </select>
+          </div>
           <div class="col-auto ms-auto">
             <span style="font-size:0.8rem;color:#8b949e;">{{ filteredUsers.length }} Treffer</span>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Batch toolbar (2+ selected) -->
+    <div
+      v-if="!usersStore.loading && usersStore.users.length && selectedUserObjects.length >= 2"
+      class="content-card mb-2"
+    >
+      <div class="content-card-body py-2 px-3 d-flex flex-wrap align-items-center gap-2">
+        <span style="font-size:0.875rem;color:#e6edf3;">
+          <strong>{{ selectedUserObjects.length }}</strong> ausgewählt
+        </span>
+        <div class="d-flex flex-wrap gap-1">
+          <button type="button" class="btn btn-outline-warning btn-sm" @click="openBatchMfa">
+            <i class="bi bi-shield-x me-1"></i>2FA zurücksetzen
+          </button>
+          <button type="button" class="btn btn-outline-primary btn-sm" @click="openAddToGroupModal">
+            <i class="bi bi-people me-1"></i>Zur Gruppe hinzufügen
+          </button>
+          <button type="button" class="btn btn-outline-danger btn-sm" @click="openBatchDeactivate">
+            <i class="bi bi-person-slash me-1"></i>Deaktivieren
+          </button>
+          <button type="button" class="btn btn-outline-danger btn-sm" @click="openBatchDelete">
+            <i class="bi bi-trash me-1"></i>Löschen
+          </button>
+        </div>
+        <button type="button" class="btn btn-link btn-sm text-secondary ms-auto p-0" @click="clearSelection">
+          Auswahl aufheben
+        </button>
       </div>
     </div>
 
@@ -76,6 +113,16 @@
         <table class="table table-ms365">
           <thead>
             <tr>
+              <th class="text-center" style="width:36px;">
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  :checked="allPageSelected"
+                  :indeterminate.prop="pageSelectionIndeterminate"
+                  title="Alle auf dieser Seite"
+                  @change="toggleSelectPage"
+                />
+              </th>
               <th style="width:32px;"></th>
               <th @click="setSort('displayName')" style="cursor:pointer;user-select:none;">
                 Name <i class="bi" :class="sortIcon('displayName')"></i>
@@ -93,6 +140,14 @@
           </thead>
           <tbody>
             <tr v-for="user in paginatedUsers" :key="user.id || user.userPrincipalName">
+              <td class="text-center align-middle">
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  :checked="isUserSelected(user.userPrincipalName)"
+                  @change="toggleUserSelected(user.userPrincipalName)"
+                />
+              </td>
               <td>
                 <div class="user-avatar">{{ initials(user.displayName) }}</div>
               </td>
@@ -150,15 +205,27 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="totalPages > 1" class="d-flex align-items-center justify-content-between p-3" style="border-top:1px solid var(--sidebar-border);">
+      <div
+        v-if="filteredUsers.length"
+        class="d-flex align-items-center justify-content-between flex-wrap gap-2 p-3"
+        style="border-top:1px solid var(--sidebar-border);"
+      >
         <span style="font-size:0.8rem;color:#8b949e;">Seite {{ currentPage }} von {{ totalPages }}</span>
-        <div class="d-flex gap-2">
-          <button class="btn btn-outline-secondary btn-sm" :disabled="currentPage <= 1" @click="currentPage--">
-            <i class="bi bi-chevron-left"></i>
-          </button>
-          <button class="btn btn-outline-secondary btn-sm" :disabled="currentPage >= totalPages" @click="currentPage++">
-            <i class="bi bi-chevron-right"></i>
-          </button>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <div class="d-flex align-items-center gap-1">
+            <span style="font-size:0.8rem;color:#8b949e;">Pro Seite</span>
+            <select v-model.number="pageSize" class="form-select form-select-sm" style="width:auto;min-width:4.25rem;">
+              <option v-for="n in pageSizeOptions" :key="n" :value="n">{{ n }}</option>
+            </select>
+          </div>
+          <div v-if="totalPages > 1" class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" :disabled="currentPage <= 1" @click="currentPage--">
+              <i class="bi bi-chevron-left"></i>
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" :disabled="currentPage >= totalPages" @click="currentPage++">
+              <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -399,11 +466,194 @@
         </div>
       </div>
     </div>
+
+    <!-- Add selected users to directory group -->
+    <div v-if="groupPickerModal.show" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.6);">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-people me-2" style="color:#58a6ff;"></i>
+              Zur Gruppe hinzufügen
+            </h5>
+            <button type="button" class="btn-close" :disabled="groupPickerModal.running" @click="closeGroupPickerModal"></button>
+          </div>
+          <div class="modal-body">
+            <p class="small mb-2" style="color:#8b949e;">
+              <strong style="color:#e6edf3;">{{ groupPickerModal.userCount }}</strong> Benutzer werden der gewählten Gruppe zugeordnet.
+              Bereits vorhandene Mitglieder werden übersprungen.
+            </p>
+            <div class="input-group input-group-sm mb-2">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input
+                v-model="groupSearchQuery"
+                type="text"
+                class="form-control"
+                placeholder="Gruppe suchen (Name, E-Mail-Alias)..."
+                :disabled="usersStore.directoryGroupsLoading || groupPickerModal.running"
+              />
+            </div>
+            <div v-if="usersStore.directoryGroupsLoading" class="text-center py-4" style="color:#8b949e;">
+              <div class="spinner-border spinner-border-sm me-2" style="color:#58a6ff;"></div>
+              Gruppen werden geladen...
+            </div>
+            <div v-else-if="!filteredDirectoryGroups.length" class="py-3 text-center small" style="color:#8b949e;">
+              Keine Gruppen passend zum Filter.
+            </div>
+            <div v-else class="group-picker-list">
+              <label
+                v-for="g in filteredDirectoryGroups"
+                :key="g.id"
+                class="d-flex align-items-start gap-2 py-2 px-2 group-picker-row"
+                :class="{ 'group-picker-row-active': groupPickerModal.selectedGroupId === g.id }"
+              >
+                <input
+                  v-model="groupPickerModal.selectedGroupId"
+                  type="radio"
+                  class="form-check-input mt-1"
+                  :value="g.id"
+                  :disabled="groupPickerModal.running"
+                />
+                <span class="flex-grow-1" style="min-width:0;">
+                  <span class="d-block fw-medium" style="color:#e6edf3;">{{ g.displayName || g.id }}</span>
+                  <span v-if="g.mailNickname" class="d-block font-monospace small" style="color:#8b949e;">{{ g.mailNickname }}</span>
+                  <span class="badge rounded-pill me-1 mt-1" style="font-size:0.65rem;background:#30363d;color:#8b949e;">{{ groupKindLabel(g) }}</span>
+                </span>
+              </label>
+            </div>
+          </div>
+          <div class="modal-footer flex-wrap gap-2">
+            <span v-if="groupPickerModal.selectedGroupId" class="me-auto small" style="color:#8b949e;">
+              Gewählt: <strong style="color:#e6edf3;">{{ selectedGroupDisplayName }}</strong>
+            </span>
+            <button type="button" class="btn btn-secondary btn-sm" :disabled="groupPickerModal.running" @click="closeGroupPickerModal">Abbrechen</button>
+            <button
+              type="button"
+              class="btn btn-primary btn-sm"
+              :disabled="groupPickerModal.running || !groupPickerModal.selectedGroupId || usersStore.directoryGroupsLoading"
+              @click="runAddUsersToGroup"
+            >
+              {{ groupPickerModal.running ? 'Wird ausgeführt...' : 'Hinzufügen' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Batch MFA reset -->
+    <div v-if="batchMfaModal.show" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.6);">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-shield-exclamation me-2" style="color:#f85149;"></i>
+              MFA / 2FA zurücksetzen (Batch)
+            </h5>
+            <button type="button" class="btn-close" :disabled="batchMfaModal.running" @click="batchMfaModal.show = false"></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert" style="background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.25);color:#f85149;border-radius:6px;font-size:0.85rem;">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+              MFA-Methoden werden für alle ausgewählten Benutzer entfernt (nacheinander ausgeführt).
+            </div>
+            <ul class="batch-user-list list-unstyled mb-0 small" style="color:#8b949e;">
+              <li v-for="t in batchMfaModal.targets" :key="t.userPrincipalName" class="py-1 border-bottom border-secondary border-opacity-25">
+                <strong style="color:#e6edf3;">{{ t.displayName }}</strong>
+                <span class="d-block font-monospace" style="font-size:0.78rem;">{{ t.userPrincipalName }}</span>
+              </li>
+            </ul>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" :disabled="batchMfaModal.running" @click="batchMfaModal.show = false">Abbrechen</button>
+            <button type="button" class="btn btn-danger btn-sm" :disabled="batchMfaModal.running" @click="runBatchMfa">
+              <i class="bi bi-shield-x me-1"></i>
+              {{ batchMfaModal.running ? 'Wird ausgeführt...' : 'Für alle zurücksetzen' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Batch deactivate -->
+    <div v-if="batchDeactivateModal.show" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.6);">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-person-slash me-2 text-danger"></i>
+              Konten deaktivieren (Batch)
+            </h5>
+            <button type="button" class="btn-close" :disabled="batchDeactivateModal.running" @click="batchDeactivateModal.show = false"></button>
+          </div>
+          <div class="modal-body">
+            <p class="small" style="color:#8b949e;">
+              Es werden <strong style="color:#e6edf3;">{{ batchDeactivateModal.targets.length }}</strong> aktive Konten deaktiviert (nacheinander).
+            </p>
+            <ul class="batch-user-list list-unstyled mb-0 small" style="color:#8b949e;">
+              <li v-for="t in batchDeactivateModal.targets" :key="t.userPrincipalName" class="py-1 border-bottom border-secondary border-opacity-25">
+                <strong style="color:#e6edf3;">{{ t.displayName }}</strong>
+                <span class="d-block font-monospace" style="font-size:0.78rem;">{{ t.userPrincipalName }}</span>
+              </li>
+            </ul>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" :disabled="batchDeactivateModal.running" @click="batchDeactivateModal.show = false">Abbrechen</button>
+            <button type="button" class="btn btn-danger btn-sm" :disabled="batchDeactivateModal.running" @click="runBatchDeactivate">
+              {{ batchDeactivateModal.running ? 'Wird ausgeführt...' : 'Alle deaktivieren' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Batch delete -->
+    <div v-if="batchDeleteModal.show" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.6);">
+      <div class="modal-dialog modal-lg delete-modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-trash me-2" style="color:#f85149;"></i>
+              Benutzer löschen (Batch)
+            </h5>
+            <button type="button" class="btn-close" :disabled="batchDeleteModal.running" @click="closeBatchDelete"></button>
+          </div>
+          <div class="modal-body delete-modal-body">
+            <div class="alert" style="background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.25);color:#f85149;border-radius:6px;">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+              <strong>Achtung:</strong> {{ batchDeleteModal.targets.length }} Benutzer werden endgültig gelöscht (nacheinander).
+            </div>
+            <ul class="batch-user-list list-unstyled mb-3 small" style="color:#8b949e;">
+              <li v-for="t in batchDeleteModal.targets" :key="t.userPrincipalName" class="py-1 border-bottom border-secondary border-opacity-25">
+                <strong style="color:#e6edf3;">{{ t.displayName }}</strong>
+                <span class="d-block font-monospace" style="font-size:0.78rem;">{{ t.userPrincipalName }}</span>
+              </li>
+            </ul>
+            <label class="form-label">Zur Bestätigung <strong>{{ batchDeleteConfirmWord }}</strong> eintippen</label>
+            <input v-model="batchDeleteModal.confirmText" type="text" class="form-control" style="font-family:monospace;" :disabled="batchDeleteModal.running" />
+            <div v-if="batchDeleteModal.error" class="mt-2" style="color:#f85149;font-size:0.83rem;">
+              <i class="bi bi-exclamation-triangle me-1"></i>{{ batchDeleteModal.error }}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" :disabled="batchDeleteModal.running" @click="closeBatchDelete">Abbrechen</button>
+            <button
+              type="button"
+              class="btn btn-danger btn-sm"
+              :disabled="batchDeleteModal.running || batchDeleteModal.confirmText !== batchDeleteConfirmWord"
+              @click="runBatchDelete"
+            >
+              <i class="bi bi-trash me-1"></i>
+              {{ batchDeleteModal.running ? 'Löscht...' : 'Alle endgültig löschen' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch } from 'vue'
 import { useUsersStore } from '../stores/usersStore'
 import { useAuthStore } from '../stores/authStore'
 import PasswordInput from '../components/PasswordInput.vue'
@@ -417,10 +667,12 @@ const authStore = useAuthStore()
 const searchQuery = ref('')
 const filterStatus = ref('all')
 const filterDept = ref('')
+const filterLicenseSku = ref('')
 const sortKey = ref('displayName')
 const sortDir = ref(1) // 1 = asc, -1 = desc
 const currentPage = ref(1)
-const PAGE_SIZE = 50
+const pageSizeOptions = [50, 100, 200]
+const pageSize = ref(50)
 
 const departments = computed(() => {
   const depts = new Set(usersStore.users.map(u => u.department).filter(Boolean))
@@ -441,6 +693,12 @@ const filteredUsers = computed(() => {
   if (filterStatus.value === 'active') list = list.filter(u => u.accountEnabled)
   if (filterStatus.value === 'inactive') list = list.filter(u => !u.accountEnabled)
   if (filterDept.value) list = list.filter(u => u.department === filterDept.value)
+  if (filterLicenseSku.value) {
+    const want = String(filterLicenseSku.value)
+    list = list.filter((u) =>
+      (u.assignedLicenses || []).some((l) => String(l.skuId) === want)
+    )
+  }
 
   return [...list].sort((a, b) => {
     const av = (a[sortKey.value] || '').toLowerCase()
@@ -449,11 +707,263 @@ const filteredUsers = computed(() => {
   })
 })
 
-const totalPages = computed(() => Math.ceil(filteredUsers.value.length / PAGE_SIZE))
-const paginatedUsers = computed(() => {
-  const start = (currentPage.value - 1) * PAGE_SIZE
-  return filteredUsers.value.slice(start, start + PAGE_SIZE)
+const totalPages = computed(() => {
+  const len = filteredUsers.value.length
+  if (!len) return 1
+  return Math.ceil(len / pageSize.value)
 })
+const paginatedUsers = computed(() => {
+  const ps = pageSize.value
+  const start = (currentPage.value - 1) * ps
+  return filteredUsers.value.slice(start, start + ps)
+})
+
+watch([filterStatus, filterDept, filterLicenseSku], () => {
+  currentPage.value = 1
+})
+
+watch(pageSize, () => {
+  currentPage.value = 1
+})
+
+watch([() => filteredUsers.value.length, pageSize], () => {
+  const len = filteredUsers.value.length
+  if (!len) return
+  const tp = Math.ceil(len / pageSize.value)
+  if (currentPage.value > tp) currentPage.value = tp
+})
+
+const batchDeleteConfirmWord = 'LÖSCHEN'
+
+const selectedUpns = ref([])
+const selectedUserObjects = computed(() => {
+  const wanted = new Set(selectedUpns.value)
+  return usersStore.users.filter((u) => wanted.has(u.userPrincipalName))
+})
+
+function isUserSelected(upn) {
+  return selectedUpns.value.includes(upn)
+}
+
+function toggleUserSelected(upn) {
+  if (selectedUpns.value.includes(upn)) {
+    selectedUpns.value = selectedUpns.value.filter((x) => x !== upn)
+  } else {
+    selectedUpns.value = [...selectedUpns.value, upn]
+  }
+}
+
+const allPageSelected = computed(() => {
+  const page = paginatedUsers.value
+  return page.length > 0 && page.every((u) => selectedUpns.value.includes(u.userPrincipalName))
+})
+
+const pageSelectionIndeterminate = computed(() => {
+  const page = paginatedUsers.value
+  if (!page.length) return false
+  const n = page.filter((u) => selectedUpns.value.includes(u.userPrincipalName)).length
+  return n > 0 && n < page.length
+})
+
+function toggleSelectPage() {
+  const pageUpns = paginatedUsers.value.map((u) => u.userPrincipalName)
+  if (allPageSelected.value) {
+    selectedUpns.value = selectedUpns.value.filter((upn) => !pageUpns.includes(upn))
+  } else {
+    selectedUpns.value = [...new Set([...selectedUpns.value, ...pageUpns])]
+  }
+}
+
+function clearSelection() {
+  selectedUpns.value = []
+}
+
+watch(
+  () => usersStore.users.map((u) => u.userPrincipalName).join('\n'),
+  () => {
+    const valid = new Set(usersStore.users.map((u) => u.userPrincipalName))
+    selectedUpns.value = selectedUpns.value.filter((upn) => valid.has(upn))
+  }
+)
+
+const batchMfaModal = reactive({ show: false, running: false, targets: [] })
+const batchDeactivateModal = reactive({ show: false, running: false, targets: [] })
+const batchDeleteModal = reactive({
+  show: false,
+  running: false,
+  targets: [],
+  confirmText: '',
+  error: ''
+})
+
+const groupPickerModal = reactive({
+  show: false,
+  running: false,
+  selectedGroupId: '',
+  userCount: 0
+})
+const groupSearchQuery = ref('')
+
+const filteredDirectoryGroups = computed(() => {
+  const q = groupSearchQuery.value.trim().toLowerCase()
+  const list = usersStore.directoryGroups
+  if (!q) return list
+  return list.filter(
+    (g) =>
+      (g.displayName || '').toLowerCase().includes(q) ||
+      (g.mailNickname || '').toLowerCase().includes(q)
+  )
+})
+
+const selectedGroupDisplayName = computed(() => {
+  const id = groupPickerModal.selectedGroupId
+  if (!id) return ''
+  const g = usersStore.directoryGroups.find((x) => x.id === id)
+  return g?.displayName || id
+})
+
+function groupKindLabel(g) {
+  const types = g.groupTypes || []
+  if (types.includes('Unified')) return 'Microsoft 365'
+  if (g.securityEnabled === true) return 'Security'
+  return 'Gruppe'
+}
+
+async function openAddToGroupModal() {
+  if (selectedUserObjects.value.length < 2) return
+  groupPickerModal.userCount = selectedUserObjects.value.length
+  groupPickerModal.selectedGroupId = ''
+  groupSearchQuery.value = ''
+  groupPickerModal.running = false
+  groupPickerModal.show = true
+  await usersStore.fetchDirectoryGroups()
+}
+
+function closeGroupPickerModal() {
+  if (groupPickerModal.running) return
+  groupPickerModal.show = false
+}
+
+async function runAddUsersToGroup() {
+  if (!groupPickerModal.selectedGroupId) return
+  const users = selectedUserObjects.value
+  const withIds = users.filter((u) => u.id)
+  if (withIds.length < users.length) {
+    authStore.showToast('Einige Benutzer ohne Objekt-ID — Liste neu laden (Aktualisieren).', 'warning')
+  }
+  if (!withIds.length) {
+    groupPickerModal.running = false
+    return
+  }
+  groupPickerModal.running = true
+  const { ok } = await usersStore.addUsersToGroup({
+    groupId: groupPickerModal.selectedGroupId,
+    userIds: withIds.map((u) => u.id)
+  })
+  groupPickerModal.running = false
+  if (ok) {
+    groupPickerModal.show = false
+    clearSelection()
+  }
+}
+
+function openBatchMfa() {
+  if (selectedUserObjects.value.length < 2) return
+  batchMfaModal.targets = selectedUserObjects.value.map((u) => ({
+    displayName: u.displayName || u.userPrincipalName,
+    userPrincipalName: u.userPrincipalName
+  }))
+  batchMfaModal.show = true
+}
+
+function openBatchDeactivate() {
+  if (selectedUserObjects.value.length < 2) return
+  const actives = selectedUserObjects.value.filter((u) => u.accountEnabled)
+  if (!actives.length) {
+    authStore.showToast('Keine aktiven Konten in der Auswahl.', 'warning')
+    return
+  }
+  batchDeactivateModal.targets = actives.map((u) => ({
+    displayName: u.displayName || u.userPrincipalName,
+    userPrincipalName: u.userPrincipalName
+  }))
+  batchDeactivateModal.show = true
+}
+
+function openBatchDelete() {
+  if (selectedUserObjects.value.length < 2) return
+  batchDeleteModal.targets = selectedUserObjects.value.map((u) => ({
+    displayName: u.displayName || u.userPrincipalName,
+    userPrincipalName: u.userPrincipalName
+  }))
+  batchDeleteModal.confirmText = ''
+  batchDeleteModal.error = ''
+  batchDeleteModal.show = true
+}
+
+function closeBatchDelete() {
+  if (batchDeleteModal.running) return
+  batchDeleteModal.show = false
+}
+
+async function runBatchMfa() {
+  batchMfaModal.running = true
+  let ok = 0
+  let fail = 0
+  for (const t of batchMfaModal.targets) {
+    const r = await usersStore.resetMfa(t.userPrincipalName, { quietToast: true })
+    if (r) ok++
+    else fail++
+  }
+  batchMfaModal.running = false
+  batchMfaModal.show = false
+  clearSelection()
+  authStore.showToast(`MFA (Batch): ${ok} OK${fail ? `, ${fail} fehlgeschlagen` : ''}`, fail ? 'warning' : 'success')
+}
+
+async function runBatchDeactivate() {
+  batchDeactivateModal.running = true
+  let ok = 0
+  let fail = 0
+  for (const t of batchDeactivateModal.targets) {
+    const r = await usersStore.updateUser(
+      { upn: t.userPrincipalName, accountEnabled: false },
+      { quietToast: true }
+    )
+    if (r) ok++
+    else fail++
+  }
+  batchDeactivateModal.running = false
+  batchDeactivateModal.show = false
+  clearSelection()
+  authStore.showToast(
+    `Deaktivieren (Batch): ${ok} OK${fail ? `, ${fail} fehlgeschlagen` : ''}`,
+    fail ? 'warning' : 'success'
+  )
+}
+
+async function runBatchDelete() {
+  if (batchDeleteModal.confirmText !== batchDeleteConfirmWord) {
+    batchDeleteModal.error = `Bitte "${batchDeleteConfirmWord}" eintippen.`
+    return
+  }
+  batchDeleteModal.running = true
+  batchDeleteModal.error = ''
+  let ok = 0
+  let fail = 0
+  for (const t of batchDeleteModal.targets) {
+    const r = await usersStore.deleteUser(t.userPrincipalName, { quietToast: true })
+    if (r) ok++
+    else fail++
+  }
+  batchDeleteModal.running = false
+  batchDeleteModal.show = false
+  clearSelection()
+  authStore.showToast(
+    `Löschen (Batch): ${ok} OK${fail ? `, ${fail} fehlgeschlagen` : ''}`,
+    fail ? 'warning' : 'success'
+  )
+}
 
 function setSort(key) {
   if (sortKey.value === key) sortDir.value *= -1
@@ -691,5 +1201,34 @@ async function doDeleteUser() {
   word-break: break-all;
   overflow-wrap: anywhere;
   max-width: 100%;
+}
+
+.batch-user-list {
+  max-height: 220px;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+}
+
+.group-picker-list {
+  max-height: 280px;
+  overflow: auto;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.group-picker-row {
+  cursor: pointer;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.55);
+  margin: 0;
+}
+
+.group-picker-row:hover {
+  background: rgba(88, 166, 255, 0.06);
+}
+
+.group-picker-row-active {
+  background: rgba(88, 166, 255, 0.12);
 }
 </style>
