@@ -15,6 +15,21 @@ function Connect-Mg365App {
     [CmdletBinding()]
     param()
     Ensure-Module "Microsoft.Graph.Authentication"
+    try {
+        $psv = $PSVersionTable.PSVersion
+        $pse = $PSVersionTable.PSEdition
+        $hn = $Host.Name
+        $uiOk = $false
+        try { $uiOk = ($null -ne $Host.UI) } catch {}
+        $userInteractive = $false
+        try { $userInteractive = [Environment]::UserInteractive } catch {}
+        Write-Host "PowerShell: $pse $psv | Host: $hn | UserInteractive: $userInteractive | HostUI: $uiOk"
+        $authMods = @(Get-Module -ListAvailable -Name Microsoft.Graph.Authentication | Select-Object -First 1 -Property Version,Path)
+        if ($authMods.Count -gt 0) { Write-Host "Graph.Auth Module: $($authMods[0].Version) | $($authMods[0].Path)" }
+        $cmd = Get-Command Connect-MgGraph -ErrorAction SilentlyContinue
+        if ($cmd) { Write-Host "Connect-MgGraph: $($cmd.Source) | $($cmd.ModuleName) | $($cmd.Version)" }
+    } catch {}
+
     $scopes = @(
         'Directory.ReadWrite.All',
         'Group.ReadWrite.All',
@@ -25,15 +40,27 @@ function Connect-Mg365App {
         'UserAuthenticationMethod.ReadWrite.All'
     )
     try {
+        try {
+            $ctx = Get-MgContext -ErrorAction SilentlyContinue
+            if ($ctx -and $ctx.Account -and $ctx.TenantId) {
+                Write-Host "Vorhandener Graph-Context: $($ctx.Account) | Tenant: $($ctx.TenantId)"
+            }
+        } catch {}
         Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
         return
     } catch {
         $msg = [string]$_.Exception.Message
         if ($msg -match 'Interactive browser credential authentication failed') {
             Write-Host "Hinweis: Browser-Login nicht möglich (headless). Fallback: Device-Code-Login..." -ForegroundColor Yellow
-            Connect-MgGraph -Scopes $scopes -UseDeviceCode -NoWelcome -ErrorAction Stop
+            Connect-MgGraph -Scopes $scopes -UseDeviceCode -NoWelcome -ContextScope Process -ErrorAction Stop
             return
         }
+        Write-Host "Connect-MgGraph Fehler: $msg" -ForegroundColor Red
+        try {
+            if ($_.Exception.InnerException) {
+                Write-Host "Inner: $([string]$_.Exception.InnerException.Message)" -ForegroundColor Red
+            }
+        } catch {}
         throw
     }
 }
