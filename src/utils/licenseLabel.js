@@ -1,3 +1,16 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) Mag. Thomas Michael Weissel <valueerror@gmail.com>
+
+// Maps A3 skuPartNumber to student/faculty bucket for dashboard (null if not A3 Schüler/Lehrer SKU).
+export function a3LicenseBucket(skuPartNumber) {
+  if (!skuPartNumber) return null
+  const u = String(skuPartNumber).toUpperCase()
+  if (!u.includes('A3')) return null
+  if (u.includes('FACULTY') || u.includes('FACULTYUSEQTY')) return 'faculty'
+  if (u.includes('STUDENT') || u.includes('STUUSE') || u.includes('STUDENTUSEQTY')) return 'student'
+  return null
+}
+
 // Human-readable labels from Graph skuPartNumber (heuristics; extend as your tenant SKUs need).
 export function humanLicenseLabel(skuPartNumber) {
   if (!skuPartNumber) return '?'

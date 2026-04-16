@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Copyright (C) Mag. Thomas Michael Weissel <valueerror@gmail.com> -->
+
 <template>
   <div>
     <div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
@@ -939,7 +942,7 @@ watch(
 )
 
 onMounted(() => {
-  groupsStore.fetchGroupsDetail()
+  if (!groupsStore.lastFetched) groupsStore.fetchGroupsDetail()
   groupsStore.fetchLifecyclePolicies()
 })
 </script>

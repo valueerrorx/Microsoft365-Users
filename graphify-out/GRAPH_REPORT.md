@@ -1,67 +1,79 @@
-# Graph Report - .  (2026-04-13)
+# Graph Report - /home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users  (2026-04-16)
 
 ## Corpus Check
-- Corpus is ~18,434 words - fits in a single context window. You may not need a graph.
+- 35 files · ~40,178 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 143 nodes · 171 edges · 29 communities detected
-- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 12 edges (avg confidence: 0.76)
+- 110 nodes · 73 edges · 49 communities detected
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
-- [[_COMMUNITY_Auth & User Creation|Auth & User Creation]]
-- [[_COMMUNITY_App Shell & IPC Bridge|App Shell & IPC Bridge]]
-- [[_COMMUNITY_Electron Main Process|Electron Main Process]]
-- [[_COMMUNITY_IPC Handlers|IPC Handlers]]
-- [[_COMMUNITY_CSV Import & Bulk Create|CSV Import & Bulk Create]]
-- [[_COMMUNITY_PowerShell MS Graph Core|PowerShell MS Graph Core]]
-- [[_COMMUNITY_Security & UPN Policy|Security & UPN Policy]]
-- [[_COMMUNITY_CSV Data Pipeline|CSV Data Pipeline]]
-- [[_COMMUNITY_Project Docs & Assets|Project Docs & Assets]]
-- [[_COMMUNITY_User Edit & License Modal|User Edit & License Modal]]
-- [[_COMMUNITY_Dashboard Load & Colors|Dashboard Load & Colors]]
-- [[_COMMUNITY_Stats & License Display|Stats & License Display]]
-- [[_COMMUNITY_Get Users Script|Get Users Script]]
-- [[_COMMUNITY_Reset MFA Script|Reset MFA Script]]
-- [[_COMMUNITY_Update User Script|Update User Script]]
-- [[_COMMUNITY_Delete User Script|Delete User Script]]
-- [[_COMMUNITY_Update Licenses Script|Update Licenses Script]]
-- [[_COMMUNITY_Vue App Entry|Vue App Entry]]
-- [[_COMMUNITY_Password Reset Flow|Password Reset Flow]]
-- [[_COMMUNITY_PowerShell Status Check|PowerShell Status Check]]
-- [[_COMMUNITY_MFA Reset Flow|MFA Reset Flow]]
-- [[_COMMUNITY_Preload Bridge|Preload Bridge]]
-- [[_COMMUNITY_Vite Build Config|Vite Build Config]]
-- [[_COMMUNITY_Log Console Component|Log Console Component]]
-- [[_COMMUNITY_App Sidebar Component|App Sidebar Component]]
-- [[_COMMUNITY_Vue Router|Vue Router]]
-- [[_COMMUNITY_Auth Store|Auth Store]]
-- [[_COMMUNITY_Users Store|Users Store]]
-- [[_COMMUNITY_Users View|Users View]]
+- [[_COMMUNITY_Community 0|Community 0]]
+- [[_COMMUNITY_Community 1|Community 1]]
+- [[_COMMUNITY_Community 2|Community 2]]
+- [[_COMMUNITY_Community 3|Community 3]]
+- [[_COMMUNITY_Community 4|Community 4]]
+- [[_COMMUNITY_Community 5|Community 5]]
+- [[_COMMUNITY_Community 6|Community 6]]
+- [[_COMMUNITY_Community 7|Community 7]]
+- [[_COMMUNITY_Community 8|Community 8]]
+- [[_COMMUNITY_Community 9|Community 9]]
+- [[_COMMUNITY_Community 10|Community 10]]
+- [[_COMMUNITY_Community 11|Community 11]]
+- [[_COMMUNITY_Community 12|Community 12]]
+- [[_COMMUNITY_Community 13|Community 13]]
+- [[_COMMUNITY_Community 14|Community 14]]
+- [[_COMMUNITY_Community 15|Community 15]]
+- [[_COMMUNITY_Community 16|Community 16]]
+- [[_COMMUNITY_Community 17|Community 17]]
+- [[_COMMUNITY_Community 18|Community 18]]
+- [[_COMMUNITY_Community 19|Community 19]]
+- [[_COMMUNITY_Community 20|Community 20]]
+- [[_COMMUNITY_Community 21|Community 21]]
+- [[_COMMUNITY_Community 22|Community 22]]
+- [[_COMMUNITY_Community 23|Community 23]]
+- [[_COMMUNITY_Community 24|Community 24]]
+- [[_COMMUNITY_Community 25|Community 25]]
+- [[_COMMUNITY_Community 26|Community 26]]
+- [[_COMMUNITY_Community 27|Community 27]]
+- [[_COMMUNITY_Community 28|Community 28]]
+- [[_COMMUNITY_Community 29|Community 29]]
+- [[_COMMUNITY_Community 30|Community 30]]
+- [[_COMMUNITY_Community 31|Community 31]]
+- [[_COMMUNITY_Community 32|Community 32]]
+- [[_COMMUNITY_Community 33|Community 33]]
+- [[_COMMUNITY_Community 34|Community 34]]
+- [[_COMMUNITY_Community 35|Community 35]]
+- [[_COMMUNITY_Community 36|Community 36]]
+- [[_COMMUNITY_Community 37|Community 37]]
+- [[_COMMUNITY_Community 38|Community 38]]
+- [[_COMMUNITY_Community 39|Community 39]]
+- [[_COMMUNITY_Community 40|Community 40]]
+- [[_COMMUNITY_Community 41|Community 41]]
+- [[_COMMUNITY_Community 42|Community 42]]
+- [[_COMMUNITY_Community 43|Community 43]]
+- [[_COMMUNITY_Community 44|Community 44]]
+- [[_COMMUNITY_Community 45|Community 45]]
+- [[_COMMUNITY_Community 46|Community 46]]
+- [[_COMMUNITY_Community 47|Community 47]]
+- [[_COMMUNITY_Community 48|Community 48]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `runPsScript Function` - 9 edges
-2. `uiSend IPC Push Function` - 8 edges
-3. `App.vue Root Component` - 7 edges
-4. `Auth Store (Pinia)` - 7 edges
-5. `parseJsonFromOutput Function` - 6 edges
-6. `JSON Sentinel Protocol (###JSON_START###/###JSON_END###)` - 6 edges
-7. `Microsoft Graph PowerShell Module` - 6 edges
-8. `Ensure-Module Helper Function` - 6 edges
-9. `Action: runBulkCreate() — IPC set-csv-data + run-password-update` - 6 edges
-10. `DashboardView — Stats Overview & License Summary` - 6 edges
+1. `Resolve-OwnerLabel()` - 5 edges
+2. `runPsScriptBody()` - 4 edges
+3. `normalizeForUPN()` - 3 edges
+4. `detectPowerShell()` - 2 edges
+5. `getScriptPath()` - 2 edges
+6. `runPsScript()` - 2 edges
+7. `parseCsvText()` - 2 edges
+8. `toSemicolonCsv()` - 2 edges
+9. `Get-ManagementLabel()` - 2 edges
+10. `Get-SecurityManagementLabel()` - 2 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `UI Element: License usage progress bars with color-coded saturation (green/yellow/red)` --semantically_similar_to--> `DashboardView: License Overview with bar chart progress`  [INFERRED] [semantically similar]
-  ui.png → src/views/DashboardView.vue
-- `Security: Passwords in-memory only, temp CSV deleted, OAuth2 delegated auth` --rationale_for--> `Action: runBulkCreate() — IPC set-csv-data + run-password-update`  [INFERRED]
-  README.md → src/stores/usersStore.js
-- `IPC Channel Catalogue: get-users, update-user, reset-password, reset-mfa, open-csv-dialog, get-csv-data, set-csv-data, run-password-update, check-pwsh` --references--> `Action: fetchUsers() — IPC get-users`  [EXTRACTED]
-  project.md → src/stores/usersStore.js
-- `Design Decision: Bulk create only creates NEW users — existing UPN = error, no update` --rationale_for--> `Action: runBulkCreate() — IPC set-csv-data + run-password-update`  [EXTRACTED]
-  README.md → src/stores/usersStore.js
-- `Feature: Auto A3 License Assignment (Schüler/Lehrer) on new user creation` --rationale_for--> `SKU Part Number to Human Label Mapping (A1/A3/A5, Exchange, Teams, Intune etc.)`  [INFERRED]
-  README.md → src/utils/licenseLabel.js
+- None detected - all connections are within the same source files.
 
 ## Hyperedges (group relationships)
 - **IPC-to-PowerShell Execution Bridge** — indexjs_ipc_getusers, indexjs_runpsscript, ps_getms365users [EXTRACTED 1.00]
@@ -73,170 +85,286 @@
 
 ## Communities
 
-### Community 0 - "Auth & User Creation"
-Cohesion: 0.11
-Nodes (24): Auth Store (Pinia), Auth State: connected / tenantDomain, Auth Store: Activity Logs (max 300, auto-purge), CreateUsersView — User Creation & CSV Import View, CreateUsersView: Single User Tab (form + UPN preview), DashboardView — Stats Overview & License Summary, DashboardView: License Overview with bar chart progress, humanLicenseLabel() (+16 more)
+### Community 0 - "Community 0"
+Cohesion: 0.18
+Nodes (7): detectPowerShell(), getScriptPath(), normalizeForUPN(), parseCsvText(), runPsScript(), runPsScriptBody(), toSemicolonCsv()
 
-### Community 1 - "App Shell & IPC Bridge"
-Cohesion: 0.2
-Nodes (14): AppSidebar Component, authStore (Pinia Store), window.ipcRenderer (Exposed IPC Bridge), LogConsole Component, Pinia State Management, Vue Router, Toast Notification System, usersStore (Pinia Store) (+6 more)
+### Community 1 - "Community 1"
+Cohesion: 0.39
+Nodes (5): Resolve-OwnerLabel(), Try-GroupLabel(), Try-OrgContactLabel(), Try-SpLabel(), Try-UserLabel()
 
-### Community 2 - "Electron Main Process"
-Cohesion: 0.21
-Nodes (6): detectPowerShell(), getScriptPath(), normalizeForUPN(), parseCsvText(), runPsScript(), toSemicolonCsv()
+### Community 2 - "Community 2"
+Cohesion: 0.32
+Nodes (4): createSingleUser(), entryError(), entryUpn(), normalizeForUPN()
 
-### Community 3 - "IPC Handlers"
-Cohesion: 0.27
-Nodes (13): checkPwshForDashboard Function, detectPowerShell Function, getScriptPath Function, IPC Handler: check-pwsh, IPC Handler: delete-user, IPC Handler: get-users, IPC Handler: reset-mfa, IPC Handler: reset-password (+5 more)
+### Community 3 - "Community 3"
+Cohesion: 0.4
+Nodes (2): Get-ManagementLabel(), Get-SecurityManagementLabel()
 
-### Community 4 - "CSV Import & Bulk Create"
-Cohesion: 0.28
-Nodes (5): createSingleUser(), entryError(), entryUpn(), normalizeForUPN(), Design Note: UPN Normalization implemented in 4 places (index.js, ps1, editor.html, CreateUsersView)
+### Community 4 - "Community 4"
+Cohesion: 0.33
+Nodes (0): 
 
-### Community 5 - "PowerShell MS Graph Core"
-Cohesion: 0.58
-Nodes (9): JSON Sentinel Protocol (###JSON_START###/###JSON_END###), Connect-MgGraph Authentication, delete-user.ps1 Script, Ensure-Module Helper Function, get-ms365-users.ps1 Script, Microsoft Graph PowerShell Module, reset-mfa.ps1 Script, update-user.ps1 Script (+1 more)
-
-### Community 6 - "Security & UPN Policy"
-Cohesion: 0.22
-Nodes (9): Auth Store: Toast Notifications, createSingleUser() — wraps single entry into csvEntries then runBulkCreate, CreateUsersView: CSV Import Tab (preview table + bulk run), Security: Passwords in-memory only, temp CSV deleted, OAuth2 delegated auth, Design Decision: Bulk create only creates NEW users — existing UPN = error, no update, Action: deleteUser() — IPC delete-user, Action: importCsv() — IPC open-csv-dialog + get-csv-data, Action: runBulkCreate() — IPC set-csv-data + run-password-update (+1 more)
-
-### Community 7 - "CSV Data Pipeline"
-Cohesion: 0.36
-Nodes (8): csvData In-Memory Store, IPC Handler: get-csv-data, IPC Handler: open-csv-dialog, IPC Handler: run-password-update, IPC Handler: set-csv-data, normalizeForUPN Function, parseCsvText Function, toSemicolonCsv Function
-
-### Community 8 - "Project Docs & Assets"
-Cohesion: 0.29
-Nodes (7): claude.md: Claude Working Instructions for this Repo, Instruction: Read project.md first as single source of truth before any work, App Icon: Microsoft 365 style hexagonal logo (blue-purple gradient), Rationale: No backend server — all local via PowerShell + Graph, no persistent DB, project.md: Architecture & Developer Reference, Architecture: Renderer→IPC→Electron→PowerShell→Graph, README: MS-365 User Management Tool Documentation
-
-### Community 9 - "User Edit & License Modal"
+### Community 5 - "Community 5"
 Cohesion: 0.5
-Nodes (4): Action: updateUser() — IPC update-user, Action: updateUserLicenses() — IPC update-user-licenses, UsersView: Edit User Modal (attributes + license assignment), UsersView: Account Enable/Disable Toggle Modal
+Nodes (0): 
 
-### Community 10 - "Dashboard Load & Colors"
+### Community 6 - "Community 6"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 11 - "Stats & License Display"
+### Community 7 - "Community 7"
 Cohesion: 0.67
-Nodes (3): DashboardView: Stats Cards (total/active/inactive/licensed users), Users Store Getters: totalUsers, activeUsers, inactiveUsers, licensedUsers, licenseMap, UsersView: local licenseLabel() bridging licenseMap + humanLicenseLabel
+Nodes (0): 
 
-### Community 12 - "Get Users Script"
+### Community 8 - "Community 8"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 9 - "Community 9"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 10 - "Community 10"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 13 - "Reset MFA Script"
+### Community 11 - "Community 11"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 14 - "Update User Script"
+### Community 12 - "Community 12"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 15 - "Delete User Script"
+### Community 13 - "Community 13"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 16 - "Update Licenses Script"
+### Community 14 - "Community 14"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 17 - "Vue App Entry"
+### Community 15 - "Community 15"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 18 - "Password Reset Flow"
-Cohesion: 1.0
-Nodes (2): Action: resetPassword() — IPC reset-password, UsersView: Password Reset Modal
-
-### Community 19 - "PowerShell Status Check"
-Cohesion: 1.0
-Nodes (2): DashboardView: onMounted check-pwsh IPC call, DashboardView: PowerShell Core (pwsh) missing warning (Linux/macOS)
-
-### Community 20 - "MFA Reset Flow"
-Cohesion: 1.0
-Nodes (2): Action: resetMfa() — IPC reset-mfa, UsersView: MFA Reset Modal
-
-### Community 21 - "Preload Bridge"
+### Community 16 - "Community 16"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 22 - "Vite Build Config"
+### Community 17 - "Community 17"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 23 - "Log Console Component"
+### Community 18 - "Community 18"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 24 - "App Sidebar Component"
+### Community 19 - "Community 19"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 25 - "Vue Router"
+### Community 20 - "Community 20"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 26 - "Auth Store"
+### Community 21 - "Community 21"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 27 - "Users Store"
+### Community 22 - "Community 22"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 28 - "Users View"
+### Community 23 - "Community 23"
 Cohesion: 1.0
 Nodes (0): 
+
+### Community 24 - "Community 24"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 25 - "Community 25"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 26 - "Community 26"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 27 - "Community 27"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 28 - "Community 28"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 29 - "Community 29"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 30 - "Community 30"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 31 - "Community 31"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 32 - "Community 32"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 33 - "Community 33"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 34 - "Community 34"
+Cohesion: 1.0
+Nodes (1): README: MS-365 User Management Tool Documentation
+
+### Community 35 - "Community 35"
+Cohesion: 1.0
+Nodes (1): Architecture: Renderer→IPC→Electron→PowerShell→Graph
+
+### Community 36 - "Community 36"
+Cohesion: 1.0
+Nodes (1): Design Decision: Bulk create only creates NEW users — existing UPN = error, no update
+
+### Community 37 - "Community 37"
+Cohesion: 1.0
+Nodes (1): Feature: Auto A3 License Assignment (Schüler/Lehrer) on new user creation
+
+### Community 38 - "Community 38"
+Cohesion: 1.0
+Nodes (1): Security: Passwords in-memory only, temp CSV deleted, OAuth2 delegated auth
+
+### Community 39 - "Community 39"
+Cohesion: 1.0
+Nodes (1): project.md: Architecture & Developer Reference
+
+### Community 40 - "Community 40"
+Cohesion: 1.0
+Nodes (1): Design Note: UPN Normalization implemented in 4 places (index.js, ps1, editor.html, CreateUsersView)
+
+### Community 41 - "Community 41"
+Cohesion: 1.0
+Nodes (1): IPC Channel Catalogue: get-users, update-user, reset-password, reset-mfa, open-csv-dialog, get-csv-data, set-csv-data, run-password-update, check-pwsh
+
+### Community 42 - "Community 42"
+Cohesion: 1.0
+Nodes (1): Rationale: No backend server — all local via PowerShell + Graph, no persistent DB
+
+### Community 43 - "Community 43"
+Cohesion: 1.0
+Nodes (1): claude.md: Claude Working Instructions for this Repo
+
+### Community 44 - "Community 44"
+Cohesion: 1.0
+Nodes (1): Instruction: Read project.md first as single source of truth before any work
+
+### Community 45 - "Community 45"
+Cohesion: 1.0
+Nodes (1): App Icon: Microsoft 365 style hexagonal logo (blue-purple gradient)
+
+### Community 46 - "Community 46"
+Cohesion: 1.0
+Nodes (1): UI Screenshot: Dashboard view showing stats (2081 total, 2077 active, 4 disabled, 1832 licensed), quick actions, available licenses list with usage bars
+
+### Community 47 - "Community 47"
+Cohesion: 1.0
+Nodes (1): UI Design: Dark theme (GitHub-style dark), sidebar navigation, card-based layout
+
+### Community 48 - "Community 48"
+Cohesion: 1.0
+Nodes (1): UI Element: License usage progress bars with color-coded saturation (green/yellow/red)
 
 ## Knowledge Gaps
-- **30 isolated node(s):** `createWindow Function`, `getScriptPath Function`, `IPC Handler: check-pwsh`, `IPC Handler: get-csv-data`, `IPC Handler: reset-password` (+25 more)
+- **15 isolated node(s):** `README: MS-365 User Management Tool Documentation`, `Architecture: Renderer→IPC→Electron→PowerShell→Graph`, `Design Decision: Bulk create only creates NEW users — existing UPN = error, no update`, `Feature: Auto A3 License Assignment (Schüler/Lehrer) on new user creation`, `Security: Passwords in-memory only, temp CSV deleted, OAuth2 delegated auth` (+10 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Get Users Script`** (2 nodes): `Ensure-Module()`, `get-ms365-users.ps1`
+- **Thin community `Community 10`** (2 nodes): `Connect-Mg365App()`, `Connect-Mg365App.ps1`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Reset MFA Script`** (2 nodes): `Ensure-Module()`, `reset-mfa.ps1`
+- **Thin community `Community 11`** (2 nodes): `Ensure-Module()`, `delete-group.ps1`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Update User Script`** (2 nodes): `update-user.ps1`, `Ensure-Module()`
+- **Thin community `Community 12`** (2 nodes): `Ensure-Module()`, `delete-user.ps1`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Delete User Script`** (2 nodes): `Ensure-Module()`, `delete-user.ps1`
+- **Thin community `Community 13`** (2 nodes): `Ensure-Module()`, `get-group-members.ps1`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Update Licenses Script`** (2 nodes): `update-user-licenses.ps1`, `Ensure-Module()`
+- **Thin community `Community 14`** (2 nodes): `Ensure-Module()`, `get-groups.ps1`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Vue App Entry`** (2 nodes): `App.vue`, `main.js`
+- **Thin community `Community 15`** (2 nodes): `Ensure-Module()`, `get-ms365-users.ps1`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Password Reset Flow`** (2 nodes): `Action: resetPassword() — IPC reset-password`, `UsersView: Password Reset Modal`
+- **Thin community `Community 16`** (2 nodes): `remove-group-member.ps1`, `Ensure-Module()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `PowerShell Status Check`** (2 nodes): `DashboardView: onMounted check-pwsh IPC call`, `DashboardView: PowerShell Core (pwsh) missing warning (Linux/macOS)`
+- **Thin community `Community 17`** (2 nodes): `reset-mfa.ps1`, `Ensure-Module()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `MFA Reset Flow`** (2 nodes): `Action: resetMfa() — IPC reset-mfa`, `UsersView: MFA Reset Modal`
+- **Thin community `Community 18`** (2 nodes): `update-group.ps1`, `Ensure-Module()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Preload Bridge`** (1 nodes): `preload.js`
+- **Thin community `Community 19`** (2 nodes): `update-user-licenses.ps1`, `Ensure-Module()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Vite Build Config`** (1 nodes): `vite.config.js`
+- **Thin community `Community 20`** (2 nodes): `update-user.ps1`, `Ensure-Module()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Log Console Component`** (1 nodes): `LogConsole.vue`
+- **Thin community `Community 21`** (2 nodes): `App.vue`, `main.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `App Sidebar Component`** (1 nodes): `AppSidebar.vue`
+- **Thin community `Community 22`** (1 nodes): `preload.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Vue Router`** (1 nodes): `index.js`
+- **Thin community `Community 23`** (1 nodes): `vite.config.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Auth Store`** (1 nodes): `authStore.js`
+- **Thin community `Community 24`** (1 nodes): `AppSidebar.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Users Store`** (1 nodes): `usersStore.js`
+- **Thin community `Community 25`** (1 nodes): `LogConsole.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Users View`** (1 nodes): `UsersView.vue`
+- **Thin community `Community 26`** (1 nodes): `index.js`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 27`** (1 nodes): `authStore.js`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 28`** (1 nodes): `devicesStore.js`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 29`** (1 nodes): `groupsStore.js`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 30`** (1 nodes): `usersStore.js`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 31`** (1 nodes): `DevicesView.vue`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 32`** (1 nodes): `GroupsView.vue`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 33`** (1 nodes): `UsersView.vue`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 34`** (1 nodes): `README: MS-365 User Management Tool Documentation`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 35`** (1 nodes): `Architecture: Renderer→IPC→Electron→PowerShell→Graph`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 36`** (1 nodes): `Design Decision: Bulk create only creates NEW users — existing UPN = error, no update`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 37`** (1 nodes): `Feature: Auto A3 License Assignment (Schüler/Lehrer) on new user creation`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 38`** (1 nodes): `Security: Passwords in-memory only, temp CSV deleted, OAuth2 delegated auth`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 39`** (1 nodes): `project.md: Architecture & Developer Reference`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 40`** (1 nodes): `Design Note: UPN Normalization implemented in 4 places (index.js, ps1, editor.html, CreateUsersView)`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 41`** (1 nodes): `IPC Channel Catalogue: get-users, update-user, reset-password, reset-mfa, open-csv-dialog, get-csv-data, set-csv-data, run-password-update, check-pwsh`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 42`** (1 nodes): `Rationale: No backend server — all local via PowerShell + Graph, no persistent DB`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 43`** (1 nodes): `claude.md: Claude Working Instructions for this Repo`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 44`** (1 nodes): `Instruction: Read project.md first as single source of truth before any work`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 45`** (1 nodes): `App Icon: Microsoft 365 style hexagonal logo (blue-purple gradient)`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 46`** (1 nodes): `UI Screenshot: Dashboard view showing stats (2081 total, 2077 active, 4 disabled, 1832 licensed), quick actions, available licenses list with usage bars`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 47`** (1 nodes): `UI Design: Dark theme (GitHub-style dark), sidebar navigation, card-based layout`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 48`** (1 nodes): `UI Element: License usage progress bars with color-coded saturation (green/yellow/red)`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `uiSend IPC Push Function` connect `IPC Handlers` to `App Shell & IPC Bridge`, `CSV Data Pipeline`?**
-  _High betweenness centrality (0.058) - this node is a cross-community bridge._
-- **Why does `window.ipcRenderer (Exposed IPC Bridge)` connect `App Shell & IPC Bridge` to `IPC Handlers`?**
-  _High betweenness centrality (0.042) - this node is a cross-community bridge._
-- **Why does `Auth Store (Pinia)` connect `Auth & User Creation` to `Security & UPN Policy`?**
-  _High betweenness centrality (0.036) - this node is a cross-community bridge._
-- **What connects `createWindow Function`, `getScriptPath Function`, `IPC Handler: check-pwsh` to the rest of the system?**
-  _30 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Auth & User Creation` be split into smaller, more focused modules?**
-  _Cohesion score 0.11 - nodes in this community are weakly interconnected._
+- **What connects `README: MS-365 User Management Tool Documentation`, `Architecture: Renderer→IPC→Electron→PowerShell→Graph`, `Design Decision: Bulk create only creates NEW users — existing UPN = error, no update` to the rest of the system?**
+  _15 weakly-connected nodes found - possible documentation gaps or missing edges._

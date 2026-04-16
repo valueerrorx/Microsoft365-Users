@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Copyright (C) Mag. Thomas Michael Weissel <valueerror@gmail.com> -->
+
 <template>
   <nav class="app-sidebar">
     <!-- Brand -->
@@ -25,10 +28,6 @@
           {{ usersStore.users.length }}
         </span>
       </RouterLink>
-      <RouterLink to="/create" class="nav-link-custom">
-        <i class="bi bi-person-plus"></i>
-        <span>Erstellen / Import</span>
-      </RouterLink>
       <RouterLink to="/groups" class="nav-link-custom">
         <i class="bi bi-collection"></i>
         <span>Gruppen</span>
@@ -36,12 +35,19 @@
           {{ groupsStore.groups.length }}
         </span>
       </RouterLink>
+      <RouterLink to="/devices" class="nav-link-custom">
+        <i class="bi bi-pc-display"></i>
+        <span>Geräte</span>
+        <span v-if="devicesStore.devices.length" class="ms-auto" style="font-size:0.7rem;background:rgba(88,166,255,0.15);color:#58a6ff;border-radius:10px;padding:0.1rem 0.4rem;">
+          {{ devicesStore.devices.length }}
+        </span>
+      </RouterLink>
 
       <div class="sidebar-section-label mt-2">Aktionen</div>
-      <div class="nav-link-custom" @click="refreshUsers" :class="{ 'opacity-50': usersStore.loading }">
-        <i class="bi" :class="usersStore.loading ? 'bi-arrow-repeat spin' : 'bi-arrow-clockwise'"></i>
-        <span>{{ usersStore.loading ? 'Lädt...' : 'Benutzer laden' }}</span>
-      </div>
+      <RouterLink to="/create" class="nav-link-custom">
+        <i class="bi bi-person-plus"></i>
+        <span>Erstellen / Import</span>
+      </RouterLink>
     </div>
 
     <!-- Connection + version (pinned bottom) -->
@@ -77,11 +83,13 @@
         <div class="modal-content about-modal-content">
           <div class="modal-body text-center py-4 px-3">
             <div class="copyleft-glyph" aria-hidden="true">©</div>
-            <p class="mt-3 mb-0 text-secondary small">2026</p>
-            <p class="mb-0 mt-2" style="color:var(--text-primary);font-size:0.95rem;">Mag. Thomas Michael Weissel</p>
-          </div>
-          <div class="modal-footer border-0 pt-0 justify-content-center">
-            <button type="button" class="btn btn-sm btn-secondary" @click="aboutModalOpen = false">Schließen</button>
+            <p class="mt-1 mb-1 text-secondary small">2026</p>
+            <p class="mb-0 mt-2 fw-semibold" style="color:var(--text-primary);font-size:1.05rem;">{{ appDisplayName }}</p>
+            <p class="mb-0 mt-1 fw-normal" style="color:var(--text-secondary);font-size:0.82rem;">{{ appVersionFull }}</p>
+            <p class="mb-0 mt-4 fw-normal" style="color:var(--text-primary);font-size:1.08rem;">Thomas Michael Weissel</p>
+            <p class="mb-0 mt-3">
+              <button type="button" class="about-vendor-link" @click="openXapientSite">https://xapient.solutions/</button>
+            </p>
           </div>
         </div>
       </div>
@@ -94,28 +102,35 @@ import { ref } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useUsersStore } from '../stores/usersStore'
 import { useGroupsStore } from '../stores/groupsStore'
+import { useDevicesStore } from '../stores/devicesStore'
 import pkg from '../../package.json'
 
+const appDisplayName = 'MS365 Manager'
 const appVersion = pkg.version
+const appVersionFull = `Version ${pkg.version}`
+const xapientUrl = 'https://xapient.solutions/'
 const aboutModalOpen = ref(false)
 
 const authStore = useAuthStore()
 const usersStore = useUsersStore()
 const groupsStore = useGroupsStore()
-
-function refreshUsers() {
-  if (!usersStore.loading) usersStore.fetchUsers()
-}
+const devicesStore = useDevicesStore()
 
 function formatTime(date) {
   return date.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })
 }
+
+async function openXapientSite() {
+  try {
+    const r = await window.ipcRenderer.invoke('open-external-url', xapientUrl)
+    if (!r?.ok) authStore.showToast('Link konnte nicht geöffnet werden.', 'error')
+  } catch {
+    authStore.showToast('Link konnte nicht geöffnet werden.', 'error')
+  }
+}
 </script>
 
 <style scoped>
-.spin { animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
 .sidebar-footer {
   flex-shrink: 0;
 }
@@ -156,5 +171,22 @@ function formatTime(date) {
   color: #e6edf3;
   font-weight: 400;
   user-select: none;
+}
+
+.about-vendor-link {
+  color: #58a6ff;
+  text-decoration: none;
+  font-size: 0.9rem;
+  word-break: break-all;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: center;
+}
+
+.about-vendor-link:hover {
+  color: #79b8ff;
+  text-decoration: underline;
 }
 </style>

@@ -1,4 +1,7 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) Mag. Thomas Michael Weissel <valueerror@gmail.com>
+
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import os from 'os'
 import fs from 'fs/promises'
 import path from 'path'
@@ -13,6 +16,25 @@ const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 let win
 let isQuitting = false
 let csvData = []
+
+const ALLOWED_MS_ADMIN_HOSTS = new Set([
+  'intune.microsoft.com',
+  'admin.microsoft.com',
+  'entra.microsoft.com',
+  'security.microsoft.com',
+  'xapient.solutions',
+  'www.xapient.solutions'
+])
+
+function isAllowedExternalHttpsUrl(rawUrl) {
+  try {
+    const u = new URL(String(rawUrl || '').trim())
+    if (u.protocol !== 'https:') return false
+    return ALLOWED_MS_ADMIN_HOSTS.has(u.hostname.toLowerCase())
+  } catch {
+    return false
+  }
+}
 
 // ===================== Window Management =====================
 
@@ -40,6 +62,31 @@ function createWindow() {
     win.loadFile(indexPath)
   }
   win.removeMenu()
+  win.webContents.on('will-navigate', (event, navigationUrl) => {
+    try {
+      const target = new URL(navigationUrl)
+      const curRaw = win.webContents.getURL()
+      if (!curRaw || curRaw === 'about:blank') return
+      const cur = new URL(curRaw)
+      if (target.origin === cur.origin) return
+      if (!isAllowedExternalHttpsUrl(navigationUrl)) return
+      event.preventDefault()
+      void shell.openExternal(navigationUrl)
+    } catch {}
+  })
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (!isAllowedExternalHttpsUrl(url)) return { action: 'deny' }
+    void shell.openExternal(url)
+    return { action: 'deny' }
+  })
+  // Ctrl+Shift+D (Cmd+Shift+D on macOS): open Chromium DevTools for the main window.
+  win.webContents.on('before-input-event', (event, input) => {
+    const primary = process.platform === 'darwin' ? input.meta : input.control
+    if (primary && input.shift && !input.alt && String(input.key).toLowerCase() === 'd') {
+      event.preventDefault()
+      win.webContents.openDevTools()
+    }
+  })
 }
 
 const gotTheLock = app.requestSingleInstanceLock()
@@ -334,6 +381,21 @@ function toSemicolonCsv(entries) {
 }
 
 // ===================== IPC: Environment =====================
+
+ipcMain.handle('open-external-url', async (_event, rawUrl) => {
+  const s = String(rawUrl || '').trim()
+  if (!isAllowedExternalHttpsUrl(s)) {
+    try {
+      const u = new URL(s)
+      if (u.protocol !== 'https:') return { ok: false, error: 'protocol' }
+    } catch {
+      return { ok: false, error: 'invalid-url' }
+    }
+    return { ok: false, error: 'host' }
+  }
+  await shell.openExternal(s)
+  return { ok: true }
+})
 
 ipcMain.handle('check-pwsh', async () => checkPwshForDashboard())
 
@@ -637,6 +699,65 @@ ipcMain.handle('get-groups-detail', async () => {
     return data
   } catch (e) {
     return { status: 'error', message: e?.message, groups: [] }
+  }
+})
+
+ipcMain.handle('get-devices', async () => {
+  try {
+    const result = await runPsScript('scripts/get-devices.ps1', [], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    if (result.exitCode === -1 && !result.stdout) {
+      return { status: 'error', message: result.stderr || 'PowerShell konnte nicht gestartet werden', devices: [] }
+    }
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) {
+      return { status: 'error', message: result.stderr || 'Keine Gerätedaten erhalten.', devices: [] }
+    }
+    uiSend('ps-operation-complete', { status: data.status })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message, devices: [] }
+  }
+})
+
+ipcMain.handle('retire-intune-device', async (_event, body = {}) => {
+  try {
+    const azureAdDeviceId = String(body?.azureAdDeviceId || '').trim()
+    if (!azureAdDeviceId) return { status: 'error', message: 'azureAdDeviceId erforderlich' }
+    const disableUserAccount = body?.disableUserAccount ? '1' : '0'
+    const args = ['-Action', 'Retire', '-AzureAdDeviceId', azureAdDeviceId, '-DisableUserAccount', disableUserAccount]
+    const upn = String(body?.userUpn || '').trim()
+    if (upn) args.push('-UserUpn', upn)
+    const result = await runPsScript('scripts/invoke-intune-device-action.ps1', args, (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Keine Antwort von PowerShell.' }
+    uiSend('ps-operation-complete', { status: data.status })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
+
+ipcMain.handle('wipe-intune-device', async (_event, body = {}) => {
+  try {
+    const azureAdDeviceId = String(body?.azureAdDeviceId || '').trim()
+    if (!azureAdDeviceId) return { status: 'error', message: 'azureAdDeviceId erforderlich' }
+    const result = await runPsScript(
+      'scripts/invoke-intune-device-action.ps1',
+      ['-Action', 'Wipe', '-AzureAdDeviceId', azureAdDeviceId],
+      (log) => {
+        uiSend('ps-operation-log', log)
+      }
+    )
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Keine Antwort von PowerShell.' }
+    uiSend('ps-operation-complete', { status: data.status })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message }
   }
 })
 

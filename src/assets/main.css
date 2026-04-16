@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright (C) Mag. Thomas Michael Weissel <valueerror@gmail.com> */
+
 :root {
   --sidebar-width: 230px;
   --sidebar-bg: #161b22;
@@ -101,6 +104,18 @@ html, body, #app {
   flex-shrink: 0;
 }
 
+.log-console-resize-handle {
+  height: 5px;
+  cursor: ns-resize;
+  flex-shrink: 0;
+  background: transparent;
+  transition: background 0.12s;
+}
+
+.log-console-resize-handle:hover {
+  background: rgba(88, 166, 255, 0.25);
+}
+
 .log-console-header {
   display: flex;
   align-items: center;
@@ -115,7 +130,7 @@ html, body, #app {
 
 .log-console-body {
   overflow-y: auto;
-  height: 150px;
+  min-height: 64px;
   padding: 0.35rem 0.875rem;
   font-family: 'Cascadia Code', 'Consolas', 'Monaco', monospace;
   font-size: 0.76rem;
@@ -165,6 +180,76 @@ html, body, #app {
   font-size: 0.8rem;
   color: var(--text-secondary);
   margin-top: 0.2rem;
+}
+
+.dashboard-stat-row > .col {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-card-rich {
+  display: flex;
+  flex-direction: column;
+  min-height: 7.75rem;
+  padding: 1.35rem 1.25rem;
+}
+
+.stat-card-rich > .d-flex {
+  flex: 1;
+  min-height: 0;
+}
+
+.stat-card-kicker {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  margin-bottom: 0.35rem;
+}
+
+.stat-value-lg {
+  font-size: 2rem;
+}
+
+.stat-card-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.25rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--sidebar-border);
+}
+
+.stat-card-metrics--stack {
+  flex-direction: column;
+  gap: 0.4rem;
+  flex-wrap: nowrap;
+}
+
+.stat-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.stat-metric--row {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.stat-metric-label {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.stat-metric-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 /* ---- Content Cards ---- */
@@ -261,6 +346,16 @@ html, body, #app {
   padding: 0.15rem 0.45rem;
   border-radius: 4px;
   margin-right: 3px;
+}
+
+.badge-mdm {
+  background: rgba(163, 113, 247, 0.12);
+  color: #b87fff;
+  border: 1px solid rgba(163, 113, 247, 0.28);
+  font-size: 0.68rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  display: inline-block;
 }
 
 /* ---- Form Controls ---- */

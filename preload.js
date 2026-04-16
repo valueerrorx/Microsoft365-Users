@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) Mag. Thomas Michael Weissel <valueerror@gmail.com>
+
 const { contextBridge, ipcRenderer } = require("electron");
 
 

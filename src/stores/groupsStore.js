@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) Mag. Thomas Michael Weissel <valueerror@gmail.com>
+
 import { defineStore } from 'pinia'
 import { useAuthStore } from './authStore'
 
@@ -10,11 +13,13 @@ export const useGroupsStore = defineStore('groups', {
     error: null,
     lastFetched: null,
     lifecyclePolicy: null,
-    lifecycleLoading: false
+    lifecycleLoading: false,
+    lifecyclePolicyGroupCount: null
   }),
 
   getters: {
-    totalGroups: (state) => state.groups.length
+    totalGroups: (state) => state.groups.length,
+    teamsGroupsCount: (state) => state.groups.filter((g) => g.hasTeam === true).length
   },
 
   actions: {
@@ -163,6 +168,30 @@ export const useGroupsStore = defineStore('groups', {
       } finally {
         this.lifecycleLoading = false
       }
+    },
+
+    refreshLifecyclePolicyGroupCount() {
+      const p = this.lifecyclePolicy
+      if (!p?.id) {
+        this.lifecyclePolicyGroupCount = null
+        return
+      }
+      const mgt = String(p.managedGroupTypes || '')
+      const isM365Unified = (g) => Array.isArray(g?.groupTypes) && g.groupTypes.includes('Unified')
+      if (mgt === 'All') {
+        this.lifecyclePolicyGroupCount = this.groups.filter(isM365Unified).length
+        return
+      }
+      if (mgt === 'None' || mgt === '') {
+        this.lifecyclePolicyGroupCount = 0
+        return
+      }
+      if (mgt === 'Selected') {
+        // Graph exposes no cheap reverse list; M365 groups under selected policy typically have expirationDateTime set by the policy.
+        this.lifecyclePolicyGroupCount = this.groups.filter((g) => isM365Unified(g) && g.expirationDateTime).length
+        return
+      }
+      this.lifecyclePolicyGroupCount = null
     },
 
     async saveLifecyclePolicy({ policyId, groupLifetimeInDays, managedGroupTypes, alternateNotificationEmails }) {

@@ -1,15 +1,12 @@
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Copyright (C) Mag. Thomas Michael Weissel <valueerror@gmail.com> -->
+
 <template>
   <div>
     <!-- Header -->
-    <div class="page-header d-flex align-items-center justify-content-between">
-      <div>
-        <h1 class="page-title">Dashboard</h1>
-        <p class="page-subtitle">Übersicht über Microsoft 365 Benutzer und Lizenzen</p>
-      </div>
-      <button class="btn btn-primary btn-sm" @click="loadUsers" :disabled="usersStore.loading">
-        <i class="bi" :class="usersStore.loading ? 'bi-arrow-repeat spin' : 'bi-arrow-clockwise'"></i>
-        {{ usersStore.loading ? 'Lädt...' : 'Benutzer laden' }}
-      </button>
+    <div class="page-header">
+      <h1 class="page-title">Dashboard</h1>
+      <p class="page-subtitle">Übersicht über Microsoft 365 Benutzer, Gruppen, Geräte und Lizenzen</p>
     </div>
 
     <!-- PowerShell Core missing (Linux/macOS) -->
@@ -26,15 +23,15 @@
     </div>
 
     <!-- Connection Alert -->
-    <div v-if="!authStore.connected && !usersStore.loading && !usersStore.users.length" class="alert-dark-info p-3 rounded mb-4 d-flex align-items-start gap-3">
+    <div v-if="!authStore.connected && !dashboardRefreshing && !usersStore.users.length" class="alert-dark-info p-3 rounded mb-4 d-flex align-items-start gap-3">
       <i class="bi bi-info-circle-fill fs-5 mt-1" style="flex-shrink:0"></i>
       <div>
         <strong>Nicht verbunden</strong>
         <p class="mb-2 mt-1" style="font-size:0.85rem;color:#8b949e;">
-          Klicke auf "Benutzer laden" um dich mit Microsoft 365 zu verbinden.
+          Klicke auf <strong>Verbinden &amp; Laden</strong> oder unten bei Schnellzugriff auf <strong>Daten aktualisieren</strong>.
           Beim ersten Start öffnet sich ein Browser-Fenster zur Authentifizierung.
         </p>
-        <button class="btn btn-primary btn-sm" @click="loadUsers" :disabled="usersStore.loading">
+        <button class="btn btn-primary btn-sm" @click="refreshDashboardData" :disabled="dashboardRefreshing">
           <i class="bi bi-plug me-1"></i> Verbinden &amp; Laden
         </button>
       </div>
@@ -47,55 +44,99 @@
     </div>
 
     <!-- Stats Cards -->
-    <div class="row g-3 mb-4">
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="d-flex align-items-center gap-3">
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 mb-4 dashboard-stat-row">
+      <div class="col">
+        <div class="stat-card stat-card-rich flex-fill w-100">
+          <div class="d-flex align-items-start gap-3">
             <div class="stat-icon" style="background:rgba(88,166,255,0.12);color:#58a6ff;">
               <i class="bi bi-people-fill"></i>
             </div>
-            <div>
-              <div class="stat-value">{{ usersStore.loading ? '—' : usersStore.totalUsers }}</div>
-              <div class="stat-label">Gesamt</div>
+            <div class="min-w-0 flex-grow-1">
+              <div class="stat-card-kicker">Benutzer</div>
+              <div class="stat-value stat-value-lg">{{ usersStore.loading ? '—' : usersStore.totalUsers }}</div>
+              <div class="stat-label" style="margin-top:0.15rem;">Gesamt im Mandanten</div>
+              <div class="stat-card-metrics stat-card-metrics--stack">
+                <div class="stat-metric stat-metric--row">
+                  <span class="stat-metric-label">Aktiv</span>
+                  <span class="stat-metric-value">{{ usersStore.loading ? '—' : usersStore.activeUsers }}</span>
+                </div>
+                <div class="stat-metric stat-metric--row">
+                  <span class="stat-metric-label">Deaktiviert</span>
+                  <span class="stat-metric-value">{{ usersStore.loading ? '—' : usersStore.inactiveUsers }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="d-flex align-items-center gap-3">
-            <div class="stat-icon" style="background:rgba(63,185,80,0.12);color:#3fb950;">
-              <i class="bi bi-person-check-fill"></i>
-            </div>
-            <div>
-              <div class="stat-value">{{ usersStore.loading ? '—' : usersStore.activeUsers }}</div>
-              <div class="stat-label">Aktiv</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="d-flex align-items-center gap-3">
-            <div class="stat-icon" style="background:rgba(248,81,73,0.12);color:#f85149;">
-              <i class="bi bi-person-x-fill"></i>
-            </div>
-            <div>
-              <div class="stat-value">{{ usersStore.loading ? '—' : usersStore.inactiveUsers }}</div>
-              <div class="stat-label">Deaktiviert</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="d-flex align-items-center gap-3">
+      <div class="col">
+        <div class="stat-card stat-card-rich flex-fill w-100">
+          <div class="d-flex align-items-start gap-3">
             <div class="stat-icon" style="background:rgba(210,153,34,0.12);color:#d29922;">
               <i class="bi bi-award-fill"></i>
             </div>
-            <div>
-              <div class="stat-value">{{ usersStore.loading ? '—' : usersStore.licensedUsers }}</div>
-              <div class="stat-label">Lizenziert</div>
+            <div class="min-w-0 flex-grow-1">
+              <div class="stat-card-kicker">Lizenzen</div>
+              <div class="stat-value stat-value-lg">{{ usersStore.loading ? '—' : usersStore.licensedUsers }}</div>
+              <div class="stat-label" style="margin-top:0.15rem;">Lizenzierte Benutzer</div>
+              <div class="stat-card-metrics stat-card-metrics--stack">
+                <div class="stat-metric stat-metric--row">
+                  <span class="stat-metric-label">A3 Schüler</span>
+                  <span class="stat-metric-value">{{ usersStore.loading ? '—' : usersStore.a3StudentLicenseConsumed }}</span>
+                </div>
+                <div class="stat-metric stat-metric--row">
+                  <span class="stat-metric-label">A3 Lehrer</span>
+                  <span class="stat-metric-value">{{ usersStore.loading ? '—' : usersStore.a3FacultyLicenseConsumed }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="stat-card stat-card-rich flex-fill w-100">
+          <div class="d-flex align-items-start gap-3">
+            <div class="stat-icon" style="background:rgba(163,113,247,0.12);color:#a371f7;">
+              <i class="bi bi-collection-fill"></i>
+            </div>
+            <div class="min-w-0 flex-grow-1">
+              <div class="stat-card-kicker">Gruppen</div>
+              <div class="stat-value stat-value-lg">{{ groupsStore.loading ? '—' : groupsStore.totalGroups }}</div>
+              <div class="stat-label" style="margin-top:0.15rem;">Microsoft365 / Entra</div>
+              <div class="stat-card-metrics stat-card-metrics--stack">
+                <div class="stat-metric stat-metric--row">
+                  <span class="stat-metric-label">Mit Teams verbunden</span>
+                  <span class="stat-metric-value">{{ groupsStore.loading ? '—' : groupsStore.teamsGroupsCount }}</span>
+                </div>
+                <div class="stat-metric stat-metric--row">
+                  <span class="stat-metric-label">Ablaufrichtlinie</span>
+                  <span class="stat-metric-value">{{ dashboardGroupsLifecycleDisplay }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="stat-card stat-card-rich flex-fill w-100">
+          <div class="d-flex align-items-start gap-3">
+            <div class="stat-icon" style="background:rgba(86,212,221,0.12);color:#56d4dd;">
+              <i class="bi bi-pc-display"></i>
+            </div>
+            <div class="min-w-0 flex-grow-1">
+              <div class="stat-card-kicker">Geräte</div>
+              <div class="stat-value stat-value-lg">{{ devicesStore.loading ? '—' : devicesStore.totalDevices }}</div>
+              <div class="stat-label" style="margin-top:0.15rem;">Im Verzeichnis</div>
+              <div class="stat-card-metrics stat-card-metrics--stack">
+                <div class="stat-metric stat-metric--row">
+                  <span class="stat-metric-label">MDM / Intune verwaltet</span>
+                  <span class="stat-metric-value">{{ devicesStore.loading ? '—' : devicesStore.managedDevicesCount }}</span>
+                </div>
+                <div class="stat-metric stat-metric--row">
+                  <span class="stat-metric-label">Konform</span>
+                  <span class="stat-metric-value">{{ devicesStore.loading ? '—' : devicesStore.compliantDevicesCount }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -111,37 +152,38 @@
             <span style="font-weight:600;font-size:0.9rem;">Schnellzugriff</span>
           </div>
           <div class="content-card-body d-flex flex-column gap-2">
-            <RouterLink to="/users" class="d-flex align-items-center gap-3 p-3 rounded" style="text-decoration:none;background:rgba(88,166,255,0.06);border:1px solid rgba(88,166,255,0.15);transition:all 0.15s;">
-              <div style="width:36px;height:36px;background:rgba(88,166,255,0.12);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <i class="bi bi-people" style="color:#58a6ff;font-size:1.1rem;"></i>
-              </div>
-              <div>
-                <div style="font-size:0.875rem;font-weight:600;color:#e6edf3;">Benutzerliste verwalten</div>
-                <div style="font-size:0.775rem;color:#8b949e;">Benutzer ansehen, bearbeiten, Passwort & MFA verwalten</div>
-              </div>
-              <i class="bi bi-chevron-right ms-auto" style="color:#58a6ff;"></i>
-            </RouterLink>
-
-            <RouterLink to="/create" class="d-flex align-items-center gap-3 p-3 rounded" style="text-decoration:none;background:rgba(63,185,80,0.06);border:1px solid rgba(63,185,80,0.15);transition:all 0.15s;">
-              <div style="width:36px;height:36px;background:rgba(63,185,80,0.12);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <i class="bi bi-person-plus" style="color:#3fb950;font-size:1.1rem;"></i>
-              </div>
-              <div>
-                <div style="font-size:0.875rem;font-weight:600;color:#e6edf3;">Benutzer erstellen</div>
-                <div style="font-size:0.775rem;color:#8b949e;">Einzeln oder per CSV-Import erstellen</div>
-              </div>
-              <i class="bi bi-chevron-right ms-auto" style="color:#3fb950;"></i>
-            </RouterLink>
-
-            <div class="d-flex align-items-center gap-3 p-3 rounded" style="background:rgba(210,153,34,0.06);border:1px solid rgba(210,153,34,0.15);cursor:pointer;" @click="loadUsers">
+            <div
+              class="d-flex align-items-center gap-3 p-3 rounded"
+              style="background:rgba(210,153,34,0.06);border:1px solid rgba(210,153,34,0.15);"
+              :style="{ cursor: dashboardRefreshing ? 'wait' : 'pointer', opacity: dashboardRefreshing ? 0.85 : 1 }"
+              @click="refreshDashboardData"
+            >
               <div style="width:36px;height:36px;background:rgba(210,153,34,0.12);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <i class="bi bi-arrow-repeat" style="color:#d29922;font-size:1.1rem;" :class="{ spin: usersStore.loading }"></i>
+                <i class="bi bi-arrow-repeat" style="color:#d29922;font-size:1.1rem;" :class="{ spin: dashboardRefreshing }"></i>
               </div>
               <div>
                 <div style="font-size:0.875rem;font-weight:600;color:#e6edf3;">Daten aktualisieren</div>
-                <div style="font-size:0.775rem;color:#8b949e;">Benutzerliste neu von MS365 laden</div>
+                <div style="font-size:0.775rem;color:#8b949e;">Benutzer, Gruppen und Geräte neu von MS365 laden</div>
               </div>
             </div>
+
+            <button
+              v-for="p in msAdminPortals"
+              :key="p.url"
+              type="button"
+              class="btn-quick-portal d-flex align-items-center gap-3 p-3 rounded text-start w-100 border-0"
+              :style="portalRowStyle(p)"
+              @click="openMsPortal(p.url)"
+            >
+              <div class="portal-icon-wrap d-flex align-items-center justify-content-center flex-shrink-0" :style="portalIconWrapStyle(p)">
+                <i class="bi" :class="p.icon" :style="{ color: p.accent, fontSize: '1.1rem' }"></i>
+              </div>
+              <div class="min-w-0 flex-grow-1">
+                <div style="font-size:0.875rem;font-weight:600;color:#e6edf3;">{{ p.title }}</div>
+                <div style="font-size:0.775rem;color:#8b949e;">{{ p.subtitle }}</div>
+              </div>
+              <i class="bi bi-box-arrow-up-right ms-auto flex-shrink-0" :style="{ color: p.accent, fontSize: '0.95rem' }"></i>
+            </button>
           </div>
         </div>
       </div>
@@ -202,10 +244,21 @@
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useUsersStore } from '../stores/usersStore'
+import { useGroupsStore } from '../stores/groupsStore'
+import { useDevicesStore } from '../stores/devicesStore'
 import { humanLicenseLabel } from '../utils/licenseLabel.js'
 
 const authStore = useAuthStore()
 const usersStore = useUsersStore()
+const groupsStore = useGroupsStore()
+const devicesStore = useDevicesStore()
+
+const msAdminPortals = [
+  { url: 'https://intune.microsoft.com/', title: 'Intune admin center', subtitle: 'Endpoint Management & Geräte', icon: 'bi-tablet-landscape', accent: '#a371f7' },
+  { url: 'https://admin.microsoft.com/', title: 'Microsoft 365 Admin', subtitle: 'Benutzer, Lizenzen, Organisation', icon: 'bi-building', accent: '#3fb950' },
+  { url: 'https://entra.microsoft.com/', title: 'Entra admin center', subtitle: 'Identität, Zugriff, Gruppen', icon: 'bi-person-badge', accent: '#58a6ff' },
+  { url: 'https://security.microsoft.com/', title: 'Microsoft 365 Defender', subtitle: 'Security & Bedrohungsschutz', icon: 'bi-shield-check', accent: '#f778ba' }
+]
 
 const defaultLicenseCount = 6
 const showAllLicenses = ref(false)
@@ -225,8 +278,53 @@ const displayedLicenses = computed(() => {
   return showAllLicenses.value ? list : list.slice(0, defaultLicenseCount)
 })
 
-function loadUsers() {
-  if (!usersStore.loading) usersStore.fetchUsers()
+const dashboardRefreshing = computed(
+  () => usersStore.loading || groupsStore.loading || groupsStore.lifecycleLoading || devicesStore.loading
+)
+
+const dashboardGroupsLifecycleDisplay = computed(() => {
+  if (groupsStore.loading || groupsStore.lifecycleLoading) return '—'
+  if (!groupsStore.lifecyclePolicy) return '—'
+  const n = groupsStore.lifecyclePolicyGroupCount
+  return Number.isFinite(n) ? n : '—'
+})
+
+async function refreshDashboardData() {
+  if (dashboardRefreshing.value) return
+  await usersStore.fetchUsers()
+  await groupsStore.fetchGroupsDetail()
+  await groupsStore.fetchLifecyclePolicies()
+  groupsStore.refreshLifecyclePolicyGroupCount()
+  await devicesStore.fetchDevices()
+}
+
+function portalRowStyle(p) {
+  const a = p.accent
+  return {
+    background: `${a}0f`,
+    border: `1px solid ${a}26`,
+    cursor: 'pointer',
+    transition: 'all 0.15s'
+  }
+}
+
+function portalIconWrapStyle(p) {
+  const a = p.accent
+  return {
+    width: '36px',
+    height: '36px',
+    borderRadius: '8px',
+    background: `${a}1f`
+  }
+}
+
+async function openMsPortal(url) {
+  try {
+    const r = await window.ipcRenderer.invoke('open-external-url', url)
+    if (!r?.ok) authStore.showToast('Link konnte nicht geöffnet werden.', 'error')
+  } catch {
+    authStore.showToast('Link konnte nicht geöffnet werden.', 'error')
+  }
 }
 
 function licenseBarColor(sku) {
@@ -241,4 +339,8 @@ function licenseBarColor(sku) {
 <style scoped>
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+.btn-quick-portal:hover {
+  filter: brightness(1.06);
+}
 </style>

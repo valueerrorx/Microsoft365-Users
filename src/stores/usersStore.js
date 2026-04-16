@@ -1,5 +1,9 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) Mag. Thomas Michael Weissel <valueerror@gmail.com>
+
 import { defineStore } from 'pinia'
 import { useAuthStore } from './authStore'
+import { a3LicenseBucket } from '../utils/licenseLabel.js'
 
 export const useUsersStore = defineStore('users', {
   state: () => ({
@@ -30,6 +34,22 @@ export const useUsersStore = defineStore('users', {
         map[sku.skuId] = sku
       }
       return map
+    },
+
+    a3StudentLicenseConsumed: (state) => {
+      let n = 0
+      for (const sku of state.licenses) {
+        if (a3LicenseBucket(sku.skuPartNumber) === 'student') n += Number(sku.consumedUnits) || 0
+      }
+      return n
+    },
+
+    a3FacultyLicenseConsumed: (state) => {
+      let n = 0
+      for (const sku of state.licenses) {
+        if (a3LicenseBucket(sku.skuPartNumber) === 'faculty') n += Number(sku.consumedUnits) || 0
+      }
+      return n
     }
   },
 

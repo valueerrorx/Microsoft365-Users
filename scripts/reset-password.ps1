@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) Mag. Thomas Michael Weissel <valueerror@gmail.com>
+
 # Setzt das Passwort eines einzelnen Benutzers zurück
 param(
     [Parameter(Mandatory = $true)]
@@ -16,11 +19,11 @@ $ProgressPreference = 'SilentlyContinue'
 function Ensure-Module {
     param([string]$Name)
     try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
-    try { Install-PackageProvider -Name NuGet -Force -Scope CurrentUser -Confirm:$false | Out-Null } catch {}
+    try { Install-PackageProvider -Name NuGet -Force -Scope CurrentUser -Confirm:$false -ErrorAction Stop | Out-Null } catch {}
     try { Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue } catch {}
     if (-not (Get-Module -ListAvailable -Name $Name)) {
         Write-Host "Installiere Modul: $Name"
-        Install-Module $Name -Force -Scope CurrentUser -AllowClobber -Confirm:$false
+        Install-Module $Name -Force -Scope CurrentUser -AllowClobber -Confirm:$false -ErrorAction Stop
     }
     Import-Module $Name -Force -ErrorAction Stop
 }

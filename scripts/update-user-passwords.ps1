@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) Mag. Thomas Michael Weissel <valueerror@gmail.com>
+
 # Erstellt oder aktualisiert Benutzer basierend auf einer CSV-Datei und weist Lizenzen zu.
 
 param(
@@ -28,23 +31,23 @@ if (-not (Test-Path -Path $CSVFilePath)) {
 
 # Installiere/Importiere benötigte Module
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
-try { Install-PackageProvider -Name NuGet -Force -Scope CurrentUser -Confirm:$false | Out-Null } catch {}
+try { Install-PackageProvider -Name NuGet -Force -Scope CurrentUser -Confirm:$false -ErrorAction Stop | Out-Null } catch {}
 try { Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue } catch {}
 if (-not (Get-Module -ListAvailable -Name Microsoft.Graph.Users)) {
-    Install-Module Microsoft.Graph.Users -Force -Scope CurrentUser -Confirm:$false
+    Install-Module Microsoft.Graph.Users -Force -Scope CurrentUser -Confirm:$false -ErrorAction Stop
 }
-Import-Module Microsoft.Graph.Users -Force
+Import-Module Microsoft.Graph.Users -Force -ErrorAction Stop
 
 # Microsoft.Graph.Users.Actions für Set-MgUserLicense
 if (-not (Get-Module -ListAvailable -Name Microsoft.Graph.Users.Actions)) {
-    Install-Module Microsoft.Graph.Users.Actions -Force -Scope CurrentUser -Confirm:$false
+    Install-Module Microsoft.Graph.Users.Actions -Force -Scope CurrentUser -Confirm:$false -ErrorAction Stop
 }
-Import-Module Microsoft.Graph.Users.Actions -Force
+Import-Module Microsoft.Graph.Users.Actions -Force -ErrorAction Stop
 
 if (-not (Get-Module -ListAvailable -Name Microsoft.Graph.Identity.DirectoryManagement)) {
-    Install-Module Microsoft.Graph.Identity.DirectoryManagement -Force -Scope CurrentUser -Confirm:$false
+    Install-Module Microsoft.Graph.Identity.DirectoryManagement -Force -Scope CurrentUser -Confirm:$false -ErrorAction Stop
 }
-Import-Module Microsoft.Graph.Identity.DirectoryManagement -Force
+Import-Module Microsoft.Graph.Identity.DirectoryManagement -Force -ErrorAction Stop
 
 $__ms365ConnRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 . (Join-Path $__ms365ConnRoot 'Connect-Mg365App.ps1')
