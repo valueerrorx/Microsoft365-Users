@@ -75,8 +75,12 @@ function uiSend(channel, payload) {
 const stripAnsi = (t) => t.replace(/\x1b\[[0-9;]*[mGK]/g, '').replace(/\x1b\[[0-9;]*[HJ]/g, '')
 
 function detectPowerShell() {
+  if (process.platform === 'win32') {
+    try { execSync('where.exe pwsh', { stdio: 'ignore' }); return 'pwsh' } catch {}
+    try { execSync('where.exe powershell', { stdio: 'ignore' }); return 'powershell.exe' } catch {}
+    return 'powershell.exe'
+  }
   try { execSync('which pwsh', { stdio: 'ignore' }); return 'pwsh' } catch {}
-  try { execSync('where.exe pwsh', { stdio: 'ignore' }); return 'pwsh' } catch {}
   try { execSync('which powershell', { stdio: 'ignore' }); return 'powershell' } catch {}
   return 'pwsh'
 }
