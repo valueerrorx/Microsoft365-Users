@@ -24,5 +24,16 @@ function Connect-Mg365App {
         'User.ReadWrite.All',
         'UserAuthenticationMethod.ReadWrite.All'
     )
-    Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
+    try {
+        Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
+        return
+    } catch {
+        $msg = [string]$_.Exception.Message
+        if ($msg -match 'Interactive browser credential authentication failed') {
+            Write-Host "Hinweis: Browser-Login nicht möglich (headless). Fallback: Device-Code-Login..." -ForegroundColor Yellow
+            Connect-MgGraph -Scopes $scopes -UseDeviceCode -NoWelcome -ErrorAction Stop
+            return
+        }
+        throw
+    }
 }
