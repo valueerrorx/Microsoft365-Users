@@ -27,19 +27,22 @@ if (-not (Test-Path -Path $CSVFilePath)) {
 }
 
 # Installiere/Importiere benötigte Module
+try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
+try { Install-PackageProvider -Name NuGet -Force -Scope CurrentUser -Confirm:$false | Out-Null } catch {}
+try { Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue } catch {}
 if (-not (Get-Module -ListAvailable -Name Microsoft.Graph.Users)) {
-    Install-Module Microsoft.Graph.Users -Force -Scope CurrentUser
+    Install-Module Microsoft.Graph.Users -Force -Scope CurrentUser -Confirm:$false
 }
 Import-Module Microsoft.Graph.Users -Force
 
 # Microsoft.Graph.Users.Actions für Set-MgUserLicense
 if (-not (Get-Module -ListAvailable -Name Microsoft.Graph.Users.Actions)) {
-    Install-Module Microsoft.Graph.Users.Actions -Force -Scope CurrentUser
+    Install-Module Microsoft.Graph.Users.Actions -Force -Scope CurrentUser -Confirm:$false
 }
 Import-Module Microsoft.Graph.Users.Actions -Force
 
 if (-not (Get-Module -ListAvailable -Name Microsoft.Graph.Identity.DirectoryManagement)) {
-    Install-Module Microsoft.Graph.Identity.DirectoryManagement -Force -Scope CurrentUser
+    Install-Module Microsoft.Graph.Identity.DirectoryManagement -Force -Scope CurrentUser -Confirm:$false
 }
 Import-Module Microsoft.Graph.Identity.DirectoryManagement -Force
 

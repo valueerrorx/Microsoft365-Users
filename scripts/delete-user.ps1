@@ -9,11 +9,14 @@ $ProgressPreference = 'SilentlyContinue'
 
 function Ensure-Module {
     param([string]$Name)
+    try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
+    try { Install-PackageProvider -Name NuGet -Force -Scope CurrentUser -Confirm:$false | Out-Null } catch {}
+    try { Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue } catch {}
     if (-not (Get-Module -ListAvailable -Name $Name)) {
         Write-Host "Installiere Modul: $Name"
-        Install-Module $Name -Force -Scope CurrentUser -AllowClobber
+        Install-Module $Name -Force -Scope CurrentUser -AllowClobber -Confirm:$false
     }
-    Import-Module $Name -Force -ErrorAction SilentlyContinue
+    Import-Module $Name -Force -ErrorAction Stop
 }
 
 Ensure-Module "Microsoft.Graph.Users"
