@@ -90,7 +90,7 @@
     </div>
 
     <div v-else class="content-card" style="position:relative;">
-      <div style="overflow-x:auto;">
+      <div class="table-ms365-hscroll">
         <table class="table table-ms365">
           <thead>
             <tr>

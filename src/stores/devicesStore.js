@@ -23,6 +23,11 @@ export const useDevicesStore = defineStore('devices', {
   },
 
   actions: {
+    clearSession() {
+      devicesInflight = null
+      this.$reset()
+    },
+
     async fetchDevices() {
       if (devicesInflight) return devicesInflight
       const auth = useAuthStore()

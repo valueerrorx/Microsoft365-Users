@@ -112,7 +112,7 @@
 
     <!-- User Table -->
     <div v-else class="content-card" style="position:relative;">
-      <div style="overflow-x:auto;">
+      <div class="table-ms365-hscroll">
         <table class="table table-ms365">
           <thead>
             <tr>
@@ -159,7 +159,10 @@
                 <div v-if="user.jobTitle" style="font-size:0.73rem;color:#8b949e;">{{ user.jobTitle }}</div>
               </td>
               <td>
-                <div style="font-family:monospace;font-size:0.8rem;color:#8b949e;">{{ user.userPrincipalName }}</div>
+                <div
+                  style="font-family:monospace;font-size:0.8rem;color:#8b949e;white-space:nowrap;"
+                  :title="user.userPrincipalName"
+                >{{ formatUpnDisplay(user.userPrincipalName) }}</div>
               </td>
               <td>
                 <span v-if="user.department" style="font-size:0.82rem;">{{ user.department }}</span>
@@ -179,7 +182,7 @@
                 <span v-else style="color:#484f58;font-size:0.78rem;">Keine</span>
               </td>
               <td>
-                <div class="d-flex gap-1">
+                <div class="d-flex gap-1 flex-nowrap">
                   <button class="btn-action" @click="openEdit(user)" title="Bearbeiten">
                     <i class="bi bi-pencil"></i>
                   </button>
@@ -977,6 +980,14 @@ function setSort(key) {
 function sortIcon(key) {
   if (sortKey.value !== key) return 'bi-chevron-expand text-secondary'
   return sortDir.value === 1 ? 'bi-chevron-up' : 'bi-chevron-down'
+}
+
+const UPN_DISPLAY_MAX = 40
+
+function formatUpnDisplay(upn) {
+  const s = upn || ''
+  if (s.length <= UPN_DISPLAY_MAX) return s
+  return `${s.slice(0, UPN_DISPLAY_MAX)}...`
 }
 
 function initials(name) {

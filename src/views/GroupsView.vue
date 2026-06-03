@@ -93,7 +93,7 @@
       </div>
 
       <div class="content-card" style="position:relative;">
-      <div style="overflow-x:auto;">
+      <div class="table-ms365-hscroll">
         <table class="table table-ms365">
           <thead>
             <tr>
@@ -436,7 +436,7 @@
               </div>
 
               <div v-if="membersModal.loading" class="text-center py-4 text-secondary small">Lade Mitglieder...</div>
-              <div v-else class="members-table-scroll">
+              <div v-else class="table-ms365-hscroll">
                 <table class="table table-sm table-ms365 mb-0">
                   <thead>
                     <tr>
@@ -985,7 +985,4 @@ onMounted(() => {
   overflow-y: auto;
 }
 
-.members-table-scroll {
-  overflow-x: auto;
-}
 </style>

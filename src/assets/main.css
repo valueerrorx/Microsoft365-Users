@@ -257,6 +257,7 @@ html, body, #app {
   background: var(--card-bg);
   border: 1px solid var(--sidebar-border);
   border-radius: 8px;
+  overflow: hidden;
 }
 
 .content-card-header {
@@ -290,6 +291,30 @@ html, body, #app {
   position: sticky;
   top: 0;
   z-index: 1;
+}
+
+/* sticky thead breaks overflow-x on the wrapper — scroll stays inside the card */
+.table-ms365-hscroll {
+  overflow-x: auto;
+  border-radius: 8px;
+}
+
+.content-card > .table-ms365-hscroll:first-child:not(:last-child) {
+  border-radius: 8px 8px 0 0;
+}
+
+.table-ms365-hscroll--y {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.table-ms365-hscroll .table-ms365 thead th {
+  position: static;
+}
+
+.table-ms365-hscroll > .table-ms365 {
+  width: max-content;
+  min-width: 100%;
 }
 
 .table-ms365 td {

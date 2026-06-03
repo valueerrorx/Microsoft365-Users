@@ -54,6 +54,10 @@ export const useUsersStore = defineStore('users', {
   },
 
   actions: {
+    clearSession() {
+      this.$reset()
+    },
+
     async fetchUsers() {
       const auth = useAuthStore()
       this.loading = true

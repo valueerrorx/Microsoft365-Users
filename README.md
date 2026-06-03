@@ -1,6 +1,6 @@
 # MS-365 Benutzer-Verwaltungs Tool
 
-Eine Electron-App zum Verwalten von Microsoft-365-/Entra-ID-**Benutzern**, **Gruppen** und **Geräten** (inkl. Intune-Aktionen) über die Microsoft Graph API.
+Eine Electron-App zum Verwalten von Microsoft-365-/Entra-ID-**Benutzern**, **Gruppen**, **Geräten** (inkl. Intune-Aktionen) und ausgewählten **Administratorenrollen** über die Microsoft Graph API.
 
 ![App UI](./ui.png)
 
@@ -14,6 +14,7 @@ Administratoren können **neue** Microsoft-365-/Entra-ID-Konten anlegen (Einzeln
 - **Benutzerliste** (`/users`): Suche, Filter, Sortierung; pro Benutzer **Bearbeiten** (Stammdaten), **Passwort**, **MFA zurücksetzen**, **Konto aktivieren/deaktivieren**, **Lizenzen** (Tenant-SKUs zuweisen/entfernen, mit Nutzungsstandort), **Löschen** (mit UPN-Bestätigung)
 - **Gruppen** (`/groups`): Suche, Gruppentyp-Filter, Sortierung; **Bearbeiten** (Anzeigename, Beschreibung, Besitzer-Anzeige); **Mitglieder** hinzufügen und entfernen; **Gruppe löschen**; **Gruppenablauf (Lifecycle)**: Richtlinien anlegen/bearbeiten, Gruppen (auch mehrere Microsoft-365-Gruppen) einer Richtlinie zuordnen
 - **Geräte** (`/devices`): Suche; Filter nach Verknüpfungstyp (Entra gejoint/registriert/Hybrid), Aktivierung und Konformität; **Abkoppeln (Retire)** einzeln oder für mehrere Geräte (optional Benutzerkonto deaktivieren); **Remote Wipe** mit Bestätigung über den Gerätenamen — für verwaltete Geräte sind passende Intune-/Graph-Berechtigungen nötig
+- **Rollen** (`/roles`): Verwaltete Entra-**Verzeichnisrollen** (Whitelist in `config/managed-directory-roles.json`); Rolle wählen → Mitglieder anzeigen; Benutzer zur Rolle hinzufügen oder entfernen (für privilegierte Rollen Bestätigung per Rollenname); optional **temporäre Zuweisung** (2–48 h) — die App entfernt abgelaufene Rollen automatisch nach Anmeldung, solange sie läuft (P1-Workaround ohne Entra-PIM)
 - **Benutzer erstellen / importieren** (`/create`): **Einzelner Benutzer** oder **CSV-Import** — es werden nur **neue** Konten angelegt (UPN noch frei)
 - **CSV-basierter Massenimport**: Tabelle in der App bearbeiten, dann Anlage starten
 - **Automatische UPN-/Anzeigenamen-Generierung** aus Vorname/Nachname
@@ -26,7 +27,8 @@ Administratoren können **neue** Microsoft-365-/Entra-ID-Konten anlegen (Einzeln
 - **PowerShell**: Unter **Linux und macOS** ist **PowerShell Core (`pwsh`)** erforderlich und sollte im `PATH` liegen (die App prüft das und warnt im Dashboard, falls nichts startet). Unter Windows nutzt die App `pwsh`, falls vorhanden, sonst passende PowerShell-Installationen.
   - Linux z. B. Arch: `yay -S powershell-bin` oder [Microsoft: Installation](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-linux)
   - macOS: z. B. Homebrew oder [Microsoft: Installation](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-macos)
-- **Microsoft Graph (delegiert)**: Ein Konto mit den in `scripts/Connect-Mg365App.ps1` konfigurierten **Scopes**, u. a. `User.ReadWrite.All`, `Directory.ReadWrite.All`, `Group.ReadWrite.All`, `GroupMember.ReadWrite.All`, `UserAuthenticationMethod.ReadWrite.All`, `Organization.Read.All`, `User.Read.All`, sowie für Geräte `Device.Read.All` und für Intune-Verwaltungsaktionen `DeviceManagementManagedDevices.Read.All` und `DeviceManagementManagedDevices.PrivilegedOperations.All`
+- **Microsoft Graph (delegiert)**: Ein Konto mit den in `scripts/Connect-Mg365App.ps1` konfigurierten **Scopes**, u. a. `User.ReadWrite.All`, `Directory.ReadWrite.All`, `Group.ReadWrite.All`, `GroupMember.ReadWrite.All`, `UserAuthenticationMethod.ReadWrite.All`, `RoleManagement.ReadWrite.Directory`, `Organization.Read.All`, `User.Read.All`, sowie für Geräte `Device.Read.All` und für Intune-Verwaltungsaktionen `DeviceManagementManagedDevices.Read.All` und `DeviceManagementManagedDevices.PrivilegedOperations.All`
+- Nach Scope-Änderungen: **neu anmelden** (Device Code / Browser), damit Rollen-Zuweisungen funktionieren
 - **Microsoft Graph PowerShell-Module**: Werden bei Bedarf beim ersten Aufruf der jeweiligen Skripte installiert (z. B. `Microsoft.Graph.Authentication`, `Microsoft.Graph.Users`, `Microsoft.Graph.Groups`, `Microsoft.Graph.Identity.DirectoryManagement`)
 
 ## CSV-Format
@@ -134,6 +136,7 @@ Electron Main Process (index.js)
 │         list-group-lifecycle-policies, list-group-lifecycle-policies-for-group,
 │         save-group-lifecycle-policy, add-groups-to-lifecycle-policy, remove-groups-from-lifecycle-policy,
 │         get-devices, retire-intune-device, wipe-intune-device,
+│         get-managed-directory-roles, add-directory-role-member, remove-directory-role-member,
 │         update-user, update-user-licenses, reset-password, reset-mfa, delete-user, CSV / run-password-update)
 ├── CSV Parsing + Temp CSV (os.tmpdir)
 └── PowerShell Spawn (pwsh / powershell) → scripts/*.ps1
@@ -186,6 +189,9 @@ Microsoft Graph PowerShell SDK (Connect-MgGraph, Benutzer/Gruppen/Geräte, Lizen
 - `scripts/reset-mfa.ps1`: MFA/2FA Methoden entfernen (JSON Output)
 - `scripts/delete-user.ps1`: Benutzer löschen (JSON Output)
 - `scripts/update-user-licenses.ps1`: Lizenzen zuweisen/entfernen
+- `config/managed-directory-roles.json`: Whitelist der verwalteten Administratorenrollen (Template-IDs)
+- `scripts/get-managed-directory-roles.ps1`: Rollen + Benutzer-Mitglieder laden
+- `scripts/add-directory-role-member.ps1`, `scripts/remove-directory-role-member.ps1`: Rolle zuweisen/entziehen
 - `scripts/update-user-passwords.ps1`: **nur Neuanlage** aus CSV/Einzelbatch + Lizenzzuweisung für neue Konten (Log-Streaming)
 
 ## Build

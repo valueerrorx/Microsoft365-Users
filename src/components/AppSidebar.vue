@@ -42,6 +42,13 @@
           {{ devicesStore.devices.length }}
         </span>
       </RouterLink>
+      <RouterLink to="/roles" class="nav-link-custom">
+        <i class="bi bi-shield-lock"></i>
+        <span>Rollen</span>
+        <span v-if="rolesStore.roles.length" class="ms-auto" style="font-size:0.7rem;background:rgba(88,166,255,0.15);color:#58a6ff;border-radius:10px;padding:0.1rem 0.4rem;">
+          {{ rolesStore.roles.length }}
+        </span>
+      </RouterLink>
 
       <div class="sidebar-section-label mt-2">Aktionen</div>
       <RouterLink to="/create" class="nav-link-custom">
@@ -62,6 +69,15 @@
         <div v-if="usersStore.lastFetched" style="font-size:0.7rem;color:var(--text-secondary);margin-bottom:0.4rem;">
           Zuletzt: {{ formatTime(usersStore.lastFetched) }}
         </div>
+        <button
+          type="button"
+          class="sidebar-logout-btn"
+          :disabled="authStore.loggingOut"
+          @click="handleLogout"
+        >
+          <i class="bi bi-box-arrow-left"></i>
+          <span>{{ authStore.loggingOut ? 'Melde ab…' : 'Abmelden' }}</span>
+        </button>
       </div>
       <button
         type="button"
@@ -103,6 +119,7 @@ import { useAuthStore } from '../stores/authStore'
 import { useUsersStore } from '../stores/usersStore'
 import { useGroupsStore } from '../stores/groupsStore'
 import { useDevicesStore } from '../stores/devicesStore'
+import { useRolesStore } from '../stores/rolesStore'
 import pkg from '../../package.json'
 
 const appDisplayName = 'MS365 Manager'
@@ -115,9 +132,14 @@ const authStore = useAuthStore()
 const usersStore = useUsersStore()
 const groupsStore = useGroupsStore()
 const devicesStore = useDevicesStore()
+const rolesStore = useRolesStore()
 
 function formatTime(date) {
   return date.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })
+}
+
+function handleLogout() {
+  void authStore.logout()
 }
 
 async function openXapientSite() {
@@ -133,6 +155,32 @@ async function openXapientSite() {
 <style scoped>
 .sidebar-footer {
   flex-shrink: 0;
+}
+
+.sidebar-logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid rgba(248, 81, 73, 0.35);
+  border-radius: 6px;
+  background: rgba(248, 81, 73, 0.08);
+  color: #f85149;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.sidebar-logout-btn:hover:not(:disabled) {
+  background: rgba(248, 81, 73, 0.16);
+  border-color: rgba(248, 81, 73, 0.55);
+  color: #ff7b72;
+}
+
+.sidebar-logout-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 .sidebar-version-btn {

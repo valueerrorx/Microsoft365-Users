@@ -1,6 +1,6 @@
 {
   "name": "microsoft365-users",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "MS-365 User Management Dashboard",
   "main": "index.js",
   "type": "module",
@@ -21,8 +21,10 @@
     "files": [
       "dist/**/*",
       "index.js",
+      "scheduled-directory-roles.mjs",
       "preload.js",
       "scripts/**/*",
+      "config/**/*",
       "node_modules/**/*",
       "icon.png"
     ],

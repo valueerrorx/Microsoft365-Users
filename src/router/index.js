@@ -7,12 +7,14 @@ import UsersView from '../views/UsersView.vue'
 import CreateUsersView from '../views/CreateUsersView.vue'
 import GroupsView from '../views/GroupsView.vue'
 import DevicesView from '../views/DevicesView.vue'
+import RolesView from '../views/RolesView.vue'
 
 const routes = [
   { path: '/', component: DashboardView, name: 'dashboard' },
   { path: '/users', component: UsersView, name: 'users' },
   { path: '/groups', component: GroupsView, name: 'groups' },
   { path: '/devices', component: DevicesView, name: 'devices' },
+  { path: '/roles', component: RolesView, name: 'roles' },
   { path: '/create', component: CreateUsersView, name: 'create' }
 ]
 

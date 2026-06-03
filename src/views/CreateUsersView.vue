@@ -122,7 +122,7 @@ Anna;Schmidt;LehrerInnenzimmer;Lehrer;Passwort456!;0</pre>
             </button>
           </div>
 
-          <div style="overflow-x:auto;max-height:400px;">
+          <div class="table-ms365-hscroll table-ms365-hscroll--y">
             <table class="table table-ms365 csv-preview-table">
               <thead>
                 <tr>

@@ -7,15 +7,36 @@ import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { spawn, execSync, spawnSync } from 'child_process'
+import { createScheduledDirectoryRolesManager } from './scheduled-directory-roles.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+
+function getAppRoot() {
+  return app.isPackaged ? app.getAppPath() : __dirname
+}
+
+function getManagedRolesConfigPath() {
+  return path.join(getAppRoot(), 'config', 'managed-directory-roles.json')
+}
 
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 
 let win
 let isQuitting = false
 let csvData = []
+let scheduledDirectoryRoles = null
+
+function markGraphSessionReady() {
+  scheduledDirectoryRoles?.setGraphSessionReady(true)
+}
+
+function onGraphResponse(data) {
+  if (data && (data.status === 'ok' || data.status === 'partial')) {
+    markGraphSessionReady()
+  }
+  return data
+}
 
 const ALLOWED_MS_ADMIN_HOSTS = new Set([
   'intune.microsoft.com',
@@ -104,7 +125,19 @@ if (!gotTheLock) {
   })
 }
 
-app.whenReady().then(() => { createWindow() })
+app.whenReady().then(() => {
+  scheduledDirectoryRoles = createScheduledDirectoryRolesManager({
+    app,
+    runPsScript,
+    parseJsonFromOutput,
+    uiSend
+  })
+  scheduledDirectoryRoles.startTicker()
+  createWindow()
+})
+app.on('will-quit', () => {
+  scheduledDirectoryRoles?.stopTicker()
+})
 app.on('window-all-closed', () => { app.quit() })
 app.on('before-quit', async () => { isQuitting = true })
 
@@ -144,48 +177,38 @@ function checkPwshForDashboard() {
   return { shouldWarn: !ok }
 }
 
-// Copy main script plus Connect-Mg365App.ps1 into one temp dir so pwsh can dot-source shared Graph scopes.
-async function getScriptPath(scriptRelPath) {
-  const appPath = app.isPackaged ? app.getAppPath() : __dirname
-  const workDir = path.join(os.tmpdir(), `ms365-run-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`)
-  await fs.mkdir(workDir, { recursive: true })
-  const mainName = path.basename(scriptRelPath)
-  const tmpScript = path.join(workDir, mainName)
-  const candidates = [
-    path.join(appPath, scriptRelPath),
-    path.join(__dirname, scriptRelPath)
-  ]
-  let copied = false
-  for (const src of candidates) {
+async function resolveScriptsDir(appPath) {
+  for (const dir of [path.join(appPath, 'scripts'), path.join(__dirname, 'scripts')]) {
     try {
-      await fs.copyFile(src, tmpScript)
-      copied = true
-      break
+      await fs.access(dir)
+      return dir
     } catch {}
   }
-  if (!copied) {
+  return null
+}
+
+// Copy every scripts/*.ps1 into one flat temp dir so dot-sourced helpers are always present.
+async function getScriptPath(scriptRelPath) {
+  const appPath = getAppRoot()
+  const mainName = path.basename(scriptRelPath)
+  const scriptsDir = await resolveScriptsDir(appPath)
+  if (!scriptsDir) {
+    throw new Error('scripts/ Verzeichnis nicht gefunden')
+  }
+  const workDir = path.join(os.tmpdir(), `ms365-run-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`)
+  await fs.mkdir(workDir, { recursive: true })
+  const names = await fs.readdir(scriptsDir)
+  let mainCopied = false
+  for (const name of names) {
+    if (!name.endsWith('.ps1')) continue
+    await fs.copyFile(path.join(scriptsDir, name), path.join(workDir, name))
+    if (name === mainName) mainCopied = true
+  }
+  if (!mainCopied) {
     try { await fs.rm(workDir, { recursive: true, force: true }) } catch {}
     throw new Error(`Skript nicht gefunden: ${scriptRelPath}`)
   }
-  const helperName = 'Connect-Mg365App.ps1'
-  const helperDest = path.join(workDir, helperName)
-  const helperCandidates = [
-    path.join(appPath, 'scripts', helperName),
-    path.join(__dirname, 'scripts', helperName)
-  ]
-  let helperOk = false
-  for (const hsrc of helperCandidates) {
-    try {
-      await fs.copyFile(hsrc, helperDest)
-      helperOk = true
-      break
-    } catch {}
-  }
-  if (!helperOk) {
-    try { await fs.rm(workDir, { recursive: true, force: true }) } catch {}
-    throw new Error(`Hilfsskript nicht gefunden: scripts/${helperName}`)
-  }
-  return tmpScript
+  return path.join(workDir, mainName)
 }
 
 // Serialize Graph PowerShell runs so concurrent Connect-MgGraph does not race MSAL token cache (duplicate browser prompts).
@@ -399,6 +422,27 @@ ipcMain.handle('open-external-url', async (_event, rawUrl) => {
 
 ipcMain.handle('check-pwsh', async () => checkPwshForDashboard())
 
+ipcMain.handle('disconnect-ms365', async () => {
+  csvData = []
+  scheduledDirectoryRoles?.setGraphSessionReady(false)
+  try {
+    const result = await runPsScript('scripts/disconnect-mg365.ps1', [], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    const data = parseJsonFromOutput(result.stdout)
+    if (data) {
+      uiSend('ps-operation-complete', { status: data.status })
+      return data
+    }
+    if (result.exitCode === 0) {
+      return { status: 'ok', message: 'Abgemeldet' }
+    }
+    return { status: 'error', message: result.stderr || 'Abmelden fehlgeschlagen' }
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
+
 // ===================== IPC: CSV Import =====================
 
 ipcMain.handle('open-csv-dialog', async () => {
@@ -551,7 +595,7 @@ ipcMain.handle('get-users', async () => {
       return { status: 'error', message: result.stderr || 'Keine Daten von PowerShell erhalten. Bitte prüfe ob pwsh installiert ist.' }
     }
     uiSend('ps-operation-complete', { status: data.status })
-    return data
+    return onGraphResponse(data)
   } catch (e) {
     return { status: 'error', message: e?.message }
   }
@@ -635,6 +679,98 @@ ipcMain.handle('update-user-licenses', async (_event, { upn, addSkuIds = [], rem
     if (!data) return { status: 'error', message: result.stderr || 'Fehler bei Lizenzen' }
     uiSend('ps-operation-complete', { status: data.status, upn })
     return data
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
+
+ipcMain.handle('get-scheduled-directory-role-expirations', async () => {
+  try {
+    const entries = (await scheduledDirectoryRoles?.getEntries()) || []
+    return { status: 'ok', entries }
+  } catch (e) {
+    return { status: 'error', message: e?.message, entries: [] }
+  }
+})
+
+ipcMain.handle('schedule-temporary-directory-roles', async (_event, { entries = [] } = {}) => {
+  try {
+    if (!scheduledDirectoryRoles) {
+      return { status: 'error', message: 'Scheduler nicht initialisiert', entries: [] }
+    }
+    return await scheduledDirectoryRoles.scheduleEntries(entries)
+  } catch (e) {
+    return { status: 'error', message: e?.message, entries: [] }
+  }
+})
+
+ipcMain.handle('cancel-scheduled-directory-role', async (_event, { roleTemplateId, userId }) => {
+  try {
+    if (!scheduledDirectoryRoles) {
+      return { status: 'error', message: 'Scheduler nicht initialisiert', entries: [] }
+    }
+    return await scheduledDirectoryRoles.cancelEntry(roleTemplateId, userId)
+  } catch (e) {
+    return { status: 'error', message: e?.message, entries: [] }
+  }
+})
+
+ipcMain.handle('get-managed-directory-roles', async () => {
+  try {
+    const configPath = getManagedRolesConfigPath()
+    const result = await runPsScript('scripts/get-managed-directory-roles.ps1', ['-ConfigPath', configPath], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    if (result.exitCode === -1 && !result.stdout) {
+      return { status: 'error', message: result.stderr || 'PowerShell konnte nicht gestartet werden', roles: [] }
+    }
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) {
+      return { status: 'error', message: result.stderr || 'Keine Rollendaten von PowerShell erhalten.', roles: [] }
+    }
+    uiSend('ps-operation-complete', { status: data.status })
+    return onGraphResponse(data)
+  } catch (e) {
+    return { status: 'error', message: e?.message, roles: [] }
+  }
+})
+
+ipcMain.handle('add-directory-role-member', async (_event, { roleTemplateId, userId }) => {
+  try {
+    const tid = String(roleTemplateId || '').trim()
+    const uid = String(userId || '').trim()
+    if (!tid || !uid) {
+      return { status: 'error', message: 'roleTemplateId und userId erforderlich' }
+    }
+    const result = await runPsScript('scripts/add-directory-role-member.ps1', ['-RoleTemplateId', tid, '-UserId', uid], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Fehler beim Hinzufuegen zur Rolle' }
+    uiSend('ps-operation-complete', { status: data.status, roleTemplateId: tid })
+    return onGraphResponse(data)
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
+
+ipcMain.handle('remove-directory-role-member', async (_event, { roleTemplateId, userId }) => {
+  try {
+    const tid = String(roleTemplateId || '').trim()
+    const uid = String(userId || '').trim()
+    if (!tid || !uid) {
+      return { status: 'error', message: 'roleTemplateId und userId erforderlich' }
+    }
+    const result = await runPsScript('scripts/remove-directory-role-member.ps1', ['-RoleTemplateId', tid, '-UserId', uid], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Fehler beim Entfernen aus der Rolle' }
+    if (data.status === 'ok') {
+      await scheduledDirectoryRoles?.cancelEntry(tid, uid)
+    }
+    uiSend('ps-operation-complete', { status: data.status, roleTemplateId: tid })
+    return onGraphResponse(data)
   } catch (e) {
     return { status: 'error', message: e?.message }
   }

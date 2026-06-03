@@ -25,7 +25,8 @@ function Connect-Mg365App {
         'Organization.Read.All',
         'User.Read.All',
         'User.ReadWrite.All',
-        'UserAuthenticationMethod.ReadWrite.All'
+        'UserAuthenticationMethod.ReadWrite.All',
+        'RoleManagement.ReadWrite.Directory'
     )
     try {
         Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop

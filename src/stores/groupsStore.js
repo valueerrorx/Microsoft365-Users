@@ -23,6 +23,11 @@ export const useGroupsStore = defineStore('groups', {
   },
 
   actions: {
+    clearSession() {
+      groupsDetailInflight = null
+      this.$reset()
+    },
+
     async fetchGroupsDetail() {
       if (groupsDetailInflight) return groupsDetailInflight
       const auth = useAuthStore()
