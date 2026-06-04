@@ -246,12 +246,14 @@ import { useAuthStore } from '../stores/authStore'
 import { useUsersStore } from '../stores/usersStore'
 import { useGroupsStore } from '../stores/groupsStore'
 import { useDevicesStore } from '../stores/devicesStore'
+import { useRolesStore } from '../stores/rolesStore'
 import { humanLicenseLabel } from '../utils/licenseLabel.js'
 
 const authStore = useAuthStore()
 const usersStore = useUsersStore()
 const groupsStore = useGroupsStore()
 const devicesStore = useDevicesStore()
+const rolesStore = useRolesStore()
 
 const msAdminPortals = [
   { url: 'https://intune.microsoft.com/', title: 'Intune admin center', subtitle: 'Endpoint Management & Geräte', icon: 'bi-tablet-landscape', accent: '#a371f7' },
@@ -279,7 +281,12 @@ const displayedLicenses = computed(() => {
 })
 
 const dashboardRefreshing = computed(
-  () => usersStore.loading || groupsStore.loading || groupsStore.lifecycleLoading || devicesStore.loading
+  () =>
+    usersStore.loading ||
+    groupsStore.loading ||
+    groupsStore.lifecycleLoading ||
+    devicesStore.loading ||
+    rolesStore.loading
 )
 
 const dashboardGroupsLifecycleDisplay = computed(() => {
@@ -296,6 +303,7 @@ async function refreshDashboardData() {
   await groupsStore.fetchLifecyclePolicies()
   groupsStore.refreshLifecyclePolicyGroupCount()
   await devicesStore.fetchDevices()
+  await rolesStore.fetchManagedRoles()
 }
 
 function portalRowStyle(p) {

@@ -180,8 +180,8 @@ function checkPwshForDashboard() {
 async function resolveScriptsDir(appPath) {
   for (const dir of [path.join(appPath, 'scripts'), path.join(__dirname, 'scripts')]) {
     try {
-      await fs.access(dir)
-      return dir
+      const st = await fs.stat(dir)
+      if (st.isDirectory()) return dir
     } catch {}
   }
   return null

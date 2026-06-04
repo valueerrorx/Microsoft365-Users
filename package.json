@@ -1,6 +1,6 @@
 {
   "name": "microsoft365-users",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "MS-365 User Management Dashboard",
   "main": "index.js",
   "type": "module",
@@ -50,11 +50,20 @@
           "arch": [
             "x64"
           ]
+        },
+        {
+          "target": "msi",
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "icon.png",
       "artifactName": "${productName}-${version}-portable-${arch}.${ext}",
       "publisherName": "Thomas Michael Weissel <valueerror@gmail.com>"
+    },
+    "msi": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "mac": {
       "category": "public.app-category.utilities",
