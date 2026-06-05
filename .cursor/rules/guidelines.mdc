@@ -1,0 +1,14 @@
+---
+description: Behavioral guidelines — requires Read of CLAUDE.md first (see 00-read-claude-md-first.mdc).
+alwaysApply: true
+---
+
+# behavioral guidelines
+
+**Prerequisite:** You must have run `Read` on `CLAUDE.md` this session (rule `00-read-claude-md-first.mdc`). If not, stop and read it now.
+
+Follow `CLAUDE.md` in full; it overrides generic defaults. Section 5 binds `memory.md`; §6 binds Graphify (`graphify-out/`, rebuild after architecture changes).
+
+**Indentation:** In **new** files you create, use **4 spaces** per indent level (no tab indents). In **existing** files, match the file’s current indentation; do not normalize unrelated whitespace.
+
+@CLAUDE.md
