@@ -30,8 +30,8 @@ function Connect-Mg365App {
     )
     $useDeviceCode = $env:MS365_ELECTRON_APP -eq '1'
     if ($useDeviceCode) {
-        Write-Host "Device-Code-Anmeldung (Electron hat kein Browser-Fenster-Handle)..." -ForegroundColor Yellow
-        Write-Host "Code und Link erscheinen unten im Ausgabefenster; ggf. https://microsoft.com/devicelogin" -ForegroundColor Yellow
+        Write-Host "Device-Code-Anmeldung — Browser öffnet sich automatisch..." -ForegroundColor Yellow
+        Write-Host "Code steht unten im Ausgabefenster; auf der Seite eingeben und anmelden." -ForegroundColor Yellow
         Connect-MgGraph -Scopes $scopes -UseDeviceCode -NoWelcome -ErrorAction Stop
         return
     }

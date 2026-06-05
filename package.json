@@ -1,6 +1,6 @@
 {
   "name": "microsoft365-users",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "description": "MS-365 User Management Dashboard",
   "main": "index.js",
   "type": "module",
@@ -20,7 +20,6 @@
     "productName": "Microsoft365Users",
     "icon": "icon.png",
     "publish": null,
-    "compression": "store",
     "files": [
       "dist/**/*",
       "index.js",
@@ -64,6 +63,9 @@
       "icon": "icon.png",
       "artifactName": "${productName}-${version}-portable-${arch}.${ext}",
       "publisherName": "Thomas Michael Weissel <valueerror@gmail.com>"
+    },
+    "portable": {
+      "useZip": true
     },
     "msi": {
       "artifactName": "${productName}-${version}-${arch}.${ext}"

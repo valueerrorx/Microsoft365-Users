@@ -14,16 +14,38 @@ function Write-JsonResult {
     Write-Output "###JSON_END###"
 }
 
+function Clear-Mg365TokenCacheFiles {
+    $removed = 0
+    if ($env:LOCALAPPDATA) {
+        $idSvc = Join-Path $env:LOCALAPPDATA '.IdentityService'
+        if (Test-Path -LiteralPath $idSvc) {
+            Get-ChildItem -LiteralPath $idSvc -Filter 'mg*' -Force -ErrorAction SilentlyContinue |
+                ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -Recurse -ErrorAction SilentlyContinue; $removed++ }
+        }
+    }
+    $profileRoot = if ($env:USERPROFILE) { $env:USERPROFILE } elseif ($env:HOME) { $env:HOME } else { $null }
+    if ($profileRoot) {
+        foreach ($name in @('.mg', '.graph')) {
+            $p = Join-Path $profileRoot $name
+            if (Test-Path -LiteralPath $p) {
+                Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue
+                $removed++
+            }
+        }
+    }
+    return $removed
+}
+
 try {
-    if (-not (Get-Module -ListAvailable -Name Microsoft.Graph.Authentication)) {
-        Write-JsonResult @{ status = 'ok'; message = 'Keine Graph-Sitzung im Cache (Modul nicht installiert).' }
-        exit 0
+    if (Get-Module -ListAvailable -Name Microsoft.Graph.Authentication) {
+        Import-Module Microsoft.Graph.Authentication -ErrorAction SilentlyContinue
+        if (Get-Command Disconnect-MgGraph -ErrorAction SilentlyContinue) {
+            Disconnect-MgGraph -ErrorAction SilentlyContinue | Out-Null
+        }
     }
-    Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
-    if (Get-Command Disconnect-MgGraph -ErrorAction SilentlyContinue) {
-        Disconnect-MgGraph -ErrorAction SilentlyContinue | Out-Null
-    }
-    Write-JsonResult @{ status = 'ok'; message = 'Microsoft Graph abgemeldet — Token-Cache geleert.' }
+    $n = Clear-Mg365TokenCacheFiles
+    $msg = if ($n -gt 0) { "Microsoft Graph abgemeldet — Token-Cache geleert ($n)." } else { 'Microsoft Graph abgemeldet — keine Cache-Dateien gefunden.' }
+    Write-JsonResult @{ status = 'ok'; message = $msg }
     exit 0
 } catch {
     $errMsg = [string]$_.Exception.Message

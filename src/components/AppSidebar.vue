@@ -72,7 +72,7 @@
         <button
           type="button"
           class="sidebar-logout-btn"
-          :disabled="authStore.loggingOut"
+          :disabled="!canLogout || authStore.loggingOut"
           @click="handleLogout"
         >
           <i class="bi bi-box-arrow-left"></i>
@@ -114,7 +114,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useUsersStore } from '../stores/usersStore'
 import { useGroupsStore } from '../stores/groupsStore'
@@ -134,11 +134,21 @@ const groupsStore = useGroupsStore()
 const devicesStore = useDevicesStore()
 const rolesStore = useRolesStore()
 
+const canLogout = computed(
+  () =>
+    authStore.connected ||
+    !!usersStore.lastFetched ||
+    !!groupsStore.lastFetched ||
+    !!devicesStore.lastFetched ||
+    !!rolesStore.lastFetched
+)
+
 function formatTime(date) {
   return date.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })
 }
 
 function handleLogout() {
+  if (!canLogout.value) return
   void authStore.logout()
 }
 
@@ -180,7 +190,7 @@ async function openXapientSite() {
 
 .sidebar-logout-btn:disabled {
   opacity: 0.6;
-  cursor: wait;
+  cursor: default;
 }
 
 .sidebar-version-btn {

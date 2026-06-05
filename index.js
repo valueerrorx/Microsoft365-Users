@@ -34,6 +34,41 @@ const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 
 let win
 let isQuitting = false
+let deviceLoginBrowserOpened = false
+let deviceLoginCodeEmitted = null
+
+function extractDeviceLoginCode(line) {
+  const patterns = [
+    /enter the code\s+([A-Z0-9]+)\s+to authenticate/i,
+    /enter the code\s+([A-Z0-9]+)/i,
+    /user[_\s]?code[:\s]+([A-Z0-9]+)/i
+  ]
+  for (const re of patterns) {
+    const m = line.match(re)
+    if (m?.[1]) return m[1].trim()
+  }
+  return null
+}
+
+function maybeEmitDeviceLoginCode(line) {
+  const code = extractDeviceLoginCode(line)
+  if (!code || code === deviceLoginCodeEmitted) return
+  deviceLoginCodeEmitted = code
+  uiSend('device-login-code', { code })
+}
+
+function maybeOpenDeviceLoginBrowser(line) {
+  if (deviceLoginBrowserOpened) return
+  if (!/to sign in|devicelogin|enter the code|device-code-anmeldung/i.test(line)) return
+  deviceLoginBrowserOpened = true
+  void shell.openExternal('https://microsoft.com/devicelogin')
+}
+
+function resetGraphAuthUiState() {
+  deviceLoginBrowserOpened = false
+  deviceLoginCodeEmitted = null
+  uiSend('device-login-code', { code: null })
+}
 let csvData = []
 let scheduledDirectoryRoles = null
 
@@ -299,22 +334,24 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
     ps.stdout?.on('data', (d) => {
       const text = d.toString()
       stdout += text
-      if (onLog) {
-        for (const line of text.split(/\r?\n/)) {
-          const clean = stripAnsi(line.trim())
-          if (clean && !clean.includes('###JSON_')) onLog({ type: 'info', message: clean })
-        }
+      for (const line of text.split(/\r?\n/)) {
+        const clean = stripAnsi(line.trim())
+        if (!clean || clean.includes('###JSON_')) continue
+        maybeOpenDeviceLoginBrowser(clean)
+        maybeEmitDeviceLoginCode(clean)
+        if (onLog) onLog({ type: 'info', message: clean })
       }
     })
 
     ps.stderr?.on('data', (d) => {
       const text = d.toString()
       stderr += text
-      if (onLog) {
-        for (const line of text.split(/\r?\n/)) {
-          const clean = stripAnsi(line.trim())
-          if (clean) onLog({ type: 'error', message: clean })
-        }
+      for (const line of text.split(/\r?\n/)) {
+        const clean = stripAnsi(line.trim())
+        if (!clean) continue
+        maybeOpenDeviceLoginBrowser(clean)
+        maybeEmitDeviceLoginCode(clean)
+        if (onLog) onLog({ type: 'error', message: clean })
       }
     })
 
@@ -456,6 +493,7 @@ ipcMain.handle('disconnect-ms365', async () => {
     })
     const data = parseJsonFromOutput(result.stdout)
     if (data) {
+      if (data.status === 'ok') resetGraphAuthUiState()
       uiSend('ps-operation-complete', { status: data.status })
       return data
     }
