@@ -300,6 +300,16 @@ const dashboardGroupsLifecycleDisplay = computed(() => {
 
 async function refreshDashboardData() {
   if (dashboardRefreshing.value) return
+  // Erst eine Graph-Verbindung herstellen (1 Device-Code), damit die parallelen Reads
+  // den Token-Cache nutzen statt jeweils einen eigenen Anmeldecode anzufordern.
+  if (!authStore.connected) {
+    const r = await window.ipcRenderer.invoke('ensure-graph-connected')
+    if (r?.status !== 'ok' && r?.status !== 'partial') {
+      authStore.error = r?.message || 'Verbindung zu Microsoft Graph fehlgeschlagen.'
+      return
+    }
+    authStore.markGraphConnected(r.tenantDomain)
+  }
   await Promise.all([
     usersStore.fetchUsers(),
     groupsStore.fetchGroupsDetail(),

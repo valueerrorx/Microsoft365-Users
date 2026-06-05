@@ -32,17 +32,17 @@ function Connect-Mg365App {
     if ($useDeviceCode) {
         Write-Host "Device-Code-Anmeldung - Browser oeffnet sich automatisch..." -ForegroundColor Yellow
         Write-Host "Code steht unten im Ausgabefenster; auf der Seite eingeben und anmelden." -ForegroundColor Yellow
-        Connect-MgGraph -Scopes $scopes -UseDeviceCode -NoWelcome -ContextScope CurrentUser -ErrorAction Stop
+        Connect-MgGraph -Scopes $scopes -UseDeviceCode -NoWelcome -ErrorAction Stop
         return
     }
     try {
-        Connect-MgGraph -Scopes $scopes -NoWelcome -ContextScope CurrentUser -ErrorAction Stop
+        Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
         return
     } catch {
         $msg = [string]$_.Exception.Message
         if ($msg -match 'InteractiveBrowserCredential|Interactive browser credential|window handle must be configured') {
             Write-Host "Hinweis: Browser-Login nicht moeglich. Fallback: Device-Code-Login..." -ForegroundColor Yellow
-            Connect-MgGraph -Scopes $scopes -UseDeviceCode -NoWelcome -ContextScope CurrentUser -ErrorAction Stop
+            Connect-MgGraph -Scopes $scopes -UseDeviceCode -NoWelcome -ErrorAction Stop
             return
         }
         throw

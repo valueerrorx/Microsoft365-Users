@@ -60,7 +60,7 @@ function maybeEmitDeviceLoginCode(line) {
 
 function maybeOpenDeviceLoginBrowser(line) {
   if (deviceLoginBrowserOpened) return
-  if (!/to sign in|devicelogin|enter the code|device.code|browser oeffnet|code erscheint/i.test(line)) return
+  if (!/to sign in|devicelogin|enter the code|device-code|browser oeffnet|code erscheint/i.test(line)) return
   deviceLoginBrowserOpened = true
   void shell.openExternal('https://microsoft.com/devicelogin')
 }
@@ -118,11 +118,16 @@ function createWindow() {
     height: 940,
     minWidth: 1600,
     minHeight: 940,
-    maximized: true,
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       spellcheck: false
     }
+  })
+
+  win.once('ready-to-show', () => {
+    win.maximize()
+    win.show()
   })
 
   if (VITE_DEV_SERVER_URL) {
@@ -344,17 +349,6 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
 
   const PS_TIMEOUT_MS = 5 * 60 * 1000
   const psCwd = path.dirname(tmpScript)
-  const verCmd = `Write-Host "PowerShell $($PSVersionTable.PSVersion) ($($PSEdition)) exe='${String(psCmd).replace(/'/g, "''")}'"`
-  const verRun = spawnSync(psCmd, ['-NoLogo', '-NoProfile', '-Command', verCmd], {
-    encoding: 'utf8',
-    cwd: psCwd,
-    env,
-    windowsHide: true
-  })
-  if (onLog) {
-    const verLine = stripAnsi((verRun.stdout || '').trim())
-    if (verLine) onLog({ type: 'info', message: verLine })
-  }
 
   return new Promise((resolve) => {
     let stdout = ''
@@ -409,7 +403,7 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
         maybeOpenDeviceLoginBrowser(clean)
         maybeEmitDeviceLoginCode(clean)
         if (/Anmeldung erfolgreich/i.test(clean)) resetGraphAuthUiState()
-        const isDeviceLoginHint = /to sign in|enter the code|devicelogin|device.code/i.test(clean)
+        const isDeviceLoginHint = /to sign in|enter the code|devicelogin|device-code/i.test(clean)
         if (onLog) onLog({ type: isDeviceLoginHint ? 'info' : 'error', message: clean })
       }
     })
@@ -703,6 +697,25 @@ ipcMain.handle('run-password-update', async () => {
 })
 
 // ===================== IPC: User Management =====================
+
+// Stellt einmalig die Graph-Verbindung her (1 Device-Code), bevor parallele Reads laufen
+ipcMain.handle('ensure-graph-connected', async () => {
+  try {
+    const result = await runPsScript('scripts/ensure-graph-connection.ps1', [], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    if (result.exitCode === -1 && !result.stdout) {
+      return { status: 'error', message: result.stderr || 'PowerShell konnte nicht gestartet werden' }
+    }
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) {
+      return { status: 'error', message: result.stderr || 'Keine Antwort von PowerShell erhalten.' }
+    }
+    return onGraphResponse(data)
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
 
 ipcMain.handle('get-users', async () => {
   try {
