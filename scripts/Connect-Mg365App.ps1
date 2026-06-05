@@ -30,6 +30,15 @@ function Connect-Mg365App {
     )
     $useDeviceCode = $env:MS365_ELECTRON_APP -eq '1'
     if ($useDeviceCode) {
+        # Erst still aus dem Token-Cache reconnecten (kein Code, kein Browser).
+        try {
+            Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop | Out-Null
+            if ((Get-MgContext)) {
+                Write-Host "Bestehende Anmeldung wiederverwendet."
+                return
+            }
+        } catch {}
+        # Kein gueltiges Token -> Device-Code-Anmeldung.
         Write-Host "Device-Code-Anmeldung - Browser oeffnet sich automatisch..." -ForegroundColor Yellow
         Write-Host "Code steht unten im Ausgabefenster; auf der Seite eingeben und anmelden." -ForegroundColor Yellow
         Connect-MgGraph -Scopes $scopes -UseDeviceCode -NoWelcome -ErrorAction Stop
