@@ -88,9 +88,16 @@ function maybeEmitDeviceLoginCode(line, runId) {
     authDebug('device-code:skip', { runId, reason: 'duplicate', code })
     return
   }
+  const rotated = deviceLoginCodeEmitted !== null
   deviceLoginCodeEmitted = code
-  authDebugUi(`Device-Code erkannt → Dialog (${code}) [${runId}]`)
+  if (rotated) {
+    deviceLoginBrowserOpened = false
+    authDebugUi(`Device-Code rotiert → Dialog (${code}) [${runId}]`)
+  } else {
+    authDebugUi(`Device-Code erkannt → Dialog (${code}) [${runId}]`)
+  }
   uiSend('device-login-code', { code })
+  maybeOpenDeviceLoginBrowser('enter the code device-code-anmeldung', runId)
 }
 
 function maybeOpenDeviceLoginBrowser(line, runId) {
@@ -104,6 +111,15 @@ function maybeOpenDeviceLoginBrowser(line, runId) {
   deviceLoginBrowserOpened = true
   authDebugUi(`Öffne microsoft.com/devicelogin [${runId}]`)
   void shell.openExternal('https://microsoft.com/devicelogin')
+}
+
+// Marks Graph session ready as soon as pwsh reports a successful Connect (not only on script exit).
+function noteGraphAuthSuccess(source, runId) {
+  if (graphSessionWarm) return
+  graphSessionWarm = true
+  authDebugUi(`graphSessionWarm=true (${source}) [${runId}]`)
+  markGraphSessionReady()
+  resetGraphAuthUiState(source)
 }
 
 function resetGraphAuthUiState(reason = 'unknown') {
@@ -401,9 +417,7 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
 
   const PS_TIMEOUT_MS = 5 * 60 * 1000
   const psCwd = path.dirname(tmpScript)
-  const stdio = process.platform === 'win32'
-    ? ['pipe', 'pipe', 'pipe']
-    : ['ignore', 'pipe', 'pipe']
+  const stdio = ['ignore', 'pipe', 'pipe']
 
   authDebug('ps:start', {
     runId,
@@ -429,14 +443,6 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
       ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', tmpScript, ...args],
       { cwd: psCwd, env, stdio }
     )
-    if (process.platform === 'win32') {
-      try {
-        ps.stdin?.end()
-        authDebug('ps:stdin', { runId, action: 'end' })
-      } catch (e) {
-        authDebug('ps:stdin', { runId, action: 'end-failed', message: e?.message })
-      }
-    }
     ps.stdout?.setEncoding('utf8')
     ps.stderr?.setEncoding('utf8')
     ps.stdout?.resume()
@@ -483,7 +489,9 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
           authDebug(`ps:${runId}:stdout-line`, clean)
           maybeOpenDeviceLoginBrowser(clean, runId)
           maybeEmitDeviceLoginCode(clean, runId)
-          if (/Anmeldung erfolgreich/i.test(clean)) resetGraphAuthUiState('stdout:anmeldung-erfolgreich')
+          if (/Anmeldung erfolgreich|Connect OK account=/i.test(clean)) {
+            noteGraphAuthSuccess('stdout:connect-ok', runId)
+          }
           if (onLog) onLog({ type: 'info', message: clean })
         } else {
           authDebug(`ps:${runId}:stdout-json-marker`, clean)
@@ -501,7 +509,9 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
         authDebug(`ps:${runId}:stderr-line`, clean)
         maybeOpenDeviceLoginBrowser(clean, runId)
         maybeEmitDeviceLoginCode(clean, runId)
-        if (/Anmeldung erfolgreich/i.test(clean)) resetGraphAuthUiState('stderr:anmeldung-erfolgreich')
+        if (/Anmeldung erfolgreich|Connect OK account=/i.test(clean)) {
+          noteGraphAuthSuccess('stderr:connect-ok', runId)
+        }
         const isDeviceLoginHint = /to sign in|enter the code|devicelogin|device-code/i.test(clean)
         if (onLog) onLog({ type: isDeviceLoginHint ? 'info' : 'error', message: clean })
       }
@@ -510,12 +520,9 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
     ps.on('exit', async (code) => {
       const out = stdout.trim()
       const err = stderr.trim()
-      const authOk = /Anmeldung erfolgreich/i.test(out) || /Bestehende Anmeldung wiederverwendet/i.test(out)
+      const authOk = /Anmeldung erfolgreich|Bestehende Anmeldung wiederverwendet|Connect OK account=/i.test(out)
       authDebug('ps:exit', { runId, code, timedOut, authOk, graphSessionWarmBefore: graphSessionWarm })
-      if (code === 0 && authOk) {
-        graphSessionWarm = true
-        authDebugUi(`graphSessionWarm=true nach ${scriptRelPath} [${runId}]`)
-      }
+      if (authOk) noteGraphAuthSuccess(`ps:exit:${scriptRelPath}`, runId)
       if (timedOut) {
         authDebugUi(`PS TIMEOUT nach 5min: ${scriptRelPath} [${runId}]`)
         await finish({
