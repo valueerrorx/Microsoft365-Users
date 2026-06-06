@@ -61,6 +61,26 @@ const ALLOWED_MS_ADMIN_HOSTS = new Set([
   'www.xapient.solutions'
 ])
 
+const CREATE_NEW_CONSOLE = 0x00000010
+
+// Windows: pwsh needs a console HWND so Graph SDK WAM login can open its auth UI.
+function buildPsSpawnOptions(cwd) {
+  const opts = {
+    cwd,
+    env: {
+      ...process.env,
+      POWERSHELL_UPDATECHECK: 'Off',
+      POWERSHELL_TELEMETRY_OPTOUT: '1'
+    },
+    stdio: ['ignore', 'pipe', 'pipe']
+  }
+  if (process.platform === 'win32') {
+    opts.windowsHide = true
+    opts.creationFlags = CREATE_NEW_CONSOLE
+  }
+  return opts
+}
+
 function isAllowedExternalHttpsUrl(rawUrl) {
   try {
     const u = new URL(String(rawUrl || '').trim())
@@ -301,12 +321,6 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
         : 'Hinweis: pwsh nicht im PATH — Graph-Aktionen sind möglicherweise eingeschränkt.'
     })
   }
-  const env = {
-    ...process.env,
-    POWERSHELL_UPDATECHECK: 'Off',
-    POWERSHELL_TELEMETRY_OPTOUT: '1'
-  }
-
   const PS_TIMEOUT_MS = 5 * 60 * 1000
   const psCwd = path.dirname(tmpScript)
 
@@ -318,7 +332,7 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
     const ps = spawn(
       psCmd,
       ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', tmpScript, ...args],
-      { cwd: psCwd, env, stdio: ['ignore', 'pipe', 'pipe'] }
+      buildPsSpawnOptions(psCwd)
     )
     ps.stdout?.setEncoding('utf8')
     ps.stderr?.setEncoding('utf8')
@@ -581,11 +595,7 @@ ipcMain.handle('run-password-update', async () => {
     const psCmd = detectPowerShell()
     const failedUsers = new Set()
     const failedUserDetails = {}
-    const env = { ...process.env, POWERSHELL_UPDATECHECK: 'Off', POWERSHELL_TELEMETRY_OPTOUT: '1' }
-
-    const pwsh = spawn(psCmd, ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, '-CSVPath', tmpCsv], {
-      cwd: path.dirname(tmpCsv), env
-    })
+    const pwsh = spawn(psCmd, ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, '-CSVPath', tmpCsv], buildPsSpawnOptions(path.dirname(tmpCsv)))
 
     const parseFail = (line) => {
       const markerIdx = line.indexOf('###USER_FAIL###')
