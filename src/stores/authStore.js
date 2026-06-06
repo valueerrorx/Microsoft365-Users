@@ -38,9 +38,12 @@ export const useAuthStore = defineStore('auth', {
     },
 
     beginGraphOperation(resourceLabel) {
+      const isLinux = typeof navigator !== 'undefined' && /Linux/i.test(navigator.userAgent)
       const message = this.connected
         ? `Lade ${resourceLabel} (Microsoft Graph)…`
-        : 'Verbinde mit Microsoft Graph…'
+        : isLinux
+          ? 'Verbinde mit Microsoft Graph — Browserfenster oeffnet sich gleich…'
+          : 'Verbinde mit Microsoft Graph…'
       this.addLog({ type: 'info', message })
     },
 

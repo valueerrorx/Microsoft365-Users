@@ -16,23 +16,6 @@ function Write-Mg365AuthLog {
 
 try {
     Write-Mg365AuthLog "start HOME=$HOME MS365_ELECTRON_APP=$env:MS365_ELECTRON_APP"
-    if ($env:MS365_GRAPH_ACCESS_TOKEN) {
-        Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
-        Write-Mg365AuthLog "Connect-MgGraph -AccessToken (Electron session)"
-        $secureToken = ConvertTo-SecureString -String $env:MS365_GRAPH_ACCESS_TOKEN -AsPlainText -Force
-        Connect-MgGraph -AccessToken $secureToken -NoWelcome -ErrorAction Stop | Out-Null
-        $ctxToken = Get-MgContext
-        if (-not $ctxToken -or -not $ctxToken.Account) { throw "Keine aktive Sitzung" }
-        Write-Mg365AuthLog "Session OK account=$($ctxToken.Account) tenant=$($ctxToken.TenantId)"
-        $tenantDomain = ""
-        if ($ctxToken.Account -match '@(.+)$') { $tenantDomain = $Matches[1] }
-        if (-not $tenantDomain) { $tenantDomain = [string]$ctxToken.TenantId }
-        $result = @{ status = "ok"; tenantDomain = $tenantDomain; account = [string]$ctxToken.Account } | ConvertTo-Json -Compress
-        Write-Output "###JSON_START###"
-        Write-Output $result
-        Write-Output "###JSON_END###"
-        exit 0
-    }
     $authRecordPath = Join-Path $HOME '.mg\mg.authrecord.json'
     Write-Mg365AuthLog "authRecordPath=$authRecordPath exists=$(Test-Path -LiteralPath $authRecordPath)"
     if (-not (Test-Path -LiteralPath $authRecordPath)) {

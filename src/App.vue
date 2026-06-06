@@ -6,7 +6,10 @@
     <AppSidebar />
     <div class="main-area">
       <main class="flex-grow-1 overflow-y-auto overflow-x-hidden p-4" style="flex: 1">
-        <router-view />
+        <div v-if="!sessionChecked" class="text-center py-5" style="color:#8b949e;">
+          <i class="bi bi-hourglass-split me-2"></i>Session wird geprüft…
+        </div>
+        <router-view v-else />
       </main>
       <LogConsole />
     </div>
@@ -51,7 +54,7 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import AppSidebar from './components/AppSidebar.vue'
 import LogConsole from './components/LogConsole.vue'
 import { useAuthStore } from './stores/authStore'
@@ -61,6 +64,7 @@ import { useRolesStore } from './stores/rolesStore'
 const authStore = useAuthStore()
 const usersStore = useUsersStore()
 const rolesStore = useRolesStore()
+const sessionChecked = ref(false)
 
 // Register before child views mount — RolesView can trigger auth during its onMounted.
 window.ipcRenderer.on('device-login-code', (_e, data) => {
@@ -145,6 +149,9 @@ onMounted(async () => {
     const status = await window.ipcRenderer.invoke('graph-connection-status')
     if (status?.status === 'ok') authStore.setConnected(status.tenantDomain || 'Microsoft 365')
   } catch { /* ignorieren: dann normaler Login-Flow */ }
+  finally {
+    sessionChecked.value = true
+  }
 })
 </script>
 

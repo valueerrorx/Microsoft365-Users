@@ -8,7 +8,6 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { spawn, execSync, spawnSync } from 'child_process'
 import { createScheduledDirectoryRolesManager } from './scheduled-directory-roles.mjs'
-import { acquireGraphTokenViaDeviceCode } from './graph-device-auth.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -38,8 +37,6 @@ let isQuitting = false
 let deviceLoginBrowserOpened = false
 let deviceLoginCodeEmitted = null
 let graphSessionWarm = false
-let windowsSessionAccessToken = null
-let windowsGraphTokenInflight = null
 let pendingDeviceLoginCode = null
 let csvData = []
 let scheduledDirectoryRoles = null
@@ -78,6 +75,10 @@ function isAuthNoisePsLine(line) {
 }
 
 function forwardPsLineToUi(line, onLog, type = 'info') {
+  if (/to sign in, use a web browser/i.test(line)) {
+    authLogUi('Browser-Anmeldung — Bitte im geoeffneten Browserfenster bei Microsoft anmelden.')
+    return
+  }
   if (isAuthNoisePsLine(line) || /Anmeldung erfolgreich/i.test(line)) return
   if (/^\{.*"status"\s*:/.test(line) || /^###JSON_/.test(line)) return
   if (onLog) onLog({ type, message: line })
@@ -136,11 +137,22 @@ function maybeOpenDeviceLoginBrowser(line, runId) {
   void shell.openExternal('https://microsoft.com/devicelogin')
 }
 
+// Logs whether Graph PowerShell persisted tokens under ~/.mg/mg.authrecord.json.
+async function logMgAuthCacheStatus() {
+  const cachePath = getMgAuthRecordPath()
+  const ok = await hasMgAuthCache()
+  authLogUi(
+    ok ? `Session gespeichert: ${cachePath}` : `Warnung: keine Cache-Datei unter ${cachePath}`,
+    ok ? 'success' : 'warning'
+  )
+}
+
 // Marks Graph session ready as soon as pwsh reports a successful Connect (not only on script exit).
 function noteGraphAuthSuccess(source, runId) {
   if (graphSessionWarm) return
   graphSessionWarm = true
   authLogUi('Mit Microsoft Graph verbunden', 'success')
+  void logMgAuthCacheStatus()
   authDebug('graph-session-warm', { source, runId })
   markGraphSessionReady()
   resetGraphAuthUiState(source)
@@ -410,37 +422,6 @@ async function hasMgAuthCache() {
   }
 }
 
-// Windows cold-start: device-code in Electron main (reliable MSAL), token passed to pwsh via env.
-async function ensureWindowsGraphAccessToken() {
-  if (process.platform !== 'win32') return null
-  if (windowsSessionAccessToken) return windowsSessionAccessToken
-  if (graphSessionWarm || (await hasMgAuthCache())) return null
-  if (windowsGraphTokenInflight) return windowsGraphTokenInflight
-
-  windowsGraphTokenInflight = (async () => {
-    authLogUi('Anmeldung bei Microsoft Graph…')
-    authDebug('electron:device-code:start', { hasCache: false })
-    const token = await acquireGraphTokenViaDeviceCode((info) => {
-      const code = info.userCode
-      deviceLoginCodeEmitted = code
-      emitDeviceLoginCode(code)
-      deviceLoginBrowserOpened = true
-      authDebug('electron:device-code', { code })
-      void shell.openExternal(info.verificationUri || 'https://microsoft.com/devicelogin')
-    })
-    if (!token) throw new Error('Device-Code-Authentifizierung fehlgeschlagen.')
-    windowsSessionAccessToken = token
-    noteGraphAuthSuccess('electron:device-code', 'electron-main')
-    return token
-  })()
-
-  try {
-    return await windowsGraphTokenInflight
-  } finally {
-    windowsGraphTokenInflight = null
-  }
-}
-
 // Bulk/read Graph scripts may run in parallel; writes stay serialized (MSAL token cache / login prompts).
 const PARALLEL_PS_SCRIPTS = new Set([
   'scripts/get-ms365-users.ps1',
@@ -456,7 +437,7 @@ const PARALLEL_PS_SCRIPTS = new Set([
 let psScriptQueueTail = Promise.resolve()
 
 async function runPsScript(scriptRelPath, args = [], onLog = null) {
-  const allowParallel = process.platform !== 'win32' && PARALLEL_PS_SCRIPTS.has(scriptRelPath)
+  const allowParallel = process.platform !== 'win32' && graphSessionWarm && PARALLEL_PS_SCRIPTS.has(scriptRelPath)
   authDebug('ps:queue', { scriptRelPath, allowParallel, graphSessionWarm })
   if (allowParallel) {
     return runPsScriptBody(scriptRelPath, args, onLog)
@@ -479,19 +460,6 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
   if (!graphSessionWarm) {
     deviceLoginBrowserOpened = false
     deviceLoginCodeEmitted = null
-  }
-  let accessTokenForPs = null
-  if (process.platform === 'win32') {
-    if (windowsSessionAccessToken) {
-      accessTokenForPs = windowsSessionAccessToken
-    } else if (!graphSessionWarm && !SKIPS_ELECTRON_AUTH.has(scriptRelPath)) {
-      try {
-        accessTokenForPs = await ensureWindowsGraphAccessToken()
-      } catch (e) {
-        authLogUi(`Anmeldung fehlgeschlagen: ${e?.message}`, 'error')
-        return { exitCode: -1, stdout: '', stderr: e?.message || 'Device-Code-Authentifizierung fehlgeschlagen.' }
-      }
-    }
   }
   let tmpScript = null
   try {
@@ -516,13 +484,14 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
     POWERSHELL_UPDATECHECK: 'Off',
     POWERSHELL_TELEMETRY_OPTOUT: '1',
     ...(process.platform === 'win32' ? { MS365_ELECTRON_APP: '1' } : {}),
-    ...(graphSessionWarm ? { MS365_GRAPH_SESSION_WARM: '1' } : {}),
-    ...(accessTokenForPs ? { MS365_GRAPH_ACCESS_TOKEN: accessTokenForPs } : {})
+    ...(graphSessionWarm ? { MS365_GRAPH_SESSION_WARM: '1' } : {})
   }
 
   const PS_TIMEOUT_MS = 5 * 60 * 1000
   const psCwd = path.dirname(tmpScript)
-  const stdio = ['ignore', 'pipe', 'pipe']
+  const stdio = process.platform === 'win32'
+    ? ['pipe', 'pipe', 'pipe']
+    : ['ignore', 'pipe', 'pipe']
 
   authDebug('ps:start', {
     runId,
@@ -537,6 +506,13 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
     stdinMode: stdio[0]
   })
   authDebug('ps:start-ui', { runId, scriptRelPath, graphSessionWarm })
+  if (!graphSessionWarm && !SKIPS_ELECTRON_AUTH.has(scriptRelPath) && !(await hasMgAuthCache())) {
+    if (process.platform === 'win32') {
+      authLogUi('Device-Code-Anmeldung — Browser oeffnet sich gleich. Code im Dialog eingeben.')
+    } else {
+      authLogUi('Browser-Anmeldung — Ein Browserfenster oeffnet sich gleich. Bitte bei Microsoft anmelden.')
+    }
+  }
 
   return new Promise((resolve) => {
     let stdout = ''
@@ -544,6 +520,9 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
     let timedOut = false
     let settled = false
     const ps = spawn(psCmd, buildPsSpawnArgs(tmpScript, args), { cwd: psCwd, env, stdio })
+    if (process.platform === 'win32') {
+      try { ps.stdin?.end() } catch {}
+    }
     ps.stdout?.setEncoding('utf8')
     ps.stderr?.setEncoding('utf8')
     ps.stdout?.resume()
@@ -757,8 +736,6 @@ ipcMain.handle('disconnect-ms365', async () => {
   authDebug('ipc:disconnect-ms365', { graphSessionWarm: false })
   csvData = []
   graphSessionWarm = false
-  windowsSessionAccessToken = null
-  windowsGraphTokenInflight = null
   scheduledDirectoryRoles?.setGraphSessionReady(false)
   try {
     const result = await runPsScript('scripts/disconnect-mg365.ps1', [], (log) => {
@@ -925,10 +902,13 @@ ipcMain.handle('graph-connection-status', async () => {
     if (graphSessionWarm) {
       return { status: 'ok', tenantDomain: 'Microsoft 365' }
     }
+    const cachePath = getMgAuthRecordPath()
     if (!(await hasMgAuthCache())) {
-      authDebug('start-check:no-cache-file')
+      authDebug('start-check:no-cache-file', { cachePath })
+      authLogUi(`Keine gespeicherte Session (${cachePath})`, 'info')
       return { status: 'error', message: 'Keine bestehende Anmeldung.' }
     }
+    authDebug('start-check:cache-found', { cachePath })
     const result = await runPsScript('scripts/check-graph-connection.ps1', [], (log) => {
       uiSend('ps-operation-log', log)
     })

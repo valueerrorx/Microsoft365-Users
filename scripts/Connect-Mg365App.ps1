@@ -36,22 +36,6 @@ function Connect-Mg365App {
         'UserAuthenticationMethod.ReadWrite.All',
         'RoleManagement.ReadWrite.Directory'
     )
-    if ($env:MS365_GRAPH_ACCESS_TOKEN) {
-        Write-Mg365AuthLog "Connect-MgGraph -AccessToken (Electron Device-Code)"
-        try {
-            $secureToken = ConvertTo-SecureString -String $env:MS365_GRAPH_ACCESS_TOKEN -AsPlainText -Force
-            Connect-MgGraph -AccessToken $secureToken -NoWelcome -ErrorAction Stop
-            $ctxToken = Get-MgContext
-            if ($ctxToken) {
-                Write-Mg365AuthLog "Connect OK account=$($ctxToken.Account) tenant=$($ctxToken.TenantId) scopes=$($ctxToken.Scopes -join ',')"
-            }
-            Write-Host "Anmeldung erfolgreich."
-        } catch {
-            Write-Mg365AuthLog "Connect FEHLER: $($_.Exception.Message)"
-            throw
-        }
-        return
-    }
     $useDeviceCode = $env:MS365_ELECTRON_APP -eq '1'
     Write-Mg365AuthLog "useDeviceCode=$useDeviceCode scopeCount=$($scopes.Count)"
     if ($useDeviceCode) {
@@ -80,10 +64,20 @@ function Connect-Mg365App {
         }
         return
     }
-    Write-Mg365AuthLog "Connect-MgGraph Browser-Modus (Linux)"
+    $authRecordPath = Join-Path $HOME '.mg\mg.authrecord.json'
+    $hasCache = Test-Path -LiteralPath $authRecordPath
+    Write-Mg365AuthLog "Linux browser mode hasCache=$hasCache authRecordPath=$authRecordPath"
+    if ($hasCache) {
+        Write-Host "Bestehende Microsoft-Anmeldung wird verwendet."
+    } else {
+        Write-Host "Browser-Anmeldung — Gleich oeffnet sich ein Browserfenster zur Microsoft-Anmeldung." -ForegroundColor Yellow
+        Write-Host "Bitte dort anmelden. Falls kein Fenster sichtbar ist: Taskleiste oder andere Arbeitsflaeche pruefen." -ForegroundColor Yellow
+    }
+    Write-Mg365AuthLog "Connect-MgGraph Browser-Modus start"
     Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
     $ctxLinux = Get-MgContext
     if ($ctxLinux) {
         Write-Mg365AuthLog "Connect OK account=$($ctxLinux.Account) tenant=$($ctxLinux.TenantId)"
     }
+    Write-Host "Anmeldung erfolgreich."
 }
