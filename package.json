@@ -1,6 +1,6 @@
 {
-  "name": "microsoft365-users",
-  "version": "2.2.3",
+  "name": "microsoft365-manager",
+  "version": "2.2.4",
   "description": "MS-365 User Management Dashboard",
   "main": "index.js",
   "type": "module",
@@ -16,8 +16,8 @@
   "author": "Thomas Michael Weissel <valueerror@gmail.com>",
   "license": "GPL-3.0-or-later",
   "build": {
-    "appId": "eu.life-edu.microsoft365users",
-    "productName": "Microsoft365Users",
+    "appId": "eu.life-edu.microsoft365manager",
+    "productName": "Microsoft365Manager",
     "icon": "icon.png",
     "publish": null,
     "files": [
@@ -44,7 +44,7 @@
       "maintainer": "Thomas Michael Weissel <valueerror@gmail.com>",
       "artifactName": "${productName}-${version}-${arch}.${ext}",
       "desktop": {
-        "StartupWMClass": "microsoft365-users"
+        "StartupWMClass": "microsoft365-manager"
       }
     },
     "win": {
