@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) Mag. Thomas Michael Weissel <valueerror@gmail.com>
 
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage } from 'electron'
 import os from 'os'
 import fs from 'fs/promises'
 import path from 'path'
@@ -33,6 +33,7 @@ async function resolveManagedRolesConfigPath() {
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 
 let win
+let tray = null
 let isQuitting = false
 let deviceLoginBrowserOpened = false
 let deviceLoginCodeEmitted = null
@@ -205,10 +206,46 @@ function isAllowedExternalHttpsUrl(rawUrl) {
 
 // ===================== Window Management =====================
 
+function resolveIconPath(fileName) {
+  return path.join(getAppRoot(), fileName)
+}
+
+function loadTrayIcon() {
+  const small = nativeImage.createFromPath(resolveIconPath('icon-small.png'))
+  if (!small.isEmpty()) return small
+  return nativeImage.createFromPath(resolveIconPath('icon.png'))
+}
+
+function showMainWindow() {
+  if (!win || win.isDestroyed()) return
+  win.setSkipTaskbar(false)
+  if (win.isMinimized()) win.restore()
+  win.show()
+  win.focus()
+}
+
+function hideToTray() {
+  if (!win || win.isDestroyed()) return
+  win.hide()
+  win.setSkipTaskbar(true)
+}
+
+function createTray() {
+  if (tray) return
+  tray = new Tray(loadTrayIcon())
+  tray.setToolTip('MS365 Manager')
+  tray.on('click', () => showMainWindow())
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: 'Öffnen', click: () => showMainWindow() },
+    { type: 'separator' },
+    { label: 'Programm schliessen', click: () => { void promptQuitChoice() } }
+  ]))
+}
+
 function createWindow() {
   win = new BrowserWindow({
     title: 'MS365 User Management',
-    icon: path.join(__dirname, 'icon.png'),
+    icon: resolveIconPath('icon.png'),
     width: 1600,
     height: 940,
     minWidth: 1600,
@@ -260,6 +297,38 @@ function createWindow() {
       win.webContents.openDevTools()
     }
   })
+
+  win.on('close', (e) => {
+    if (isQuitting) return
+    e.preventDefault()
+    hideToTray()
+  })
+}
+
+// Quit dialog: Abmelden und beenden | Beenden | Abbrechen.
+async function promptQuitChoice() {
+  if (!win || win.isDestroyed()) return
+  const { response } = await dialog.showMessageBox(win, {
+    type: 'question',
+    title: 'App beenden',
+    message: 'Möchten Sie sich auch von Microsoft Graph abmelden?',
+    detail: 'Abmelden löscht die gespeicherte Anmeldung. Beenden behält die Session für den nächsten Start.',
+    buttons: ['Abmelden und beenden', 'Beenden', 'Abbrechen'],
+    defaultId: 1,
+    cancelId: 2,
+    noLink: true
+  })
+  if (response === 2) return
+  if (response === 0) {
+    await performDisconnectMg365({ notifyUi: false })
+  }
+  isQuitting = true
+  if (tray) {
+    tray.destroy()
+    tray = null
+  }
+  win.destroy()
+  app.quit()
 }
 
 const gotTheLock = app.requestSingleInstanceLock()
@@ -268,11 +337,7 @@ if (!gotTheLock) {
 } else {
   app.on('second-instance', () => {
     try {
-      if (win && !win.isDestroyed()) {
-        if (win.isMinimized()) win.restore()
-        win.show()
-        win.focus()
-      }
+      showMainWindow()
     } catch {}
   })
 }
@@ -287,12 +352,20 @@ app.whenReady().then(() => {
   })
   scheduledDirectoryRoles.startTicker()
   createWindow()
+  createTray()
   authDebug('app:ready-ui', { platform: process.platform, authDebug: AUTH_DEBUG })
 })
 app.on('will-quit', () => {
   scheduledDirectoryRoles?.stopTicker()
+  if (tray) {
+    tray.destroy()
+    tray = null
+  }
 })
-app.on('window-all-closed', () => { app.quit() })
+app.on('window-all-closed', () => {
+  if (!isQuitting) return
+  app.quit()
+})
 app.on('before-quit', async () => { isQuitting = true })
 
 // Persists the latest device code so the renderer can recover it if IPC fired before listeners mounted.
@@ -730,21 +803,26 @@ ipcMain.handle('open-external-url', async (_event, rawUrl) => {
 
 ipcMain.handle('check-pwsh', async () => checkPwshForDashboard())
 
+ipcMain.handle('request-app-close', async () => {
+  await promptQuitChoice()
+  return { ok: true }
+})
+
 ipcMain.handle('get-device-login-code', async () => ({ code: pendingDeviceLoginCode }))
 
-ipcMain.handle('disconnect-ms365', async () => {
-  authDebug('ipc:disconnect-ms365', { graphSessionWarm: false })
+async function performDisconnectMg365({ notifyUi = true } = {}) {
+  authDebug('disconnect-ms365', { graphSessionWarm: false })
   csvData = []
   graphSessionWarm = false
   scheduledDirectoryRoles?.setGraphSessionReady(false)
   try {
     const result = await runPsScript('scripts/disconnect-mg365.ps1', [], (log) => {
-      uiSend('ps-operation-log', log)
+      if (notifyUi) uiSend('ps-operation-log', log)
     })
     const data = parseJsonFromOutput(result.stdout)
     if (data) {
       if (data.status === 'ok') resetGraphAuthUiState()
-      uiSend('ps-operation-complete', { status: data.status })
+      if (notifyUi) uiSend('ps-operation-complete', { status: data.status })
       return data
     }
     if (result.exitCode === 0) {
@@ -754,7 +832,9 @@ ipcMain.handle('disconnect-ms365', async () => {
   } catch (e) {
     return { status: 'error', message: e?.message }
   }
-})
+}
+
+ipcMain.handle('disconnect-ms365', async () => performDisconnectMg365({ notifyUi: true }))
 
 // ===================== IPC: CSV Import =====================
 

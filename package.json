@@ -29,7 +29,8 @@
       "scripts/**/*",
       "config/**/*",
       "node_modules/**/*",
-      "icon.png"
+      "icon.png",
+      "icon-small.png"
     ],
     "linux": {
       "target": [
