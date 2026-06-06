@@ -12,25 +12,6 @@
     </div>
   </div>
 
-  <div v-if="authStore.deviceLoginCode" class="device-login-overlay">
-    <div class="device-login-card">
-      <h2 class="device-login-title">Microsoft-Anmeldung</h2>
-      <p class="device-login-hint">
-        Nachdem sich der Browser geöffnet hat, geben Sie bitte diesen Code auf
-        <strong>microsoft.com/devicelogin</strong> ein:
-      </p>
-      <div class="device-login-code">{{ authStore.deviceLoginCode }}</div>
-      <div class="device-login-actions">
-        <button type="button" class="btn btn-primary" @click="copyDeviceCode">
-          <i class="bi bi-clipboard me-1"></i>Code kopieren
-        </button>
-        <button type="button" class="btn btn-outline-secondary" @click="authStore.setDeviceLoginCode(null)">
-          Ausblenden
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- Toast Container -->
   <div class="toast-container-custom">
     <div
@@ -62,32 +43,17 @@ const authStore = useAuthStore()
 const usersStore = useUsersStore()
 const rolesStore = useRolesStore()
 
-async function copyDeviceCode() {
-  const code = authStore.deviceLoginCode
-  if (!code) return
-  try {
-    await navigator.clipboard.writeText(code)
-    authStore.showToast('Anmeldecode kopiert', 'success')
-  } catch {
-    authStore.showToast('Kopieren fehlgeschlagen', 'error')
-  }
-}
-
 onMounted(async () => {
-  // Beim Start pruefen, ob bereits ein gueltiges Token vorhanden ist (kein Device-Code).
+  // Beim Start pruefen, ob bereits ein gueltiges Token vorhanden ist (still, kein Login).
   try {
     const status = await window.ipcRenderer.invoke('graph-connection-status')
     if (status?.status === 'ok') authStore.setConnected(status.tenantDomain || 'Microsoft 365')
   } catch { /* ignorieren: dann normaler Login-Flow */ }
 
-  window.ipcRenderer.on('device-login-code', (_e, data) => {
-    authStore.setDeviceLoginCode(data?.code ?? null)
-  })
   window.ipcRenderer.on('ps-operation-log', (_e, log) => {
     authStore.addLog(log)
   })
   window.ipcRenderer.on('ps-operation-complete', (_e, data) => {
-    if (data.status === 'ok') authStore.setDeviceLoginCode(null)
     authStore.addLog({
       type: data.status === 'ok' ? 'success' : 'error',
       message: `Operation abgeschlossen (${data.status})`
@@ -144,56 +110,3 @@ onMounted(async () => {
   })
 })
 </script>
-
-<style scoped>
-.device-login-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(1, 4, 9, 0.82);
-  padding: 1.5rem;
-}
-
-.device-login-card {
-  width: min(480px, 100%);
-  padding: 1.75rem 1.5rem;
-  border-radius: 12px;
-  border: 1px solid #30363d;
-  background: #161b22;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
-  text-align: center;
-}
-
-.device-login-title {
-  margin: 0 0 0.75rem;
-  font-size: 1.25rem;
-  color: #e6edf3;
-}
-
-.device-login-hint {
-  margin: 0 0 1.25rem;
-  font-size: 0.9rem;
-  color: #8b949e;
-  line-height: 1.45;
-}
-
-.device-login-code {
-  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
-  font-size: clamp(2rem, 8vw, 2.75rem);
-  font-weight: 700;
-  letter-spacing: 0.22em;
-  color: #58a6ff;
-  margin-bottom: 1.25rem;
-  user-select: all;
-}
-
-.device-login-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  justify-content: center;
-}
-</style>

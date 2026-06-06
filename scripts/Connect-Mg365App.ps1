@@ -28,35 +28,12 @@ function Connect-Mg365App {
         'UserAuthenticationMethod.ReadWrite.All',
         'RoleManagement.ReadWrite.Directory'
     )
-    $useDeviceCode = $env:MS365_ELECTRON_APP -eq '1'
-    if ($useDeviceCode) {
-        # Erst still aus dem Token-Cache reconnecten (kein Code, kein Browser).
-        try {
-            Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop | Out-Null
-            if ((Get-MgContext)) {
-                Write-Host "Bestehende Anmeldung wiederverwendet."
-                return
-            }
-        } catch {}
-        # Kein gueltiges Token -> Device-Code-Anmeldung.
-        Write-Host "Device-Code-Anmeldung - Browser oeffnet sich automatisch..." -ForegroundColor Yellow
-        Write-Host "Code steht unten im Ausgabefenster; auf der Seite eingeben und anmelden." -ForegroundColor Yellow
-        Connect-MgGraph -Scopes $scopes -UseDeviceCode -NoWelcome -ErrorAction Stop
-        Write-Host "DIAG: Connect-MgGraph zurueckgekehrt - schreibe Token-Cache..."
-        $null = Get-MgContext
-        Write-Host "DIAG: Get-MgContext OK - Anmeldung abgeschlossen."
-        return
-    }
-    try {
-        Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
-        return
-    } catch {
-        $msg = [string]$_.Exception.Message
-        if ($msg -match 'InteractiveBrowserCredential|Interactive browser credential|window handle must be configured') {
-            Write-Host "Hinweis: Browser-Login nicht moeglich. Fallback: Device-Code-Login..." -ForegroundColor Yellow
-            Connect-MgGraph -Scopes $scopes -UseDeviceCode -NoWelcome -ErrorAction Stop
-            return
-        }
-        throw
-    }
+    # WAM (Web Account Manager) als Broker deaktivieren: WAM braucht auf Windows einen
+    # window handle (HWND), den ein von Electron gespawnter pwsh nicht hat ("window handle
+    # must be configured"). Ohne WAM nutzt MSAL den Browser-Redirect (localhost) -> interaktiver
+    # Login funktioniert auf Windows und Linux gleich, ohne Device-Code. Idempotent.
+    try { Set-MgGraphOption -DisableLoginByWAM $true -ErrorAction SilentlyContinue } catch {}
+    # Bei vorhandenem Token reconnectet das still aus dem Cache; sonst oeffnet sich der
+    # System-Browser zur Anmeldung (Account waehlen, fertig).
+    Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
 }

@@ -12,8 +12,7 @@ export const useAuthStore = defineStore('auth', {
     loggingOut: false,
     error: null,
     logs: [],
-    toasts: [],
-    deviceLoginCode: null
+    toasts: []
   }),
 
   actions: {
@@ -53,18 +52,12 @@ export const useAuthStore = defineStore('auth', {
       this.connecting = false
       this.tenantDomain = domain
       this.error = null
-      this.deviceLoginCode = null
     },
 
     setDisconnected() {
       this.connected = false
       this.connecting = false
       this.tenantDomain = null
-      this.deviceLoginCode = null
-    },
-
-    setDeviceLoginCode(code) {
-      this.deviceLoginCode = code ? String(code) : null
     },
 
     async clearLocalSession() {

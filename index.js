@@ -34,42 +34,6 @@ const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 
 let win
 let isQuitting = false
-let deviceLoginBrowserOpened = false
-let deviceLoginCodeEmitted = null
-
-function extractDeviceLoginCode(line) {
-  if (!/enter the code|to authenticate|login\.microsoft\.com\/device/i.test(line)) return null
-  const patterns = [
-    /enter the code\s+([A-Z0-9]+)\s+to authenticate/i,
-    /enter the code\s+([A-Z0-9]+)/i,
-    /user[_\s]?code[:\s]+([A-Z0-9]+)/i
-  ]
-  for (const re of patterns) {
-    const m = line.match(re)
-    if (m?.[1]) return m[1].trim()
-  }
-  return null
-}
-
-function maybeEmitDeviceLoginCode(line) {
-  const code = extractDeviceLoginCode(line)
-  if (!code || code === deviceLoginCodeEmitted) return
-  deviceLoginCodeEmitted = code
-  uiSend('device-login-code', { code })
-}
-
-function maybeOpenDeviceLoginBrowser(line) {
-  if (deviceLoginBrowserOpened) return
-  if (!/to sign in|devicelogin|enter the code|device-code|browser oeffnet|code erscheint/i.test(line)) return
-  deviceLoginBrowserOpened = true
-  void shell.openExternal('https://microsoft.com/devicelogin')
-}
-
-function resetGraphAuthUiState() {
-  deviceLoginBrowserOpened = false
-  deviceLoginCodeEmitted = null
-  uiSend('device-login-code', { code: null })
-}
 let csvData = []
 let scheduledDirectoryRoles = null
 
@@ -80,7 +44,6 @@ function markGraphSessionReady() {
 function onGraphResponse(data) {
   if (data && (data.status === 'ok' || data.status === 'partial')) {
     markGraphSessionReady()
-    resetGraphAuthUiState()
   }
   return data
 }
@@ -322,8 +285,6 @@ async function runPsScript(scriptRelPath, args = [], onLog = null) {
 }
 
 async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
-  deviceLoginBrowserOpened = false
-  deviceLoginCodeEmitted = null
   let tmpScript = null
   try {
     tmpScript = await getScriptPath(scriptRelPath)
@@ -343,8 +304,7 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
   const env = {
     ...process.env,
     POWERSHELL_UPDATECHECK: 'Off',
-    POWERSHELL_TELEMETRY_OPTOUT: '1',
-    MS365_ELECTRON_APP: '1'
+    POWERSHELL_TELEMETRY_OPTOUT: '1'
   }
 
   const PS_TIMEOUT_MS = 5 * 60 * 1000
@@ -358,11 +318,8 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
     const ps = spawn(
       psCmd,
       ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', tmpScript, ...args],
-      // stdin als geschlossene Pipe (nicht 'ignore'): MSAL Device-Flow auf Windows
-      // kann beim Abschluss sonst auf einen stdin-Handle warten und haengen.
-      { cwd: psCwd, env, stdio: ['pipe', 'pipe', 'pipe'] }
+      { cwd: psCwd, env, stdio: ['ignore', 'pipe', 'pipe'] }
     )
-    try { ps.stdin?.end() } catch {}
     ps.stdout?.setEncoding('utf8')
     ps.stderr?.setEncoding('utf8')
     ps.stdout?.resume()
@@ -377,7 +334,6 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
       if (settled) return
       settled = true
       clearTimeout(timer)
-      if (timedOut || payload.exitCode !== 0) deviceLoginBrowserOpened = false
       try {
         if (tmpScript) await fs.rm(path.dirname(tmpScript), { recursive: true, force: true })
       } catch {}
@@ -390,9 +346,6 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
       for (const line of text.split(/\r?\n/)) {
         const clean = stripAnsi(line.trim())
         if (!clean || clean.includes('###JSON_')) continue
-        maybeOpenDeviceLoginBrowser(clean)
-        maybeEmitDeviceLoginCode(clean)
-        if (/Anmeldung erfolgreich/i.test(clean)) resetGraphAuthUiState()
         if (onLog) onLog({ type: 'info', message: clean })
       }
     })
@@ -403,11 +356,7 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
       for (const line of text.split(/\r?\n/)) {
         const clean = stripAnsi(line.trim())
         if (!clean) continue
-        maybeOpenDeviceLoginBrowser(clean)
-        maybeEmitDeviceLoginCode(clean)
-        if (/Anmeldung erfolgreich/i.test(clean)) resetGraphAuthUiState()
-        const isDeviceLoginHint = /to sign in|enter the code|devicelogin|device-code/i.test(clean)
-        if (onLog) onLog({ type: isDeviceLoginHint ? 'info' : 'error', message: clean })
+        if (onLog) onLog({ type: 'error', message: clean })
       }
     })
 
@@ -549,7 +498,6 @@ ipcMain.handle('disconnect-ms365', async () => {
     })
     const data = parseJsonFromOutput(result.stdout)
     if (data) {
-      if (data.status === 'ok') resetGraphAuthUiState()
       uiSend('ps-operation-complete', { status: data.status })
       return data
     }

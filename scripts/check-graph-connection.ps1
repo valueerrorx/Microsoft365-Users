@@ -11,6 +11,7 @@ $ProgressPreference = 'SilentlyContinue'
 
 try {
     Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
+    try { Set-MgGraphOption -DisableLoginByWAM $true -ErrorAction SilentlyContinue } catch {}
     # KEIN -UseDeviceCode: reconnectet still aus dem Token-Cache oder schlaegt sofort fehl.
     Connect-MgGraph -NoWelcome -ErrorAction Stop | Out-Null
     $ctx = Get-MgContext
