@@ -367,7 +367,7 @@
 
     <!-- MFA Reset Modal -->
     <div v-if="mfaModal.show" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.6);">
-      <div class="modal-dialog">
+      <div class="modal-dialog mfa-modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">
@@ -626,7 +626,7 @@
           <div class="modal-body delete-modal-body">
             <div class="alert" style="background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.25);color:#f85149;border-radius:6px;">
               <i class="bi bi-exclamation-triangle-fill me-2"></i>
-              <strong>Achtung:</strong> {{ batchDeleteModal.targets.length }} Benutzer werden endgültig gelöscht (nacheinander).
+              <strong>Achtung:</strong> {{ batchDeleteModal.targets.length }} Benutzer werden endgültig gelöscht (Graph Batch).
             </div>
             <ul class="batch-user-list list-unstyled mb-3 small" style="color:#8b949e;">
               <li v-for="t in batchDeleteModal.targets" :key="t.userPrincipalName" class="py-1 border-bottom border-secondary border-opacity-25">
@@ -955,13 +955,8 @@ async function runBatchDelete() {
   }
   batchDeleteModal.running = true
   batchDeleteModal.error = ''
-  let ok = 0
-  let fail = 0
-  for (const t of batchDeleteModal.targets) {
-    const r = await usersStore.deleteUser(t.userPrincipalName, { quietToast: true })
-    if (r) ok++
-    else fail++
-  }
+  const upns = batchDeleteModal.targets.map(t => t.userPrincipalName)
+  const { ok, fail } = await usersStore.deleteUsersBatch(upns, { quietToast: true })
   batchDeleteModal.running = false
   batchDeleteModal.show = false
   clearSelection()
@@ -1207,6 +1202,7 @@ onMounted(() => {
   background: rgba(0, 0, 0, 0.15);
 }
 
+.mfa-modal-dialog { max-width: min(750px, calc(100vw - 2rem)); }
 .pw-modal-dialog { max-width: min(640px, calc(100vw - 2rem)); }
 .pw-modal-body { min-width: 0; overflow-wrap: anywhere; }
 .pw-modal-user-line { margin-bottom: 1rem; min-width: 0; }

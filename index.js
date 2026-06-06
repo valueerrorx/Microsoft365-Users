@@ -1122,6 +1122,26 @@ ipcMain.handle('delete-user', async (_event, { upn }) => {
   }
 })
 
+ipcMain.handle('delete-users', async (_event, { upns = [] }) => {
+  const empty = { status: 'error', message: 'upns erforderlich', deleted: 0, failed: 0, deletedUpns: [], errors: [] }
+  try {
+    const list = Array.isArray(upns) ? upns.map((u) => String(u || '').trim()).filter(Boolean) : []
+    if (!list.length) return empty
+    const result = await runPsScript('scripts/delete-users.ps1', ['-UPNs', list.join(',')], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    if (result.exitCode === -1 && !result.stdout) {
+      return { ...empty, message: result.stderr || 'PowerShell konnte nicht gestartet werden' }
+    }
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { ...empty, message: result.stderr || 'Fehler beim Batch-Löschen' }
+    uiSend('ps-operation-complete', { status: data.status, count: list.length })
+    return data
+  } catch (e) {
+    return { ...empty, message: e?.message }
+  }
+})
+
 ipcMain.handle('update-user-licenses', async (_event, { upn, addSkuIds = [], removeSkuIds = [] }) => {
   try {
     const add = Array.isArray(addSkuIds) ? addSkuIds.filter(Boolean).join(',') : ''

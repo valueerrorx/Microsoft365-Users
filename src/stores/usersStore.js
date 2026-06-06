@@ -212,6 +212,41 @@ export const useUsersStore = defineStore('users', {
       }
     },
 
+    // Batch delete via one PS script + Graph $batch (20 deletes per request).
+    async deleteUsersBatch(upns, opts = {}) {
+      const quietToast = opts.quietToast === true
+      const auth = useAuthStore()
+      const list = Array.isArray(upns) ? upns.filter(Boolean) : []
+      if (!list.length) return { ok: 0, fail: 0 }
+      auth.addLog({ type: 'info', message: `Batch-Löschen: ${list.length} Benutzer` })
+      try {
+        const result = await window.ipcRenderer.invoke('delete-users', { upns: list })
+        const deletedUpns = Array.isArray(result.deletedUpns) ? result.deletedUpns : []
+        const errors = Array.isArray(result.errors) ? result.errors : []
+        for (const upn of deletedUpns) {
+          const idx = this.users.findIndex(u => u.userPrincipalName === upn)
+          if (idx !== -1) this.users.splice(idx, 1)
+          auth.addLog({ type: 'success', message: `Benutzer gelöscht: ${upn}` })
+        }
+        for (const err of errors) {
+          auth.addLog({ type: 'error', message: `${err.upn}: ${err.message}` })
+        }
+        const ok = deletedUpns.length
+        const fail = errors.length
+        if (!quietToast) {
+          const msg = result.message || `Gelöscht: ${ok}${fail ? `, fehlgeschlagen: ${fail}` : ''}`
+          if (fail && !ok) auth.showToast(msg, 'error')
+          else if (fail) auth.showToast(msg, 'warning')
+          else auth.showToast(msg, 'success')
+        }
+        return { ok, fail, deletedUpns, errors }
+      } catch (e) {
+        auth.addLog({ type: 'error', message: e.message })
+        if (!quietToast) auth.showToast(e.message, 'error')
+        return { ok: 0, fail: list.length, errors: list.map(upn => ({ upn, message: e.message })) }
+      }
+    },
+
     async fetchDirectoryGroups() {
       const auth = useAuthStore()
       this.directoryGroupsLoading = true
