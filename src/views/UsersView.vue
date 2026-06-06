@@ -96,8 +96,7 @@
     <div v-if="usersStore.loading" class="text-center py-5">
       <div class="spinner-border" style="color:#58a6ff;" role="status"></div>
       <div style="color:#8b949e;margin-top:1rem;font-size:0.875rem;">
-        Benutzerliste wird geladen...<br>
-        <small>Beim ersten Start öffnet sich eine Authentifizierungsseite im Browser</small>
+        Benutzerliste wird geladen...
       </div>
     </div>
 

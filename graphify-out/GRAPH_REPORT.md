@@ -1,16 +1,16 @@
 # Graph Report - Microsoft365-Manager  (2026-06-06)
 
 ## Corpus Check
-- 59 files · ~56,722 words
+- 61 files · ~58,302 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 576 nodes · 656 edges · 80 communities (43 shown, 37 thin omitted)
+- 619 nodes · 687 edges · 89 communities (52 shown, 37 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `55532ddf`
+- Built from commit: `f28583a8`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -22,7 +22,6 @@
 - [[_COMMUNITY_Community 5|Community 5]]
 - [[_COMMUNITY_Community 6|Community 6]]
 - [[_COMMUNITY_Community 7|Community 7]]
-- [[_COMMUNITY_Community 8|Community 8]]
 - [[_COMMUNITY_Community 11|Community 11]]
 - [[_COMMUNITY_Community 12|Community 12]]
 - [[_COMMUNITY_Community 13|Community 13]]
@@ -65,6 +64,7 @@
 - [[_COMMUNITY_Community 63|Community 63]]
 - [[_COMMUNITY_Community 66|Community 66]]
 - [[_COMMUNITY_Community 67|Community 67]]
+- [[_COMMUNITY_Community 74|Community 74]]
 - [[_COMMUNITY_Community 81|Community 81]]
 - [[_COMMUNITY_Community 82|Community 82]]
 - [[_COMMUNITY_Community 83|Community 83]]
@@ -108,7 +108,7 @@
 - **Pinia Store Coordination: usersStore calls authStore for logging and toast notifications on every IPC action** — usersstore_usersstore, authstore_authstore, authstore_logs [EXTRACTED 0.98]
 - **License Display Pipeline: usersStore.licenseMap + humanLicenseLabel → UsersView badges & DashboardView bars** — usersstore_getters, licenselabel_humanlicenselabel, dashboardview_licenseoverview [INFERRED 0.88]
 
-## Communities (80 total, 37 thin omitted)
+## Communities (89 total, 37 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.07
@@ -122,10 +122,6 @@ Nodes (12): Resolve-OwnerLabel(), Try-GroupLabel(), Try-OrgContactLabel(), Try-S
 Cohesion: 0.32
 Nodes (4): createSingleUser(), entryError(), entryUpn(), normalizeForUPN()
 
-### Community 3 - "Community 3"
-Cohesion: 0.26
-Nodes (7): Get-ManagementLabel(), Get-SecurityManagementLabel(), Ensure-Module(), Format-Iso(), Get-ManagementLabel(), Get-SecurityManagementLabel(), Get-TrustTypeLabel()
-
 ### Community 5 - "Community 5"
 Cohesion: 0.32
 Nodes (3): Ensure-Module(), Get-GraphErrorDetail(), Write-JsonResult()
@@ -135,7 +131,7 @@ Cohesion: 0.07
 Nodes (29): 1. Verbindung herstellen / Daten laden, 2. Benutzer verwalten (Benutzerliste), 3. Gruppen verwalten, 4. Geräte und Intune-Aktionen, 5. Neue Benutzer anlegen (Einzeln oder CSV), 6. Logs anzeigen, ANSI-Escape-Codes in den Logs, Architektur (+21 more)
 
 ### Community 50 - "Community 50"
-Cohesion: 0.11
+Cohesion: 0.10
 Nodes (20): useAuthStore, useDevicesStore, useGroupsStore, useRolesStore, resetAllDataStores(), useUsersStore, a3LicenseBucket(), humanLicenseLabel() (+12 more)
 
 ### Community 51 - "Community 51"
@@ -182,12 +178,16 @@ Nodes (3): permissions, allow, deny
 Cohesion: 0.47
 Nodes (8): Connect-Mg365App(), Connect-Mg365InteractiveBrowser(), Ensure-WamConsoleWindow(), Get-Mg365MsalAssemblyPath(), Get-Ms365ParentWindowHandle(), Register-Mg365MsalCache(), Save-Mg365AuthRecord(), Write-Mg365AuthLog()
 
+### Community 74 - "Community 74"
+Cohesion: 0.05
+Nodes (23): allPageDevicesSelected, clearDeviceSelection(), currentPage, deleteEntraConfirmExpected, deleteEntraConfirmLabel, deviceConfirmTarget(), filterCompliant, filteredDevices (+15 more)
+
 ### Community 84 - "Community 84"
 Cohesion: 0.67
 Nodes (4): Get-ActivatedDirectoryRoleByTemplateId(), Get-DirectoryRoleUserMembers(), Get-OrActivateDirectoryRole(), New-DirectoryRoleFromTemplate()
 
 ## Knowledge Gaps
-- **237 isolated node(s):** `allow`, `allow`, `deny`, `GRAPH_DELEGATED_SCOPES`, `__filename` (+232 more)
+- **256 isolated node(s):** `allow`, `allow`, `deny`, `GRAPH_DELEGATED_SCOPES`, `__filename` (+251 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **37 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -195,15 +195,15 @@ Nodes (4): Get-ActivatedDirectoryRoleByTemplateId(), Get-DirectoryRoleUserMember
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `build` connect `Community 51` to `Community 53`?**
-  _High betweenness centrality (0.011) - this node is a cross-community bridge._
+  _High betweenness centrality (0.010) - this node is a cross-community bridge._
 - **What connects `allow`, `allow`, `deny` to the rest of the system?**
-  _237 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _256 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.0701344243132671 - nodes in this community are weakly interconnected._
 - **Should `Community 49` be split into smaller, more focused modules?**
   _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._
 - **Should `Community 50` be split into smaller, more focused modules?**
-  _Cohesion score 0.10695187165775401 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.10252100840336134 - nodes in this community are weakly interconnected._
 - **Should `Community 51` be split into smaller, more focused modules?**
   _Cohesion score 0.05 - nodes in this community are weakly interconnected._
 - **Should `Community 52` be split into smaller, more focused modules?**

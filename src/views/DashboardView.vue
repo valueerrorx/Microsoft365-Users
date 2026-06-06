@@ -194,7 +194,18 @@
         <div class="content-card h-100">
           <div class="content-card-header">
             <span style="font-weight:600;font-size:0.9rem;">Verfügbare Lizenzen</span>
-            <span style="font-size:0.78rem;color:#8b949e;">{{ usersStore.licenses.length }} SKUs</span>
+            <div class="d-flex align-items-center gap-2">
+              <span style="font-size:0.78rem;color:#8b949e;">{{ usersStore.licenses.length }} SKUs</span>
+              <button
+                type="button"
+                class="btn license-reload-btn p-0 border-0"
+                title="Lizenzen aktualisieren"
+                :disabled="usersStore.licensesLoading"
+                @click="refreshLicenses"
+              >
+                <i class="bi bi-arrow-clockwise" :class="{ spin: usersStore.licensesLoading }"></i>
+              </button>
+            </div>
           </div>
           <div class="content-card-body">
             <div v-if="!usersStore.licenses.length" style="color:#8b949e;font-size:0.85rem;text-align:center;padding:1.5rem 0;">
@@ -320,6 +331,19 @@ async function refreshDashboardData() {
   groupsStore.refreshLifecyclePolicyGroupCount()
 }
 
+async function refreshLicenses() {
+  if (usersStore.licensesLoading) return
+  if (!authStore.connected) {
+    const r = await window.ipcRenderer.invoke('ensure-graph-connected')
+    if (r?.status !== 'ok' && r?.status !== 'partial') {
+      authStore.error = r?.message || 'Verbindung zu Microsoft Graph fehlgeschlagen.'
+      return
+    }
+    authStore.markGraphConnected(r.tenantDomain)
+  }
+  await usersStore.fetchLicenses({ quietToast: true })
+}
+
 function portalRowStyle(p) {
   const a = p.accent
   return {
@@ -379,5 +403,22 @@ function licenseBarColor(sku) {
 
 .dashboard-doc-link:hover {
   color: #a8d4ff;
+}
+
+.license-reload-btn {
+  background: transparent;
+  color: #8b949e;
+  font-size: 0.82rem;
+  line-height: 1;
+  opacity: 0.75;
+}
+
+.license-reload-btn:hover:not(:disabled) {
+  color: #58a6ff;
+  opacity: 1;
+}
+
+.license-reload-btn:disabled {
+  opacity: 0.45;
 }
 </style>

@@ -498,6 +498,7 @@ async function hasMgAuthCache() {
 // Bulk/read Graph scripts may run in parallel; writes stay serialized (MSAL token cache / login prompts).
 const PARALLEL_PS_SCRIPTS = new Set([
   'scripts/get-ms365-users.ps1',
+  'scripts/get-ms365-licenses.ps1',
   'scripts/get-groups-detail.ps1',
   'scripts/get-devices.ps1',
   'scripts/get-managed-directory-roles.ps1',
@@ -1055,6 +1056,25 @@ ipcMain.handle('get-users', async () => {
   }
 })
 
+ipcMain.handle('get-licenses', async () => {
+  try {
+    const result = await runPsScript('scripts/get-ms365-licenses.ps1', [], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    if (result.exitCode === -1 && !result.stdout) {
+      return { status: 'error', message: result.stderr || 'PowerShell konnte nicht gestartet werden', licenses: [] }
+    }
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) {
+      return { status: 'error', message: result.stderr || 'Keine Lizenzdaten erhalten.', licenses: [] }
+    }
+    uiSend('ps-operation-complete', { status: data.status })
+    return onGraphResponse(data)
+  } catch (e) {
+    return { status: 'error', message: e?.message, licenses: [] }
+  }
+})
+
 ipcMain.handle('reset-password', async (_event, { upn, newPassword, forceChange }) => {
   try {
     const args = ['-UPN', upn, '-NewPassword', newPassword, '-ForceChange', forceChange ? '1' : '0']
@@ -1339,9 +1359,11 @@ ipcMain.handle('get-devices', async () => {
 ipcMain.handle('retire-intune-device', async (_event, body = {}) => {
   try {
     const azureAdDeviceId = String(body?.azureAdDeviceId || '').trim()
-    if (!azureAdDeviceId) return { status: 'error', message: 'azureAdDeviceId erforderlich' }
+    const intuneManagedDeviceId = String(body?.intuneManagedDeviceId || '').trim()
+    if (!azureAdDeviceId && !intuneManagedDeviceId) return { status: 'error', message: 'azureAdDeviceId oder intuneManagedDeviceId erforderlich' }
     const disableUserAccount = body?.disableUserAccount ? '1' : '0'
     const args = ['-Action', 'Retire', '-AzureAdDeviceId', azureAdDeviceId, '-DisableUserAccount', disableUserAccount]
+    if (intuneManagedDeviceId) args.push('-IntuneManagedDeviceId', intuneManagedDeviceId)
     const upn = String(body?.userUpn || '').trim()
     if (upn) args.push('-UserUpn', upn)
     const result = await runPsScript('scripts/invoke-intune-device-action.ps1', args, (log) => {
@@ -1356,13 +1378,32 @@ ipcMain.handle('retire-intune-device', async (_event, body = {}) => {
   }
 })
 
+ipcMain.handle('delete-entra-device', async (_event, body = {}) => {
+  try {
+    const deviceId = String(body?.deviceId || '').trim()
+    if (!deviceId) return { status: 'error', message: 'deviceId erforderlich' }
+    const result = await runPsScript('scripts/delete-entra-device.ps1', ['-DeviceId', deviceId], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Keine Antwort von PowerShell.' }
+    uiSend('ps-operation-complete', { status: data.status, deviceId })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
+
 ipcMain.handle('wipe-intune-device', async (_event, body = {}) => {
   try {
     const azureAdDeviceId = String(body?.azureAdDeviceId || '').trim()
-    if (!azureAdDeviceId) return { status: 'error', message: 'azureAdDeviceId erforderlich' }
+    const intuneManagedDeviceId = String(body?.intuneManagedDeviceId || '').trim()
+    if (!azureAdDeviceId && !intuneManagedDeviceId) return { status: 'error', message: 'azureAdDeviceId oder intuneManagedDeviceId erforderlich' }
+    const wipeArgs = ['-Action', 'Wipe', '-AzureAdDeviceId', azureAdDeviceId]
+    if (intuneManagedDeviceId) wipeArgs.push('-IntuneManagedDeviceId', intuneManagedDeviceId)
     const result = await runPsScript(
       'scripts/invoke-intune-device-action.ps1',
-      ['-Action', 'Wipe', '-AzureAdDeviceId', azureAdDeviceId],
+      wipeArgs,
       (log) => {
         uiSend('ps-operation-log', log)
       }

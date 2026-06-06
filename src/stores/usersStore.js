@@ -10,6 +10,7 @@ export const useUsersStore = defineStore('users', {
     users: [],
     licenses: [],
     loading: false,
+    licensesLoading: false,
     error: null,
     lastFetched: null,
     csvEntries: [],
@@ -90,6 +91,39 @@ export const useUsersStore = defineStore('users', {
         auth.addLog({ type: 'error', message: e.message })
       } finally {
         this.loading = false
+      }
+    },
+
+    async fetchLicenses(opts = {}) {
+      const quietToast = opts.quietToast !== false
+      const auth = useAuthStore()
+      this.licensesLoading = true
+      auth.addLog({ type: 'info', message: 'Lizenzen aktualisieren...' })
+      try {
+        const result = await window.ipcRenderer.invoke('get-licenses')
+        if (result.status === 'ok') {
+          this.licenses = [...(result.licenses || [])].sort((a, b) => {
+            const ar = licenseListSortRank(a?.skuPartNumber)
+            const br = licenseListSortRank(b?.skuPartNumber)
+            if (ar !== br) return ar - br
+            const ac = Number.isFinite(a?.consumedUnits) ? a.consumedUnits : 0
+            const bc = Number.isFinite(b?.consumedUnits) ? b.consumedUnits : 0
+            if (bc !== ac) return bc - ac
+            return String(a?.skuPartNumber || '').localeCompare(String(b?.skuPartNumber || ''))
+          })
+          auth.addLog({ type: 'success', message: `${this.licenses.length} Lizenzen aktualisiert` })
+          if (!quietToast) auth.showToast(`${this.licenses.length} Lizenzen aktualisiert`, 'success')
+          return true
+        }
+        auth.addLog({ type: 'error', message: `Fehler: ${result.message}` })
+        if (!quietToast) auth.showToast(result.message, 'error')
+        return false
+      } catch (e) {
+        auth.addLog({ type: 'error', message: e.message })
+        if (!quietToast) auth.showToast(e.message, 'error')
+        return false
+      } finally {
+        this.licensesLoading = false
       }
     },
 

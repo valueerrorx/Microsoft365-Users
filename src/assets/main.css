@@ -512,6 +512,12 @@ html, body, #app {
   cursor: pointer;
 }
 
+.btn-action:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .btn-action:hover {
   background: rgba(88, 166, 255, 0.1);
   color: var(--accent);

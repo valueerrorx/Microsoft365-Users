@@ -14,7 +14,10 @@ param(
     [string]$DisableUserAccount = '0',
 
     [Parameter(Mandatory = $false)]
-    [string]$UserUpn = ''
+    [string]$UserUpn = '',
+
+    [Parameter(Mandatory = $false)]
+    [string]$IntuneManagedDeviceId = ''
 )
 
 $ErrorActionPreference = 'Continue'
@@ -57,26 +60,38 @@ function Write-JsonResult {
 }
 
 $aid = $AzureAdDeviceId.Trim()
-if (-not $aid) {
-    Write-JsonResult @{ status = "error"; message = "AzureAdDeviceId fehlt" }
+$managedId = $IntuneManagedDeviceId.Trim()
+if (-not $aid -and -not $managedId) {
+    Write-JsonResult @{ status = "error"; message = "AzureAdDeviceId oder IntuneManagedDeviceId erforderlich" }
     exit 1
 }
 
-$escaped = $aid -replace "'", "''"
-$listUri = "/v1.0/deviceManagement/managedDevices?`$filter=azureADDeviceId eq '$escaped'&`$select=id,userPrincipalName,deviceName,azureADDeviceId"
-
 try {
-    Write-Host "Suche Intune-Eintrag für Entra-Gerät $aid ..."
-    $listResp = Invoke-MgGraphRequest -Method GET -Uri $listUri -ErrorAction Stop
-    $rows = @($listResp.value)
-    if (-not $rows.Count) {
-        Write-JsonResult @{
-            status  = "error"
-            message = "Kein Intune-verwaltetes Gerät für diese Entra-ID gefunden (Gerät ist möglicherweise nicht bei Intune eingeschrieben)."
+    $managed = $null
+    if ($managedId) {
+        Write-Host "Intune-Aktion für managedDeviceId=$managedId ..."
+        $managed = @{ id = $managedId; userPrincipalName = $null }
+        try {
+            $md = Invoke-MgGraphRequest -Method GET -Uri "/v1.0/deviceManagement/managedDevices/$managedId?`$select=id,userPrincipalName,deviceName,azureADDeviceId" -ErrorAction Stop
+            $managed = @{ id = [string]$md.id; userPrincipalName = $md.userPrincipalName }
+        } catch {
+            Write-Host "Hinweis: managedDevice-Details nicht geladen, nutze übergebene ID"
         }
-        exit 1
+    } else {
+        $escaped = $aid -replace "'", "''"
+        $listUri = "/v1.0/deviceManagement/managedDevices?`$filter=azureADDeviceId eq '$escaped'&`$select=id,userPrincipalName,deviceName,azureADDeviceId"
+        Write-Host "Suche Intune-Eintrag für Azure AD deviceId $aid ..."
+        $listResp = Invoke-MgGraphRequest -Method GET -Uri $listUri -ErrorAction Stop
+        $rows = @($listResp.value)
+        if (-not $rows.Count) {
+            Write-JsonResult @{
+                status  = "error"
+                message = "Kein Intune-verwaltetes Gerät für diese deviceId gefunden (Gerät ist möglicherweise nicht bei Intune eingeschrieben)."
+            }
+            exit 1
+        }
+        $managed = $rows[0]
     }
-    $managed = $rows[0]
     $managedId = [string]$managed.id
     $verb = if ($Action -eq 'Wipe') { 'wipe' } else { 'retire' }
     Write-Host "Führe Intune-$verb aus (managedDeviceId=$managedId) ..."

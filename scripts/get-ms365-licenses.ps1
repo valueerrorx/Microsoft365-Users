@@ -1,0 +1,77 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) Mag. Thomas Michael Weissel <valueerror@gmail.com>
+
+# Lists subscribed SKUs (license inventory) without loading users
+$ErrorActionPreference = 'Continue'
+$ProgressPreference = 'SilentlyContinue'
+
+function Ensure-Module {
+    param([string]$Name)
+    try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
+    try { Install-PackageProvider -Name NuGet -Force -Scope CurrentUser -Confirm:$false -ErrorAction Stop | Out-Null } catch {}
+    try { Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue } catch {}
+    if (-not (Get-Module -ListAvailable -Name $Name)) {
+        Write-Host "Installiere Modul: $Name"
+        Install-Module $Name -Force -Scope CurrentUser -AllowClobber -Confirm:$false -ErrorAction Stop
+    }
+    Import-Module $Name -Force -ErrorAction Stop
+}
+
+Ensure-Module "Microsoft.Graph.Identity.DirectoryManagement"
+
+$__ms365ConnRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+. (Join-Path $__ms365ConnRoot 'Connect-Mg365App.ps1')
+Write-Host "Verbinde mit Microsoft Graph..."
+
+try {
+    Connect-Mg365App -ErrorAction Stop
+} catch {
+    $result = @{
+        status   = "error"
+        message  = "Verbindung fehlgeschlagen: $($_.Exception.Message)"
+        licenses = @()
+    } | ConvertTo-Json -Depth 3 -Compress
+    Write-Output "###JSON_START###"
+    Write-Output $result
+    Write-Output "###JSON_END###"
+    exit 1
+}
+
+$licensesData = @()
+try {
+    Write-Host "Lade Lizenzen..."
+    $skus = Get-MgSubscribedSku -All
+    foreach ($sku in $skus) {
+        $licensesData += @{
+            skuId         = $sku.SkuId
+            skuPartNumber = $sku.SkuPartNumber
+            consumedUnits = $sku.ConsumedUnits
+            prepaidUnits  = @{
+                enabled   = $sku.PrepaidUnits.Enabled
+                warning   = $sku.PrepaidUnits.Warning
+                suspended = $sku.PrepaidUnits.Suspended
+            }
+        }
+    }
+    Write-Host "Lizenzen geladen: $($licensesData.Count) SKUs"
+} catch {
+    $result = @{
+        status   = "error"
+        message  = "Fehler beim Laden der Lizenzen: $($_.Exception.Message)"
+        licenses = @()
+    } | ConvertTo-Json -Depth 4 -Compress
+    Write-Output "###JSON_START###"
+    Write-Output $result
+    Write-Output "###JSON_END###"
+    exit 1
+}
+
+$output = @{
+    status   = "ok"
+    licenses = $licensesData
+    count    = $licensesData.Count
+} | ConvertTo-Json -Depth 6 -Compress
+
+Write-Output "###JSON_START###"
+Write-Output $output
+Write-Output "###JSON_END###"

@@ -140,13 +140,13 @@
     "semantic_hash": ""
   },
   "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/index.js": {
-    "mtime": 1780755302.85268,
-    "ast_hash": "b3e2121ec4a9c449d5624c4cf8ed5461",
+    "mtime": 1780757709.557256,
+    "ast_hash": "86598da4174452cd2b9efd9a8fbb7fb6",
     "semantic_hash": ""
   },
   "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/package.json": {
-    "mtime": 1780750175.267224,
-    "ast_hash": "b732028468af20e4f6a3e4d9e8e0e771",
+    "mtime": 1780755462.5607328,
+    "ast_hash": "6d9b1cb9fe1cc2b952afd1b2259f69c4",
     "semantic_hash": ""
   },
   "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/preload.js": {
@@ -210,8 +210,8 @@
     "semantic_hash": ""
   },
   "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/scripts/get-devices.ps1": {
-    "mtime": 1776369155.8254974,
-    "ast_hash": "7cc855284aeb22d7e5dc479fee10c59e",
+    "mtime": 1780757549.4270966,
+    "ast_hash": "50e98e3c6baabd6ee449e9b99f98ea47",
     "semantic_hash": ""
   },
   "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/scripts/get-group-members.ps1": {
@@ -250,8 +250,8 @@
     "semantic_hash": ""
   },
   "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/scripts/invoke-intune-device-action.ps1": {
-    "mtime": 1776369155.8263316,
-    "ast_hash": "672627ed5dd0e5ad5a63acb7979e435d",
+    "mtime": 1780757168.9810522,
+    "ast_hash": "a15d1985b79ddf3d1f5d6ca540d92652",
     "semantic_hash": ""
   },
   "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/scripts/remove-directory-role-member.ps1": {
@@ -320,8 +320,8 @@
     "semantic_hash": ""
   },
   "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/src/stores/devicesStore.js": {
-    "mtime": 1780660608.8110914,
-    "ast_hash": "0b36adb00891e5f1cd8de6c7b9853f67",
+    "mtime": 1780757710.4460287,
+    "ast_hash": "929e372455672914ecff25e9dce726e5",
     "semantic_hash": ""
   },
   "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/src/stores/groupsStore.js": {
@@ -340,8 +340,8 @@
     "semantic_hash": ""
   },
   "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/src/stores/usersStore.js": {
-    "mtime": 1780755305.1579237,
-    "ast_hash": "788b1b5e557179b47e5226646f59561f",
+    "mtime": 1780755922.389775,
+    "ast_hash": "059c3f5fe5683955ddbf5312ae222803",
     "semantic_hash": ""
   },
   "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/src/utils/licenseLabel.js": {
@@ -360,13 +360,13 @@
     "semantic_hash": ""
   },
   "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/src/views/DashboardView.vue": {
-    "mtime": 1780666180.5990326,
-    "ast_hash": "6769bf1cb6fffdb68b0306c132bd6d1b",
+    "mtime": 1780757549.6701732,
+    "ast_hash": "725dc3c377ce87ebd7c70ed2ac328378",
     "semantic_hash": ""
   },
   "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/src/views/DevicesView.vue": {
-    "mtime": 1780500740.9732776,
-    "ast_hash": "46add3c1804d7aa81216fb669031abd5",
+    "mtime": 1780757716.016326,
+    "ast_hash": "4607a5cd641833171b4c20d6e26ac668",
     "semantic_hash": ""
   },
   "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/src/views/GroupsView.vue": {
@@ -380,8 +380,8 @@
     "semantic_hash": ""
   },
   "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/src/views/UsersView.vue": {
-    "mtime": 1780755306.6227617,
-    "ast_hash": "888fb933ef623cdd72321d8786dd9f39",
+    "mtime": 1780756049.266736,
+    "ast_hash": "67b03fbc76318ba3875bd92601b7a5a9",
     "semantic_hash": ""
   },
   "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/vite.config.js": {
@@ -457,6 +457,16 @@
   "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/ui.png": {
     "mtime": 1776368709.9455044,
     "ast_hash": "08cc47bb081250ef0ad20471137dfbbf",
+    "semantic_hash": ""
+  },
+  "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/scripts/get-ms365-licenses.ps1": {
+    "mtime": 1780755917.3759453,
+    "ast_hash": "e906803259abdb05080e0d57fdca6fbe",
+    "semantic_hash": ""
+  },
+  "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Manager/scripts/delete-entra-device.ps1": {
+    "mtime": 1780757708.774529,
+    "ast_hash": "f2ea97ebfa05cab110168dbfee2eb448",
     "semantic_hash": ""
   }
 }

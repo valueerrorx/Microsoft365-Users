@@ -6,7 +6,7 @@
     <div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
       <div>
         <h1 class="page-title">Geräte</h1>
-        <p class="page-subtitle">{{ devicesStore.totalDevices }} Geräte im Tenant</p>
+        <p class="page-subtitle">{{ devicesStore.totalDevices }} Geräte ({{ devicesStore.managedDevicesCount }} Intune)</p>
       </div>
       <div class="d-flex gap-2">
         <button class="btn btn-outline-secondary btn-sm" @click="devicesStore.fetchDevices()" :disabled="devicesStore.loading">
@@ -67,7 +67,7 @@
         <span style="font-size:0.875rem;color:#e6edf3;">
           <strong>{{ selectedDeviceIds.length }}</strong> ausgewählt
         </span>
-        <button type="button" class="btn btn-outline-primary btn-sm" @click="openBulkRetireModal">
+        <button type="button" class="btn btn-outline-primary btn-sm" :disabled="!selectedIntuneDeviceRows.length" @click="openBulkRetireModal">
           <i class="bi bi-link-45deg me-1"></i>Abkoppeln (Retire)
         </button>
         <button type="button" class="btn btn-link btn-sm text-secondary ms-auto p-0" @click="clearDeviceSelection">
@@ -137,7 +137,7 @@
               <th @click="setSort('approximateLastSignInDateTime')" style="cursor:pointer;user-select:none;white-space:nowrap;">
                 Aktivität <i class="bi" :class="sortIcon('approximateLastSignInDateTime')"></i>
               </th>
-              <th style="width:140px;">Aktionen</th>
+              <th style="width:168px;">Aktionen</th>
             </tr>
           </thead>
           <tbody>
@@ -181,11 +181,32 @@
               <td style="font-size:0.82rem;color:#8b949e;white-space:nowrap;" :title="d.approximateLastSignInDateTime || ''">{{ formatDeviceDateTime(d.approximateLastSignInDateTime) }}</td>
               <td>
                 <div class="d-flex gap-1 flex-wrap">
-                  <button type="button" class="btn-action" title="Abkoppeln (Intune Retire)" @click="openRetireModal(d)">
+                  <button
+                    type="button"
+                    class="btn-action"
+                    :title="d.isIntuneManaged ? 'Abkoppeln (Intune Retire)' : 'Nur für in Intune eingeschriebene Geräte'"
+                    :disabled="!d.isIntuneManaged"
+                    @click="openRetireModal(d)"
+                  >
                     <i class="bi bi-link-45deg"></i>
                   </button>
-                  <button type="button" class="btn-action danger" title="Werkseinstellungen (Remote Wipe)" @click="openWipeModal(d)">
+                  <button
+                    type="button"
+                    class="btn-action danger"
+                    :title="d.isIntuneManaged ? 'Werkseinstellungen (Remote Wipe)' : 'Nur für in Intune eingeschriebene Geräte'"
+                    :disabled="!d.isIntuneManaged"
+                    @click="openWipeModal(d)"
+                  >
                     <i class="bi bi-arrow-counterclockwise"></i>
+                  </button>
+                  <button
+                    v-if="!d.isIntuneManaged"
+                    type="button"
+                    class="btn-action danger"
+                    title="Aus Entra entfernen (Verzeichnis-Eintrag löschen)"
+                    @click="openDeleteEntraModal(d)"
+                  >
+                    <i class="bi bi-trash"></i>
                   </button>
                 </div>
               </td>
@@ -231,7 +252,7 @@
           </div>
           <div class="modal-body">
             <p class="small mb-2">
-              Intune entfernt die Verwaltung von allen ausgewählten Geräten nacheinander. Nicht in Intune eingeschriebene Geräte schlagen pro Zeile fehl (siehe Log).
+              Intune entfernt die Verwaltung von allen ausgewählten Geräten nacheinander. Geräte ohne Intune-Einschreibung werden übersprungen.
             </p>
             <p class="small mb-3" style="color:#f85149;">
               <strong>Wirklich ausführen?</strong> Nur bei bewusster Offboarding-Entscheidung.
@@ -291,6 +312,43 @@
       </div>
     </div>
 
+    <!-- Delete Entra device (non-Intune) -->
+    <div v-if="deleteEntraModal.show" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.6);">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title text-danger"><i class="bi bi-trash me-2"></i>Aus Entra entfernen</h5>
+            <button type="button" class="btn-close" :disabled="deleteEntraModal.running" @click="closeDeleteEntraModal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert" style="background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.25);color:#f85149;border-radius:6px;">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+              <strong>Achtung:</strong> Der Entra-Verzeichnis-Eintrag wird endgültig gelöscht. Das physische Gerät wird dabei nicht zurückgesetzt.
+            </div>
+            <p class="small mb-2" style="color:#8b949e;">
+              Gerät: <strong style="color:#e6edf3;">{{ deleteEntraModal.device?.displayName || deleteEntraModal.device?.id }}</strong>
+            </p>
+            <label class="form-label small">{{ deleteEntraConfirmLabel }}</label>
+            <input v-model="deleteEntraModal.confirmName" type="text" class="form-control" :disabled="deleteEntraModal.running" autocomplete="off" />
+            <div v-if="deleteEntraModal.error" class="mt-2" style="color:#f85149;font-size:0.83rem;">
+              <i class="bi bi-exclamation-triangle me-1"></i>{{ deleteEntraModal.error }}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" :disabled="deleteEntraModal.running" @click="closeDeleteEntraModal">Abbrechen</button>
+            <button
+              type="button"
+              class="btn btn-danger btn-sm"
+              :disabled="deleteEntraModal.running || deleteEntraModal.confirmName !== deleteEntraConfirmExpected"
+              @click="runDeleteEntra"
+            >
+              {{ deleteEntraModal.running ? 'Löscht…' : 'Endgültig löschen' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Factory reset (Remote Wipe) -->
     <div v-if="wipeModal.show" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.6);">
       <div class="modal-dialog">
@@ -333,8 +391,15 @@ const devicesStore = useDevicesStore()
 const retireModal = reactive({ show: false, device: null, disableUserAccount: false, running: false })
 const bulkRetireModal = reactive({ show: false, disableUserAccount: false, running: false, count: 0 })
 const wipeModal = reactive({ show: false, device: null, confirmName: '', running: false })
+const deleteEntraModal = reactive({ show: false, device: null, confirmName: '', running: false, error: '' })
 
 const selectedDeviceIds = ref([])
+
+const selectedIntuneDeviceRows = computed(() =>
+  selectedDeviceIds.value
+    .map((id) => devicesStore.devices.find((d) => d.id === id))
+    .filter((d) => d?.isIntuneManaged)
+)
 
 const searchQuery = ref('')
 const filterTrust = ref('all')
@@ -445,14 +510,13 @@ function clearDeviceSelection() {
 }
 
 function openBulkRetireModal() {
-  bulkRetireModal.count = selectedDeviceIds.value.length
+  bulkRetireModal.count = selectedIntuneDeviceRows.value.length
   bulkRetireModal.disableUserAccount = false
   bulkRetireModal.show = true
 }
 
 async function runBulkRetire() {
-  const ids = [...selectedDeviceIds.value]
-  const rows = ids.map((id) => devicesStore.devices.find((d) => d.id === id)).filter(Boolean)
+  const rows = selectedIntuneDeviceRows.value
   if (!rows.length) {
     bulkRetireModal.show = false
     return
@@ -516,9 +580,13 @@ function formatDeviceDateTime(iso) {
   return d.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })
 }
 
-function wipeConfirmTarget(d) {
+function deviceConfirmTarget(d) {
   const n = (d?.displayName || '').trim()
   return n || (d?.id || '').trim()
+}
+
+function wipeConfirmTarget(d) {
+  return deviceConfirmTarget(d)
 }
 
 const wipeConfirmExpected = computed(() => wipeConfirmTarget(wipeModal.device))
@@ -528,6 +596,42 @@ const wipeConfirmLabel = computed(() => {
   if (!d) return 'Bestätigung'
   return (d.displayName || '').trim() ? 'Gerätename zur Bestätigung eintippen' : 'Geräte-ID zur Bestätigung eintippen'
 })
+
+const deleteEntraConfirmExpected = computed(() => deviceConfirmTarget(deleteEntraModal.device))
+
+const deleteEntraConfirmLabel = computed(() => {
+  const d = deleteEntraModal.device
+  if (!d) return 'Bestätigung'
+  return (d.displayName || '').trim() ? 'Gerätename zur Bestätigung eintippen' : 'Geräte-ID zur Bestätigung eintippen'
+})
+
+function openDeleteEntraModal(d) {
+  if (d?.isIntuneManaged) return
+  deleteEntraModal.device = d
+  deleteEntraModal.confirmName = ''
+  deleteEntraModal.error = ''
+  deleteEntraModal.running = false
+  deleteEntraModal.show = true
+}
+
+function closeDeleteEntraModal() {
+  if (deleteEntraModal.running) return
+  deleteEntraModal.show = false
+}
+
+async function runDeleteEntra() {
+  const d = deleteEntraModal.device
+  if (!d?.id || deleteEntraModal.confirmName !== deleteEntraConfirmExpected.value) {
+    deleteEntraModal.error = 'Bestätigung stimmt nicht überein.'
+    return
+  }
+  deleteEntraModal.running = true
+  deleteEntraModal.error = ''
+  const ok = await devicesStore.deleteEntraDevice(d.id)
+  deleteEntraModal.running = false
+  if (ok) deleteEntraModal.show = false
+  else deleteEntraModal.error = 'Gerät konnte nicht gelöscht werden. Prüfe das Ausgabefenster.'
+}
 
 function openRetireModal(d) {
   retireModal.device = d
@@ -540,7 +644,8 @@ async function runRetire() {
   if (!d?.id) return
   retireModal.running = true
   const ok = await devicesStore.retireIntuneDevice({
-    azureAdDeviceId: d.id,
+    azureAdDeviceId: d.deviceId || d.id,
+    intuneManagedDeviceId: d.intuneManagedDeviceId,
     disableUserAccount: retireModal.disableUserAccount,
     userUpn: d.ownerUserPrincipalName || ''
   })
@@ -558,7 +663,10 @@ async function runWipe() {
   const d = wipeModal.device
   if (!d?.id || wipeModal.confirmName !== wipeConfirmExpected.value) return
   wipeModal.running = true
-  const ok = await devicesStore.wipeIntuneDevice({ azureAdDeviceId: d.id })
+  const ok = await devicesStore.wipeIntuneDevice({
+    azureAdDeviceId: d.deviceId || d.id,
+    intuneManagedDeviceId: d.intuneManagedDeviceId
+  })
   wipeModal.running = false
   if (ok) wipeModal.show = false
 }
