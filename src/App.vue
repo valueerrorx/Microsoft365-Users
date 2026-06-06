@@ -6,7 +6,10 @@
     <AppSidebar />
     <div class="main-area">
       <main class="flex-grow-1 overflow-y-auto overflow-x-hidden p-4" style="flex: 1">
-        <router-view />
+        <div v-if="!sessionChecked" class="text-center py-5" style="color:#8b949e;">
+          <i class="bi bi-hourglass-split me-2"></i>Session wird geprüft…
+        </div>
+        <router-view v-else />
       </main>
       <LogConsole />
     </div>
@@ -16,7 +19,7 @@
     <div class="device-login-card">
       <h2 class="device-login-title">Microsoft-Anmeldung</h2>
       <p class="device-login-hint">
-        Nachdem sich der Browser geöffnet hat, geben Sie bitte diesen Code auf
+        Nachdem sich der Browser geöffnet hat, gib diesen Code auf
         <strong>microsoft.com/devicelogin</strong> ein:
       </p>
       <div class="device-login-code">{{ authStore.deviceLoginCode }}</div>
@@ -51,7 +54,7 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import AppSidebar from './components/AppSidebar.vue'
 import LogConsole from './components/LogConsole.vue'
 import { useAuthStore } from './stores/authStore'
@@ -61,6 +64,74 @@ import { useRolesStore } from './stores/rolesStore'
 const authStore = useAuthStore()
 const usersStore = useUsersStore()
 const rolesStore = useRolesStore()
+const sessionChecked = ref(false)
+
+// Register before child views mount — RolesView can trigger auth during its onMounted.
+window.ipcRenderer.on('device-login-code', (_e, data) => {
+  authStore.setDeviceLoginCode(data?.code ?? null)
+})
+window.ipcRenderer.on('ps-operation-log', (_e, log) => {
+  authStore.addLog(log)
+})
+window.ipcRenderer.on('ps-operation-complete', (_e, data) => {
+  if (data.status === 'ok') authStore.setDeviceLoginCode(null)
+  authStore.addLog({
+    type: data.status === 'ok' ? 'success' : 'error',
+    message: `Operation abgeschlossen (${data.status})`
+  })
+})
+window.ipcRenderer.on('pwsh-log', (_e, log) => {
+  authStore.addLog(log)
+  usersStore.bulkLogs.push(log)
+})
+window.ipcRenderer.on('scheduled-directory-roles-changed', (_e, data) => {
+  rolesStore.$patch({ scheduledExpirations: data?.entries || [] })
+  for (const role of rolesStore.roles) {
+    rolesStore.syncScheduledExpirationsToMembers(role.templateId)
+  }
+})
+window.ipcRenderer.on('directory-role-auto-removed', (_e, payload) => {
+  const tid = payload?.roleTemplateId
+  const uid = payload?.userId
+  if (!tid || !uid) return
+  const normTid = String(tid || '').trim().toLowerCase()
+  const normUid = String(uid || '').trim().toLowerCase()
+  const role = rolesStore.roles.find((r) => String(r.templateId || '').trim().toLowerCase() === normTid)
+  if (role) {
+    role.members = (role.members || []).filter(
+      (m) => String(m.id || '').trim().toLowerCase() !== normUid
+    )
+    role.memberCount = role.members.length
+  }
+  rolesStore.$patch({
+    scheduledExpirations: rolesStore.scheduledExpirations.filter(
+      (e) =>
+        !(
+          String(e.roleTemplateId || '').trim().toLowerCase() === normTid &&
+          String(e.userId || '').trim().toLowerCase() === normUid
+        )
+    )
+  })
+  authStore.addLog({
+    type: 'info',
+    message: `Temporäre Rolle abgelaufen und entfernt (${payload.roleLabel || tid})`
+  })
+})
+window.ipcRenderer.on('pwsh-complete', (_e, data) => {
+  const ok = data.status === 'success'
+  authStore.addLog({
+    type: ok ? 'success' : 'error',
+    message: ok
+      ? `Massenoperation abgeschlossen`
+      : `Fehler: ${data.message || 'PowerShell-Fehler'} (Exit: ${data.exitCode ?? '?'})`
+  })
+  if (data.failedUsers?.length) {
+    authStore.addLog({ type: 'warning', message: `Fehlgeschlagen: ${data.failedUsers.join(', ')}` })
+  }
+})
+void window.ipcRenderer.invoke('get-device-login-code').then((data) => {
+  if (data?.code) authStore.setDeviceLoginCode(data.code)
+})
 
 async function copyDeviceCode() {
   const code = authStore.deviceLoginCode
@@ -74,74 +145,13 @@ async function copyDeviceCode() {
 }
 
 onMounted(async () => {
-  // Beim Start pruefen, ob bereits ein gueltiges Token vorhanden ist (kein Device-Code).
   try {
     const status = await window.ipcRenderer.invoke('graph-connection-status')
     if (status?.status === 'ok') authStore.setConnected(status.tenantDomain || 'Microsoft 365')
   } catch { /* ignorieren: dann normaler Login-Flow */ }
-
-  window.ipcRenderer.on('device-login-code', (_e, data) => {
-    authStore.setDeviceLoginCode(data?.code ?? null)
-  })
-  window.ipcRenderer.on('ps-operation-log', (_e, log) => {
-    authStore.addLog(log)
-  })
-  window.ipcRenderer.on('ps-operation-complete', (_e, data) => {
-    if (data.status === 'ok') authStore.setDeviceLoginCode(null)
-    authStore.addLog({
-      type: data.status === 'ok' ? 'success' : 'error',
-      message: `Operation abgeschlossen (${data.status})`
-    })
-  })
-  window.ipcRenderer.on('pwsh-log', (_e, log) => {
-    authStore.addLog(log)
-    usersStore.bulkLogs.push(log)
-  })
-  window.ipcRenderer.on('scheduled-directory-roles-changed', (_e, data) => {
-    rolesStore.$patch({ scheduledExpirations: data?.entries || [] })
-    for (const role of rolesStore.roles) {
-      rolesStore.syncScheduledExpirationsToMembers(role.templateId)
-    }
-  })
-  window.ipcRenderer.on('directory-role-auto-removed', (_e, payload) => {
-    const tid = payload?.roleTemplateId
-    const uid = payload?.userId
-    if (!tid || !uid) return
-    const normTid = String(tid || '').trim().toLowerCase()
-    const normUid = String(uid || '').trim().toLowerCase()
-    const role = rolesStore.roles.find((r) => String(r.templateId || '').trim().toLowerCase() === normTid)
-    if (role) {
-      role.members = (role.members || []).filter(
-        (m) => String(m.id || '').trim().toLowerCase() !== normUid
-      )
-      role.memberCount = role.members.length
-    }
-    rolesStore.$patch({
-      scheduledExpirations: rolesStore.scheduledExpirations.filter(
-        (e) =>
-          !(
-            String(e.roleTemplateId || '').trim().toLowerCase() === normTid &&
-            String(e.userId || '').trim().toLowerCase() === normUid
-          )
-      )
-    })
-    authStore.addLog({
-      type: 'info',
-      message: `Temporäre Rolle abgelaufen und entfernt (${payload.roleLabel || tid})`
-    })
-  })
-  window.ipcRenderer.on('pwsh-complete', (_e, data) => {
-    const ok = data.status === 'success'
-    authStore.addLog({
-      type: ok ? 'success' : 'error',
-      message: ok
-        ? `Massenoperation abgeschlossen`
-        : `Fehler: ${data.message || 'PowerShell-Fehler'} (Exit: ${data.exitCode ?? '?'})`
-    })
-    if (data.failedUsers?.length) {
-      authStore.addLog({ type: 'warning', message: `Fehlgeschlagen: ${data.failedUsers.join(', ')}` })
-    }
-  })
+  finally {
+    sessionChecked.value = true
+  }
 })
 </script>
 

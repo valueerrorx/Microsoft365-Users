@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) Mag. Thomas Michael Weissel <valueerror@gmail.com>
 
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage } from 'electron'
 import os from 'os'
 import fs from 'fs/promises'
 import path from 'path'
@@ -33,9 +33,60 @@ async function resolveManagedRolesConfigPath() {
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 
 let win
+let tray = null
 let isQuitting = false
 let deviceLoginBrowserOpened = false
 let deviceLoginCodeEmitted = null
+let graphSessionWarm = false
+let pendingDeviceLoginCode = null
+let csvData = []
+let scheduledDirectoryRoles = null
+
+// Verbose auth/ps tracing (set MS365_AUTH_DEBUG=0 to disable).
+const AUTH_DEBUG = process.env.MS365_AUTH_DEBUG !== '0'
+
+function authDebug(tag, payload) {
+  if (!AUTH_DEBUG) return
+  const ts = new Date().toISOString().slice(11, 23)
+  if (payload === undefined) {
+    console.log(`[ms365-auth ${ts}] ${tag}`)
+    return
+  }
+  const text = typeof payload === 'string' ? payload : JSON.stringify(payload)
+  console.log(`[ms365-auth ${ts}] ${tag}`, text.length > 1200 ? `${text.slice(0, 1200)}…` : text)
+}
+
+// Essential auth milestones only — shown in the app log panel.
+function authLogUi(message, type = 'info') {
+  uiSend('ps-operation-log', { type, message: `[AUTH] ${message}` })
+}
+
+function isAuthNoisePsLine(line) {
+  return (
+    /^\[MG365-AUTH\]/i.test(line) ||
+    /^To sign in, use a web browser/i.test(line) ||
+    /Device-Code-Anmeldung/i.test(line) ||
+    /Code steht unten/i.test(line) ||
+    /^Verbinde mit Microsoft Graph/i.test(line) ||
+    /Connect-MgGraph/i.test(line) ||
+    /useDeviceCode=/i.test(line) ||
+    /authRecordPath=/i.test(line) ||
+    /Connect OK account=/i.test(line)
+  )
+}
+
+function forwardPsLineToUi(line, onLog, type = 'info') {
+  if (/to sign in, use a web browser/i.test(line)) {
+    authLogUi('Browser-Anmeldung — Bitte im geoeffneten Browserfenster bei Microsoft anmelden.')
+    return
+  }
+  if (isAuthNoisePsLine(line) || /Anmeldung erfolgreich/i.test(line)) return
+  if (/^\{.*"status"\s*:/.test(line) || /^###JSON_/.test(line)) return
+  if (onLog) onLog({ type, message: line })
+}
+
+// Scripts that must never bootstrap Electron device-code auth (silent cache probe only).
+const SKIPS_ELECTRON_AUTH = new Set(['scripts/check-graph-connection.ps1'])
 
 function extractDeviceLoginCode(line) {
   if (!/enter the code|to authenticate|login\.microsoft\.com\/device/i.test(line)) return null
@@ -51,36 +102,81 @@ function extractDeviceLoginCode(line) {
   return null
 }
 
-function maybeEmitDeviceLoginCode(line) {
+function maybeEmitDeviceLoginCode(line, runId) {
+  if (graphSessionWarm) {
+    authDebug('device-code:skip', { runId, reason: 'graphSessionWarm' })
+    return
+  }
+  if (/Bestehende Anmeldung wiederverwendet/i.test(line)) {
+    authDebug('device-code:skip', { runId, reason: 'reuse-line' })
+    return
+  }
   const code = extractDeviceLoginCode(line)
-  if (!code || code === deviceLoginCodeEmitted) return
+  if (!code) return
+  if (code === deviceLoginCodeEmitted) {
+    authDebug('device-code:skip', { runId, reason: 'duplicate', code })
+    return
+  }
+  const rotated = deviceLoginCodeEmitted !== null
   deviceLoginCodeEmitted = code
-  uiSend('device-login-code', { code })
+  if (rotated) deviceLoginBrowserOpened = false
+  authDebug('device-code', { runId, code, rotated })
+  emitDeviceLoginCode(code)
+  maybeOpenDeviceLoginBrowser('enter the code device-code-anmeldung', runId)
 }
 
-function maybeOpenDeviceLoginBrowser(line) {
+function maybeOpenDeviceLoginBrowser(line, runId) {
+  if (graphSessionWarm) {
+    authDebug('browser:skip', { runId, reason: 'graphSessionWarm' })
+    return
+  }
   if (deviceLoginBrowserOpened) return
-  if (!/to sign in|devicelogin|enter the code|device-code|browser oeffnet|code erscheint/i.test(line)) return
+  if (/Bestehende Anmeldung wiederverwendet/i.test(line)) return
+  if (!/to sign in|devicelogin|enter the code|device-code-anmeldung|browser oeffnet|code erscheint/i.test(line)) return
   deviceLoginBrowserOpened = true
+  authDebug('browser:open', { runId })
   void shell.openExternal('https://microsoft.com/devicelogin')
 }
 
-function resetGraphAuthUiState() {
+// Logs whether Graph PowerShell persisted tokens under ~/.mg/mg.authrecord.json.
+async function logMgAuthCacheStatus() {
+  const cachePath = getMgAuthRecordPath()
+  const ok = await hasMgAuthCache()
+  authLogUi(
+    ok ? `Session gespeichert: ${cachePath}` : `Warnung: keine Cache-Datei unter ${cachePath}`,
+    ok ? 'success' : 'warning'
+  )
+}
+
+// Marks Graph session ready as soon as pwsh reports a successful Connect (not only on script exit).
+function noteGraphAuthSuccess(source, runId) {
+  if (graphSessionWarm) return
+  graphSessionWarm = true
+  authLogUi('Mit Microsoft Graph verbunden', 'success')
+  void logMgAuthCacheStatus()
+  authDebug('graph-session-warm', { source, runId })
+  markGraphSessionReady()
+  resetGraphAuthUiState(source)
+}
+
+function resetGraphAuthUiState(reason = 'unknown') {
+  authDebug('reset-ui', { reason, hadCode: deviceLoginCodeEmitted, browserOpened: deviceLoginBrowserOpened })
   deviceLoginBrowserOpened = false
   deviceLoginCodeEmitted = null
-  uiSend('device-login-code', { code: null })
+  emitDeviceLoginCode(null)
 }
-let csvData = []
-let scheduledDirectoryRoles = null
 
 function markGraphSessionReady() {
   scheduledDirectoryRoles?.setGraphSessionReady(true)
 }
 
-function onGraphResponse(data) {
+function onGraphResponse(data, source = 'graph') {
+  authDebug('graph-response', { source, status: data?.status, message: data?.message })
   if (data && (data.status === 'ok' || data.status === 'partial')) {
+    graphSessionWarm = true
+    authDebug('graph-response:warm', { source, status: data.status })
     markGraphSessionReady()
-    resetGraphAuthUiState()
+    resetGraphAuthUiState(`graph-response:${source}`)
   }
   return data
 }
@@ -110,10 +206,46 @@ function isAllowedExternalHttpsUrl(rawUrl) {
 
 // ===================== Window Management =====================
 
+function resolveIconPath(fileName) {
+  return path.join(getAppRoot(), fileName)
+}
+
+function loadTrayIcon() {
+  const small = nativeImage.createFromPath(resolveIconPath('icon-small.png'))
+  if (!small.isEmpty()) return small
+  return nativeImage.createFromPath(resolveIconPath('icon.png'))
+}
+
+function showMainWindow() {
+  if (!win || win.isDestroyed()) return
+  win.setSkipTaskbar(false)
+  if (win.isMinimized()) win.restore()
+  win.show()
+  win.focus()
+}
+
+function hideToTray() {
+  if (!win || win.isDestroyed()) return
+  win.hide()
+  win.setSkipTaskbar(true)
+}
+
+function createTray() {
+  if (tray) return
+  tray = new Tray(loadTrayIcon())
+  tray.setToolTip('MS365 Manager')
+  tray.on('click', () => showMainWindow())
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: 'Öffnen', click: () => showMainWindow() },
+    { type: 'separator' },
+    { label: 'Programm schliessen', click: () => { void promptQuitChoice() } }
+  ]))
+}
+
 function createWindow() {
   win = new BrowserWindow({
     title: 'MS365 User Management',
-    icon: path.join(__dirname, 'icon.png'),
+    icon: resolveIconPath('icon.png'),
     width: 1600,
     height: 940,
     minWidth: 1600,
@@ -165,6 +297,38 @@ function createWindow() {
       win.webContents.openDevTools()
     }
   })
+
+  win.on('close', (e) => {
+    if (isQuitting) return
+    e.preventDefault()
+    hideToTray()
+  })
+}
+
+// Quit dialog: Abmelden und beenden | Beenden | Abbrechen.
+async function promptQuitChoice() {
+  if (!win || win.isDestroyed()) return
+  const { response } = await dialog.showMessageBox(win, {
+    type: 'question',
+    title: 'App beenden',
+    message: 'Möchten Sie sich auch von Microsoft Graph abmelden?',
+    detail: 'Abmelden löscht die gespeicherte Anmeldung. Beenden behält die Session für den nächsten Start.',
+    buttons: ['Abmelden und beenden', 'Beenden', 'Abbrechen'],
+    defaultId: 1,
+    cancelId: 2,
+    noLink: true
+  })
+  if (response === 2) return
+  if (response === 0) {
+    await performDisconnectMg365({ notifyUi: false })
+  }
+  isQuitting = true
+  if (tray) {
+    tray.destroy()
+    tray = null
+  }
+  win.destroy()
+  app.quit()
 }
 
 const gotTheLock = app.requestSingleInstanceLock()
@@ -173,16 +337,13 @@ if (!gotTheLock) {
 } else {
   app.on('second-instance', () => {
     try {
-      if (win && !win.isDestroyed()) {
-        if (win.isMinimized()) win.restore()
-        win.show()
-        win.focus()
-      }
+      showMainWindow()
     } catch {}
   })
 }
 
 app.whenReady().then(() => {
+  authDebug('app:ready', { platform: process.platform, authDebug: AUTH_DEBUG, electron: process.versions.electron })
   scheduledDirectoryRoles = createScheduledDirectoryRolesManager({
     app,
     runPsScript,
@@ -191,12 +352,27 @@ app.whenReady().then(() => {
   })
   scheduledDirectoryRoles.startTicker()
   createWindow()
+  createTray()
+  authDebug('app:ready-ui', { platform: process.platform, authDebug: AUTH_DEBUG })
 })
 app.on('will-quit', () => {
   scheduledDirectoryRoles?.stopTicker()
+  if (tray) {
+    tray.destroy()
+    tray = null
+  }
 })
-app.on('window-all-closed', () => { app.quit() })
+app.on('window-all-closed', () => {
+  if (!isQuitting) return
+  app.quit()
+})
 app.on('before-quit', async () => { isQuitting = true })
+
+// Persists the latest device code so the renderer can recover it if IPC fired before listeners mounted.
+function emitDeviceLoginCode(code) {
+  pendingDeviceLoginCode = code ? String(code) : null
+  uiSend('device-login-code', { code: pendingDeviceLoginCode })
+}
 
 function uiSend(channel, payload) {
   if (isQuitting) return
@@ -213,6 +389,22 @@ const stripAnsi = (t) => t.replace(/\x1b\[[0-9;]*[mGK]/g, '').replace(/\x1b\[[0-
 
 function isPwshCommand(cmd) {
   return /(?:^|[\\/])pwsh(?:\.exe)?$/i.test(String(cmd || '').trim())
+}
+
+// Windows: UTF-8 via -Command wrapper — must not prepend to .ps1 files (breaks leading param blocks).
+function buildPsSpawnArgs(scriptPath, args = []) {
+  const base = ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass']
+  if (process.platform !== 'win32') {
+    return [...base, '-File', scriptPath, ...args]
+  }
+  const escapedScript = String(scriptPath).replace(/'/g, "''")
+  const argTail = args.map((a) => {
+    const s = String(a)
+    if (s.startsWith('-')) return s
+    return `'${s.replace(/'/g, "''")}'`
+  }).join(' ')
+  const cmd = `[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new($false);$OutputEncoding=[System.Text.UTF8Encoding]::new($false);& '${escapedScript}'${argTail ? ` ${argTail}` : ''}`
+  return [...base, '-Command', cmd]
 }
 
 function detectPowerShell() {
@@ -278,8 +470,8 @@ async function getScriptPath(scriptRelPath) {
     const srcPath = path.join(scriptsDir, name)
     const destPath = path.join(workDir, name)
     const content = await fs.readFile(srcPath, 'utf8')
-    const withBom = content.charCodeAt(0) === 0xfeff ? content : `\uFEFF${content}`
-    await fs.writeFile(destPath, withBom, 'utf8')
+    const body = content.charCodeAt(0) === 0xfeff ? content.slice(1) : content
+    await fs.writeFile(destPath, `\uFEFF${body}`, 'utf8')
     if (name === mainName) mainCopied = true
   }
   if (!mainCopied) {
@@ -287,6 +479,20 @@ async function getScriptPath(scriptRelPath) {
     throw new Error(`Skript nicht gefunden: ${scriptRelPath}`)
   }
   return path.join(workDir, mainName)
+}
+
+function getMgAuthRecordPath() {
+  const home = process.env.USERPROFILE || process.env.HOME || os.homedir()
+  return path.join(home, '.mg', 'mg.authrecord.json')
+}
+
+async function hasMgAuthCache() {
+  try {
+    await fs.access(getMgAuthRecordPath())
+    return true
+  } catch {
+    return false
+  }
 }
 
 // Bulk/read Graph scripts may run in parallel; writes stay serialized (MSAL token cache / login prompts).
@@ -304,7 +510,8 @@ const PARALLEL_PS_SCRIPTS = new Set([
 let psScriptQueueTail = Promise.resolve()
 
 async function runPsScript(scriptRelPath, args = [], onLog = null) {
-  const allowParallel = process.platform !== 'win32' && PARALLEL_PS_SCRIPTS.has(scriptRelPath)
+  const allowParallel = process.platform !== 'win32' && graphSessionWarm && PARALLEL_PS_SCRIPTS.has(scriptRelPath)
+  authDebug('ps:queue', { scriptRelPath, allowParallel, graphSessionWarm })
   if (allowParallel) {
     return runPsScriptBody(scriptRelPath, args, onLog)
   }
@@ -322,12 +529,17 @@ async function runPsScript(scriptRelPath, args = [], onLog = null) {
 }
 
 async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
-  deviceLoginBrowserOpened = false
-  deviceLoginCodeEmitted = null
+  const runId = `${scriptRelPath}#${Date.now().toString(36)}`
+  if (!graphSessionWarm) {
+    deviceLoginBrowserOpened = false
+    deviceLoginCodeEmitted = null
+  }
   let tmpScript = null
   try {
     tmpScript = await getScriptPath(scriptRelPath)
   } catch (err) {
+    authDebug('ps:error', { runId, stage: 'getScriptPath', message: err.message })
+    authLogUi(`Skript nicht gefunden: ${scriptRelPath}`, 'error')
     return { exitCode: -1, stdout: '', stderr: err.message }
   }
 
@@ -344,25 +556,46 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
     ...process.env,
     POWERSHELL_UPDATECHECK: 'Off',
     POWERSHELL_TELEMETRY_OPTOUT: '1',
-    MS365_ELECTRON_APP: '1'
+    ...(process.platform === 'win32' ? { MS365_ELECTRON_APP: '1' } : {}),
+    ...(graphSessionWarm ? { MS365_GRAPH_SESSION_WARM: '1' } : {})
   }
 
   const PS_TIMEOUT_MS = 5 * 60 * 1000
   const psCwd = path.dirname(tmpScript)
+  const stdio = process.platform === 'win32'
+    ? ['pipe', 'pipe', 'pipe']
+    : ['ignore', 'pipe', 'pipe']
+
+  authDebug('ps:start', {
+    runId,
+    scriptRelPath,
+    args,
+    psCmd,
+    psCwd,
+    graphSessionWarm,
+    ms365ElectronApp: env.MS365_ELECTRON_APP,
+    ms365GraphSessionWarm: env.MS365_GRAPH_SESSION_WARM,
+    userProfile: env.USERPROFILE || env.HOME,
+    stdinMode: stdio[0]
+  })
+  authDebug('ps:start-ui', { runId, scriptRelPath, graphSessionWarm })
+  if (!graphSessionWarm && !SKIPS_ELECTRON_AUTH.has(scriptRelPath) && !(await hasMgAuthCache())) {
+    if (process.platform === 'win32') {
+      authLogUi('Device-Code-Anmeldung — Browser oeffnet sich gleich. Code im Dialog eingeben.')
+    } else {
+      authLogUi('Browser-Anmeldung — Ein Browserfenster oeffnet sich gleich. Bitte bei Microsoft anmelden.')
+    }
+  }
 
   return new Promise((resolve) => {
     let stdout = ''
     let stderr = ''
     let timedOut = false
     let settled = false
-    const ps = spawn(
-      psCmd,
-      ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', tmpScript, ...args],
-      // stdin als geschlossene Pipe (nicht 'ignore'): MSAL Device-Flow auf Windows
-      // kann beim Abschluss sonst auf einen stdin-Handle warten und haengen.
-      { cwd: psCwd, env, stdio: ['pipe', 'pipe', 'pipe'] }
-    )
-    try { ps.stdin?.end() } catch {}
+    const ps = spawn(psCmd, buildPsSpawnArgs(tmpScript, args), { cwd: psCwd, env, stdio })
+    if (process.platform === 'win32') {
+      try { ps.stdin?.end() } catch {}
+    }
     ps.stdout?.setEncoding('utf8')
     ps.stderr?.setEncoding('utf8')
     ps.stdout?.resume()
@@ -378,6 +611,18 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
       settled = true
       clearTimeout(timer)
       if (timedOut || payload.exitCode !== 0) deviceLoginBrowserOpened = false
+      authDebug('ps:finish', {
+        runId,
+        exitCode: payload.exitCode,
+        timedOut,
+        stdoutLen: payload.stdout?.length || 0,
+        stderrLen: payload.stderr?.length || 0,
+        graphSessionWarm,
+        deviceLoginCodeEmitted,
+        stdoutTail: (payload.stdout || '').slice(-400),
+        stderrTail: (payload.stderr || '').slice(-400)
+      })
+      authDebug('ps:end-ui', { runId, scriptRelPath, exitCode: payload.exitCode, graphSessionWarm })
       try {
         if (tmpScript) await fs.rm(path.dirname(tmpScript), { recursive: true, force: true })
       } catch {}
@@ -387,34 +632,50 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
     ps.stdout?.on('data', (d) => {
       const text = d.toString()
       stdout += text
+      authDebug(`ps:${runId}:stdout-chunk`, text)
       for (const line of text.split(/\r?\n/)) {
         const clean = stripAnsi(line.trim())
-        if (!clean || clean.includes('###JSON_')) continue
-        maybeOpenDeviceLoginBrowser(clean)
-        maybeEmitDeviceLoginCode(clean)
-        if (/Anmeldung erfolgreich/i.test(clean)) resetGraphAuthUiState()
-        if (onLog) onLog({ type: 'info', message: clean })
+        if (!clean) continue
+        if (!clean.includes('###JSON_')) {
+          authDebug(`ps:${runId}:stdout-line`, clean)
+          maybeOpenDeviceLoginBrowser(clean, runId)
+          maybeEmitDeviceLoginCode(clean, runId)
+          if (/Anmeldung erfolgreich|Connect OK account=/i.test(clean)) {
+            noteGraphAuthSuccess('stdout:connect-ok', runId)
+          }
+          forwardPsLineToUi(clean, onLog, 'info')
+        } else {
+          authDebug(`ps:${runId}:stdout-json-marker`, clean)
+        }
       }
     })
 
     ps.stderr?.on('data', (d) => {
       const text = d.toString()
       stderr += text
+      authDebug(`ps:${runId}:stderr-chunk`, text)
       for (const line of text.split(/\r?\n/)) {
         const clean = stripAnsi(line.trim())
         if (!clean) continue
-        maybeOpenDeviceLoginBrowser(clean)
-        maybeEmitDeviceLoginCode(clean)
-        if (/Anmeldung erfolgreich/i.test(clean)) resetGraphAuthUiState()
+        authDebug(`ps:${runId}:stderr-line`, clean)
+        maybeOpenDeviceLoginBrowser(clean, runId)
+        maybeEmitDeviceLoginCode(clean, runId)
+        if (/Anmeldung erfolgreich|Connect OK account=/i.test(clean)) {
+          noteGraphAuthSuccess('stderr:connect-ok', runId)
+        }
         const isDeviceLoginHint = /to sign in|enter the code|devicelogin|device-code/i.test(clean)
-        if (onLog) onLog({ type: isDeviceLoginHint ? 'info' : 'error', message: clean })
+        forwardPsLineToUi(clean, onLog, isDeviceLoginHint ? 'info' : 'error')
       }
     })
 
     ps.on('exit', async (code) => {
       const out = stdout.trim()
       const err = stderr.trim()
+      const authOk = /Anmeldung erfolgreich|Bestehende Anmeldung wiederverwendet|Connect OK account=/i.test(out)
+      authDebug('ps:exit', { runId, code, timedOut, authOk, graphSessionWarmBefore: graphSessionWarm })
+      if (authOk) noteGraphAuthSuccess(`ps:exit:${scriptRelPath}`, runId)
       if (timedOut) {
+        authLogUi('Anmeldung-Timeout — bitte erneut versuchen', 'error')
         await finish({
           exitCode: -1,
           stdout: out,
@@ -426,6 +687,8 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
     })
 
     ps.on('error', async (err) => {
+      authDebug('ps:spawn-error', { runId, message: err.message })
+      authLogUi(`PowerShell-Fehler: ${err.message}`, 'error')
       await finish({ exitCode: -1, stdout: '', stderr: err.message })
     })
   })
@@ -540,17 +803,26 @@ ipcMain.handle('open-external-url', async (_event, rawUrl) => {
 
 ipcMain.handle('check-pwsh', async () => checkPwshForDashboard())
 
-ipcMain.handle('disconnect-ms365', async () => {
+ipcMain.handle('request-app-close', async () => {
+  await promptQuitChoice()
+  return { ok: true }
+})
+
+ipcMain.handle('get-device-login-code', async () => ({ code: pendingDeviceLoginCode }))
+
+async function performDisconnectMg365({ notifyUi = true } = {}) {
+  authDebug('disconnect-ms365', { graphSessionWarm: false })
   csvData = []
+  graphSessionWarm = false
   scheduledDirectoryRoles?.setGraphSessionReady(false)
   try {
     const result = await runPsScript('scripts/disconnect-mg365.ps1', [], (log) => {
-      uiSend('ps-operation-log', log)
+      if (notifyUi) uiSend('ps-operation-log', log)
     })
     const data = parseJsonFromOutput(result.stdout)
     if (data) {
       if (data.status === 'ok') resetGraphAuthUiState()
-      uiSend('ps-operation-complete', { status: data.status })
+      if (notifyUi) uiSend('ps-operation-complete', { status: data.status })
       return data
     }
     if (result.exitCode === 0) {
@@ -560,7 +832,9 @@ ipcMain.handle('disconnect-ms365', async () => {
   } catch (e) {
     return { status: 'error', message: e?.message }
   }
-})
+}
+
+ipcMain.handle('disconnect-ms365', async () => performDisconnectMg365({ notifyUi: true }))
 
 // ===================== IPC: CSV Import =====================
 
@@ -635,7 +909,7 @@ ipcMain.handle('run-password-update', async () => {
     const failedUserDetails = {}
     const env = { ...process.env, POWERSHELL_UPDATECHECK: 'Off', POWERSHELL_TELEMETRY_OPTOUT: '1' }
 
-    const pwsh = spawn(psCmd, ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, '-CSVPath', tmpCsv], {
+    const pwsh = spawn(psCmd, buildPsSpawnArgs(scriptPath, ['-CSVPath', tmpCsv]), {
       cwd: path.dirname(tmpCsv), env
     })
 
@@ -703,34 +977,61 @@ ipcMain.handle('run-password-update', async () => {
 
 // Stiller Status-Check beim App-Start: erkennt vorhandene Anmeldung ohne Device-Code
 ipcMain.handle('graph-connection-status', async () => {
+  authDebug('ipc:graph-connection-status')
   try {
-    const result = await runPsScript('scripts/check-graph-connection.ps1', [])
+    if (graphSessionWarm) {
+      return { status: 'ok', tenantDomain: 'Microsoft 365' }
+    }
+    const cachePath = getMgAuthRecordPath()
+    if (!(await hasMgAuthCache())) {
+      authDebug('start-check:no-cache-file', { cachePath })
+      authLogUi(`Keine gespeicherte Session (${cachePath})`, 'info')
+      return { status: 'error', message: 'Keine bestehende Anmeldung.' }
+    }
+    authDebug('start-check:cache-found', { cachePath })
+    const result = await runPsScript('scripts/check-graph-connection.ps1', [], (log) => {
+      uiSend('ps-operation-log', log)
+    })
     const data = parseJsonFromOutput(result.stdout)
+    authDebug('ipc:graph-connection-status', {
+      exitCode: result.exitCode,
+      parsedStatus: data?.status,
+      stderr: result.stderr?.slice(0, 500)
+    })
     if (data?.status === 'ok') {
+      graphSessionWarm = true
+      authLogUi(`Sitzung aktiv (${data.tenantDomain || data.account || 'Microsoft 365'})`, 'success')
       markGraphSessionReady()
       return data
     }
-    return { status: 'error' }
-  } catch {
-    return { status: 'error' }
+    authDebug('start-check:no-session', { exitCode: result.exitCode })
+    return { status: 'error', message: data?.message || result.stderr || 'Keine bestehende Anmeldung.' }
+  } catch (e) {
+    authDebug('ipc:graph-connection-status:error', e?.message)
+    return { status: 'error', message: e?.message }
   }
 })
 
 // Stellt einmalig die Graph-Verbindung her (1 Device-Code), bevor parallele Reads laufen
 ipcMain.handle('ensure-graph-connected', async () => {
+  authDebug('ipc:ensure-graph-connected')
   try {
     const result = await runPsScript('scripts/ensure-graph-connection.ps1', [], (log) => {
       uiSend('ps-operation-log', log)
     })
+    authDebug('ipc:ensure-graph-connected', { exitCode: result.exitCode, stdoutLen: result.stdout?.length })
     if (result.exitCode === -1 && !result.stdout) {
+      authLogUi(`Verbindung fehlgeschlagen: ${result.stderr}`, 'error')
       return { status: 'error', message: result.stderr || 'PowerShell konnte nicht gestartet werden' }
     }
     const data = parseJsonFromOutput(result.stdout)
     if (!data) {
+      authLogUi('Verbindung fehlgeschlagen — keine Antwort von PowerShell', 'error')
       return { status: 'error', message: result.stderr || 'Keine Antwort von PowerShell erhalten.' }
     }
-    return onGraphResponse(data)
+    return onGraphResponse(data, 'ensure-graph-connected')
   } catch (e) {
+    authLogUi(`Verbindung fehlgeschlagen: ${e?.message}`, 'error')
     return { status: 'error', message: e?.message }
   }
 })
@@ -869,21 +1170,26 @@ ipcMain.handle('cancel-scheduled-directory-role', async (_event, { roleTemplateI
 })
 
 ipcMain.handle('get-managed-directory-roles', async () => {
+  authDebug('ipc:get-managed-directory-roles')
   try {
     const configPath = await resolveManagedRolesConfigPath()
     const result = await runPsScript('scripts/get-managed-directory-roles.ps1', ['-ConfigPath', configPath], (log) => {
       uiSend('ps-operation-log', log)
     })
+    authDebug('ipc:get-managed-directory-roles', { exitCode: result.exitCode, stdoutLen: result.stdout?.length })
     if (result.exitCode === -1 && !result.stdout) {
+      authLogUi(`Rollen laden fehlgeschlagen: ${result.stderr}`, 'error')
       return { status: 'error', message: result.stderr || 'PowerShell konnte nicht gestartet werden', roles: [] }
     }
     const data = parseJsonFromOutput(result.stdout)
     if (!data) {
+      authLogUi('Rollen laden fehlgeschlagen — keine Antwort von PowerShell', 'error')
       return { status: 'error', message: result.stderr || 'Keine Rollendaten von PowerShell erhalten.', roles: [] }
     }
     uiSend('ps-operation-complete', { status: data.status })
-    return onGraphResponse(data)
+    return onGraphResponse(data, 'get-managed-directory-roles')
   } catch (e) {
+    authLogUi(`Rollen laden fehlgeschlagen: ${e?.message}`, 'error')
     return { status: 'error', message: e?.message, roles: [] }
   }
 })

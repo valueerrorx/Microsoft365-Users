@@ -3,7 +3,7 @@
 
 import { defineStore } from 'pinia'
 import { useAuthStore } from './authStore'
-import { a3LicenseBucket } from '../utils/licenseLabel.js'
+import { a3LicenseBucket, licenseListSortRank } from '../utils/licenseLabel.js'
 
 export const useUsersStore = defineStore('users', {
   state: () => ({
@@ -68,6 +68,9 @@ export const useUsersStore = defineStore('users', {
         if (result.status === 'ok') {
           this.users = result.users || []
           this.licenses = [...(result.licenses || [])].sort((a, b) => {
+            const ar = licenseListSortRank(a?.skuPartNumber)
+            const br = licenseListSortRank(b?.skuPartNumber)
+            if (ar !== br) return ar - br
             const ac = Number.isFinite(a?.consumedUnits) ? a.consumedUnits : 0
             const bc = Number.isFinite(b?.consumedUnits) ? b.consumedUnits : 0
             if (bc !== ac) return bc - ac

@@ -78,6 +78,10 @@
           <i class="bi bi-box-arrow-left"></i>
           <span>{{ authStore.loggingOut ? 'Melde ab…' : 'Abmelden' }}</span>
         </button>
+        <button type="button" class="sidebar-quit-btn mt-2" @click="handleQuit">
+          <i class="bi bi-power"></i>
+          <span>Programm schliessen</span>
+        </button>
       </div>
       <button
         type="button"
@@ -152,6 +156,10 @@ function handleLogout() {
   void authStore.logout()
 }
 
+function handleQuit() {
+  void window.ipcRenderer.invoke('request-app-close')
+}
+
 async function openXapientSite() {
   try {
     const r = await window.ipcRenderer.invoke('open-external-url', xapientUrl)
@@ -191,6 +199,27 @@ async function openXapientSite() {
 .sidebar-logout-btn:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+.sidebar-quit-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--sidebar-border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.sidebar-quit-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #484f58;
+  color: var(--text-primary);
 }
 
 .sidebar-version-btn {

@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) Mag. Thomas Michael Weissel <valueerror@gmail.com>
 
-# Stellt EINE Graph-Verbindung her (Device-Code) und fuellt den Token-Cache,
-# bevor die Daten-Scripts parallel laufen. Verhindert mehrfache Anmelde-Codes.
+# Stellt EINE Graph-Verbindung her (interaktiver Browser-Login) und fuellt den Token-Cache,
+# bevor die Daten-Scripts parallel laufen. Verhindert mehrfache Anmelde-Vorgaenge.
 # Ausgabe: JSON an stdout mit Sentry-Markierungen.
 
 $ErrorActionPreference = 'Continue'

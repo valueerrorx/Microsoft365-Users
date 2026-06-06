@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) Mag. Thomas Michael Weissel <valueerror@gmail.com>
 
+// Lower rank = earlier in license lists (A3 Schüler, then A3 Lehrer, then rest).
+export function licenseListSortRank(skuPartNumber) {
+  const bucket = a3LicenseBucket(skuPartNumber)
+  if (bucket === 'student') return 0
+  if (bucket === 'faculty') return 1
+  return 2
+}
+
 // Maps A3 skuPartNumber to student/faculty bucket for dashboard (null if not A3 Schüler/Lehrer SKU).
 export function a3LicenseBucket(skuPartNumber) {
   if (!skuPartNumber) return null

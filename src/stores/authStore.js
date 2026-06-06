@@ -38,14 +38,21 @@ export const useAuthStore = defineStore('auth', {
     },
 
     beginGraphOperation(resourceLabel) {
+      const isLinux = typeof navigator !== 'undefined' && /Linux/i.test(navigator.userAgent)
       const message = this.connected
         ? `Lade ${resourceLabel} (Microsoft Graph)…`
-        : 'Verbinde mit Microsoft Graph…'
+        : isLinux
+          ? 'Verbinde mit Microsoft Graph — Browserfenster oeffnet sich gleich…'
+          : 'Verbinde mit Microsoft Graph…'
       this.addLog({ type: 'info', message })
     },
 
     markGraphConnected(domain) {
       if (!this.connected) this.setConnected(domain || 'Microsoft 365')
+    },
+
+    setDeviceLoginCode(code) {
+      this.deviceLoginCode = code ? String(code) : null
     },
 
     setConnected(domain) {
@@ -61,10 +68,6 @@ export const useAuthStore = defineStore('auth', {
       this.connecting = false
       this.tenantDomain = null
       this.deviceLoginCode = null
-    },
-
-    setDeviceLoginCode(code) {
-      this.deviceLoginCode = code ? String(code) : null
     },
 
     async clearLocalSession() {
