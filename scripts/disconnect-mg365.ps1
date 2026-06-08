@@ -36,9 +36,12 @@ function Clear-Mg365TokenCacheFiles {
     return $removed
 }
 
+$__mg365ScriptsRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+. (Join-Path $__mg365ScriptsRoot 'Mg365-GraphModules.ps1')
+
 try {
-    if (Get-Module -ListAvailable -Name Microsoft.Graph.Authentication) {
-        Import-Module Microsoft.Graph.Authentication -ErrorAction SilentlyContinue
+    if (Get-Module -ListAvailable -Name Microsoft.Graph.Authentication | Where-Object { $_.Version -eq $script:Mg365GraphSdkVersion }) {
+        Import-Module Microsoft.Graph.Authentication -RequiredVersion $script:Mg365GraphSdkVersion -ErrorAction SilentlyContinue
         if (Get-Command Disconnect-MgGraph -ErrorAction SilentlyContinue) {
             Disconnect-MgGraph -ErrorAction SilentlyContinue | Out-Null
         }

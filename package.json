@@ -1,6 +1,6 @@
 {
-  "name": "microsoft365-users",
-  "version": "2.2.3",
+  "name": "microsoft365-manager",
+  "version": "2.2.10",
   "description": "MS-365 User Management Dashboard",
   "main": "index.js",
   "type": "module",
@@ -11,13 +11,14 @@
     "build:renderer": "vite build",
     "build": "npm run build:renderer && electron-builder --publish never",
     "build:test": "npm run build:renderer && electron-builder --linux dir --publish never",
-    "build:linux": "npm run build:renderer && electron-builder --linux --publish never"
+    "build:linux": "npm run build:renderer && electron-builder --linux --publish never",
+    "build:mac:arm64": "npm run build:renderer && electron-builder --mac --arm64 --publish never"
   },
   "author": "Thomas Michael Weissel <valueerror@gmail.com>",
   "license": "GPL-3.0-or-later",
   "build": {
-    "appId": "eu.life-edu.microsoft365users",
-    "productName": "Microsoft365Users",
+    "appId": "eu.life-edu.microsoft365manager",
+    "productName": "Microsoft365Manager",
     "icon": "icon.png",
     "publish": null,
     "files": [
@@ -44,7 +45,9 @@
       "maintainer": "Thomas Michael Weissel <valueerror@gmail.com>",
       "artifactName": "${productName}-${version}-${arch}.${ext}",
       "desktop": {
-        "StartupWMClass": "microsoft365-users"
+        "entry": {
+          "StartupWMClass": "microsoft365-manager"
+        }
       }
     },
     "win": {
@@ -63,8 +66,7 @@
         }
       ],
       "icon": "icon.png",
-      "artifactName": "${productName}-${version}-portable-${arch}.${ext}",
-      "publisherName": "Thomas Michael Weissel <valueerror@gmail.com>"
+      "artifactName": "${productName}-${version}-portable-${arch}.${ext}"
     },
     "portable": {
       "useZip": true
@@ -79,7 +81,10 @@
       "target": [
         "dmg"
       ],
-      "darkModeSupport": true
+      "darkModeSupport": true,
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "notarize": true
     },
     "dmg": {
       "title": "${productName} ${version}",

@@ -10,6 +10,7 @@ export const useUsersStore = defineStore('users', {
     users: [],
     licenses: [],
     loading: false,
+    licensesLoading: false,
     error: null,
     lastFetched: null,
     csvEntries: [],
@@ -90,6 +91,39 @@ export const useUsersStore = defineStore('users', {
         auth.addLog({ type: 'error', message: e.message })
       } finally {
         this.loading = false
+      }
+    },
+
+    async fetchLicenses(opts = {}) {
+      const quietToast = opts.quietToast !== false
+      const auth = useAuthStore()
+      this.licensesLoading = true
+      auth.addLog({ type: 'info', message: 'Lizenzen aktualisieren...' })
+      try {
+        const result = await window.ipcRenderer.invoke('get-licenses')
+        if (result.status === 'ok') {
+          this.licenses = [...(result.licenses || [])].sort((a, b) => {
+            const ar = licenseListSortRank(a?.skuPartNumber)
+            const br = licenseListSortRank(b?.skuPartNumber)
+            if (ar !== br) return ar - br
+            const ac = Number.isFinite(a?.consumedUnits) ? a.consumedUnits : 0
+            const bc = Number.isFinite(b?.consumedUnits) ? b.consumedUnits : 0
+            if (bc !== ac) return bc - ac
+            return String(a?.skuPartNumber || '').localeCompare(String(b?.skuPartNumber || ''))
+          })
+          auth.addLog({ type: 'success', message: `${this.licenses.length} Lizenzen aktualisiert` })
+          if (!quietToast) auth.showToast(`${this.licenses.length} Lizenzen aktualisiert`, 'success')
+          return true
+        }
+        auth.addLog({ type: 'error', message: `Fehler: ${result.message}` })
+        if (!quietToast) auth.showToast(result.message, 'error')
+        return false
+      } catch (e) {
+        auth.addLog({ type: 'error', message: e.message })
+        if (!quietToast) auth.showToast(e.message, 'error')
+        return false
+      } finally {
+        this.licensesLoading = false
       }
     },
 
@@ -209,6 +243,41 @@ export const useUsersStore = defineStore('users', {
         auth.addLog({ type: 'error', message: e.message })
         auth.showToast(e.message, 'error')
         return false
+      }
+    },
+
+    // Batch delete via one PS script + Graph $batch (20 deletes per request).
+    async deleteUsersBatch(upns, opts = {}) {
+      const quietToast = opts.quietToast === true
+      const auth = useAuthStore()
+      const list = Array.isArray(upns) ? upns.filter(Boolean) : []
+      if (!list.length) return { ok: 0, fail: 0 }
+      auth.addLog({ type: 'info', message: `Batch-Löschen: ${list.length} Benutzer` })
+      try {
+        const result = await window.ipcRenderer.invoke('delete-users', { upns: list })
+        const deletedUpns = Array.isArray(result.deletedUpns) ? result.deletedUpns : []
+        const errors = Array.isArray(result.errors) ? result.errors : []
+        for (const upn of deletedUpns) {
+          const idx = this.users.findIndex(u => u.userPrincipalName === upn)
+          if (idx !== -1) this.users.splice(idx, 1)
+          auth.addLog({ type: 'success', message: `Benutzer gelöscht: ${upn}` })
+        }
+        for (const err of errors) {
+          auth.addLog({ type: 'error', message: `${err.upn}: ${err.message}` })
+        }
+        const ok = deletedUpns.length
+        const fail = errors.length
+        if (!quietToast) {
+          const msg = result.message || `Gelöscht: ${ok}${fail ? `, fehlgeschlagen: ${fail}` : ''}`
+          if (fail && !ok) auth.showToast(msg, 'error')
+          else if (fail) auth.showToast(msg, 'warning')
+          else auth.showToast(msg, 'success')
+        }
+        return { ok, fail, deletedUpns, errors }
+      } catch (e) {
+        auth.addLog({ type: 'error', message: e.message })
+        if (!quietToast) auth.showToast(e.message, 'error')
+        return { ok: 0, fail: list.length, errors: list.map(upn => ({ upn, message: e.message })) }
       }
     },
 

@@ -8,20 +8,21 @@ $ErrorActionPreference = 'Continue'
 $ProgressPreference = 'SilentlyContinue'
 
 # Installiere / Importiere benötigte Module
-function Ensure-Module {
-    param([string]$Name)
-    try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
-    try { Install-PackageProvider -Name NuGet -Force -Scope CurrentUser -Confirm:$false -ErrorAction Stop | Out-Null } catch {}
-    try { Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue } catch {}
-    if (-not (Get-Module -ListAvailable -Name $Name)) {
-        Write-Host "Installiere Modul: $Name"
-        Install-Module $Name -Force -Scope CurrentUser -AllowClobber -Confirm:$false -ErrorAction Stop
-    }
-    Import-Module $Name -Force -ErrorAction Stop
-}
+$__mg365ScriptsRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+. (Join-Path $__mg365ScriptsRoot 'Mg365-GraphModules.ps1')
 
-Ensure-Module "Microsoft.Graph.Users"
-Ensure-Module "Microsoft.Graph.Identity.DirectoryManagement"
+# Pick the best cached sign-in timestamp from the user object's signInActivity block.
+function Get-LastActivityFromSignInActivity {
+    param($Sa)
+    if (-not $Sa) { return $null }
+    if ($Sa.LastSuccessfulSignInDateTime) { return $Sa.LastSuccessfulSignInDateTime }
+    $fallbacks = @(
+        $Sa.LastNonInteractiveSignInDateTime
+        $Sa.LastSignInDateTime
+    ) | Where-Object { $_ }
+    if (-not $fallbacks.Count) { return $null }
+    return $fallbacks | Sort-Object -Descending | Select-Object -First 1
+}
 
 $__ms365ConnRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 . (Join-Path $__ms365ConnRoot 'Connect-Mg365App.ps1')
@@ -42,6 +43,9 @@ try {
     Write-Output "###JSON_END###"
     exit 1
 }
+
+Ensure-Module "Microsoft.Graph.Users"
+Ensure-Module "Microsoft.Graph.Identity.DirectoryManagement"
 
 # Tenant-Domain ermitteln
 $tenantDomain = ""
@@ -80,10 +84,11 @@ try {
 Write-Host "Lade Benutzerliste..."
 $usersData = @()
 try {
-    $selectFields = "id,userPrincipalName,displayName,givenName,surname,department,jobTitle,accountEnabled,usageLocation,assignedLicenses,mail,mobilePhone,createdDateTime"
+    $selectFields = "id,userPrincipalName,displayName,givenName,surname,department,jobTitle,accountEnabled,usageLocation,assignedLicenses,mail,mobilePhone,createdDateTime,signInActivity"
     $users = Get-MgUser -All -Property $selectFields -ErrorAction Stop
 
     foreach ($user in $users) {
+        $lastActivity = Get-LastActivityFromSignInActivity -Sa $user.SignInActivity
         $assignedLics = @()
         if ($user.AssignedLicenses) {
             foreach ($lic in $user.AssignedLicenses) {
@@ -105,6 +110,7 @@ try {
             mobilePhone         = $user.MobilePhone
             assignedLicenses    = $assignedLics
             createdDateTime     = $user.CreatedDateTime
+            lastActivityDateTime = $lastActivity
         }
     }
     Write-Host "Benutzer geladen: $($usersData.Count)"

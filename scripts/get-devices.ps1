@@ -5,20 +5,8 @@
 $ErrorActionPreference = 'Continue'
 $ProgressPreference = 'SilentlyContinue'
 
-function Ensure-Module {
-    param([string]$Name)
-    try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
-    try { Install-PackageProvider -Name NuGet -Force -Scope CurrentUser -Confirm:$false -ErrorAction Stop | Out-Null } catch {}
-    try { Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue } catch {}
-    if (Get-Module -Name $Name -ErrorAction SilentlyContinue) { return }
-    if (-not (Get-Module -ListAvailable -Name $Name)) {
-        Write-Host "Installiere Modul: $Name"
-        Install-Module $Name -Force -Scope CurrentUser -AllowClobber -Confirm:$false -ErrorAction Stop
-    }
-    Import-Module $Name -ErrorAction Stop
-}
-
-Ensure-Module "Microsoft.Graph.Identity.DirectoryManagement"
+$__mg365ScriptsRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+. (Join-Path $__mg365ScriptsRoot 'Mg365-GraphModules.ps1')
 
 $__ms365ConnRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 . (Join-Path $__ms365ConnRoot 'Connect-Mg365App.ps1')
@@ -36,6 +24,8 @@ try {
     Write-Output "###JSON_END###"
     exit 1
 }
+
+Ensure-Module "Microsoft.Graph.Identity.DirectoryManagement"
 
 function Get-TrustTypeLabel {
     param([string]$TrustType)
@@ -84,9 +74,10 @@ function Format-Iso {
 }
 
 $devicesData = @()
+$allEntraDevices = New-Object System.Collections.Generic.List[hashtable]
 try {
     Write-Host "Lade Geräte (mit registrierten Besitzern)..."
-    $uri = "/v1.0/devices?`$select=id,displayName,accountEnabled,operatingSystem,operatingSystemVersion,trustType,isCompliant,isManaged,managementType,approximateLastSignInDateTime,createdDateTime&`$expand=registeredOwners(`$select=displayName,userPrincipalName)&`$top=999"
+    $uri = "/v1.0/devices?`$select=id,deviceId,displayName,accountEnabled,operatingSystem,operatingSystemVersion,trustType,isCompliant,isManaged,managementType,approximateLastSignInDateTime,createdDateTime&`$expand=registeredOwners(`$select=displayName,userPrincipalName)&`$top=999"
     $total = 0
     while ($null -ne $uri) {
         $resp = Invoke-MgGraphRequest -Method GET -Uri $uri -ErrorAction Stop
@@ -107,8 +98,9 @@ try {
             if ($null -ne $tt) { $tt = [string]$tt }
             if ($null -ne $mgmt) { $mgmt = [string]$mgmt }
 
-            $devicesData += @{
+            $allEntraDevices.Add(@{
                 id                           = $d.id
+                deviceId                     = if ($null -ne $d.deviceId -and '' -ne [string]$d.deviceId) { [string]$d.deviceId } else { $null }
                 displayName                  = $d.displayName
                 accountEnabled               = [bool]($d.accountEnabled -eq $true)
                 operatingSystem              = $d.operatingSystem
@@ -124,54 +116,54 @@ try {
                 isManaged                    = if ($null -eq $d.isManaged) { $null } else { [bool]$d.isManaged }
                 approximateLastSignInDateTime = (Format-Iso -Val $d.approximateLastSignInDateTime)
                 createdDateTime              = (Format-Iso -Val $d.createdDateTime)
-            }
+            })
         }
-        Write-Host "… $total Geräte"
+        Write-Host "… $total Entra-Geräte"
         $uri = $resp.'@odata.nextLink'
     }
-    Write-Host "Fertig: $($devicesData.Count) Geräte"
+    Write-Host "Entra: $($allEntraDevices.Count) Geräte"
 
-    $needsManagedDeviceCompliance = $false
-    foreach ($dev in $devicesData) {
-        if ($dev.isManaged -eq $true -and $null -eq $dev.isCompliant) {
-            $needsManagedDeviceCompliance = $true
-            break
-        }
-    }
-    if ($needsManagedDeviceCompliance) {
-        try {
-            Write-Host "Lade Intune-Konformität (managedDevices)…"
-            $compByAid = @{}
-            $mdUri = "/v1.0/deviceManagement/managedDevices?`$select=azureADDeviceId,complianceState&`$top=999"
-            while ($null -ne $mdUri) {
-                $mdr = Invoke-MgGraphRequest -Method GET -Uri $mdUri -ErrorAction Stop
-                foreach ($m in $mdr.value) {
-                    $aid = $m.azureADDeviceId
-                    if ($null -ne $aid -and '' -ne [string]$aid) {
-                        $compByAid[[string]$aid] = [string]$m.complianceState
-                    }
-                }
-                $mdUri = $mdr.'@odata.nextLink'
-            }
-            foreach ($dev in $devicesData) {
-                $id = [string]$dev.id
-                if (-not $compByAid.ContainsKey($id)) { continue }
-                $cs = [string]$compByAid[$id]
-                $dev.intuneComplianceState = $cs
-                $csLower = $cs.ToLowerInvariant()
-                if ($csLower -eq 'compliant') {
-                    $dev.isCompliant = $true
-                } elseif ($csLower -in @('noncompliant', 'conflict', 'error')) {
-                    $dev.isCompliant = $false
-                } else {
-                    $dev.isCompliant = $null
+    $intuneByAid = @{}
+    try {
+        Write-Host "Lade Intune managedDevices…"
+        $mdUri = "/v1.0/deviceManagement/managedDevices?`$select=id,azureADDeviceId,complianceState,userPrincipalName,deviceName&`$top=999"
+        while ($null -ne $mdUri) {
+            $mdr = Invoke-MgGraphRequest -Method GET -Uri $mdUri -ErrorAction Stop
+            foreach ($m in $mdr.value) {
+                $aid = $m.azureADDeviceId
+                if ($null -ne $aid -and '' -ne [string]$aid) {
+                    $intuneByAid[[string]$aid] = $m
                 }
             }
-            Write-Host "Intune-Konformität: $($compByAid.Count) Zuordnungen"
-        } catch {
-            Write-Host "Hinweis: managedDevices/Konformität übersprungen: $($_.Exception.Message)" -ForegroundColor Yellow
+            $mdUri = $mdr.'@odata.nextLink'
         }
+        Write-Host "Intune: $($intuneByAid.Count) verwaltete Geräte"
+    } catch {
+        Write-Host "Hinweis: managedDevices nicht lesbar: $($_.Exception.Message)" -ForegroundColor Yellow
     }
+
+    foreach ($dev in $allEntraDevices) {
+        $lookupId = [string]$dev.deviceId
+        if ([string]::IsNullOrWhiteSpace($lookupId)) { $lookupId = [string]$dev.id }
+        $dev.isIntuneManaged = $false
+        if ($intuneByAid.ContainsKey($lookupId)) {
+            $managed = $intuneByAid[$lookupId]
+            $dev.isIntuneManaged = $true
+            $dev.intuneManagedDeviceId = [string]$managed.id
+            if (-not $dev.deviceId) { $dev.deviceId = $lookupId }
+            $cs = [string]$managed.complianceState
+            $dev.intuneComplianceState = $cs
+            $csLower = $cs.ToLowerInvariant()
+            if ($csLower -eq 'compliant') {
+                $dev.isCompliant = $true
+            } elseif ($csLower -in @('noncompliant', 'conflict', 'error')) {
+                $dev.isCompliant = $false
+            }
+        }
+        $devicesData += $dev
+    }
+    $intuneCount = ($devicesData | Where-Object { $_.isIntuneManaged -eq $true }).Count
+    Write-Host "Liste: $($devicesData.Count) Geräte ($intuneCount in Intune verwaltet)"
 } catch {
     $result = @{
         status  = "error"

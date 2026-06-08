@@ -17,18 +17,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-function Ensure-Module {
-    param([string]$Name)
-    try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
-    try { Install-PackageProvider -Name NuGet -Force -Scope CurrentUser -Confirm:$false -ErrorAction Stop | Out-Null } catch {}
-    try { Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue } catch {}
-    if (Get-Module -Name $Name -ErrorAction SilentlyContinue) { return }
-    if (-not (Get-Module -ListAvailable -Name $Name)) {
-        Write-Host "Installiere Modul: $Name"
-        Install-Module $Name -Force -Scope CurrentUser -AllowClobber -Confirm:$false -ErrorAction Stop
-    }
-    Import-Module $Name -ErrorAction Stop
-}
+$__mg365ScriptsRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+. (Join-Path $__mg365ScriptsRoot 'Mg365-GraphModules.ps1')
 
 function Write-JsonResult($obj) {
     $json = $obj | ConvertTo-Json -Depth 8 -Compress
@@ -50,8 +40,6 @@ function Get-GraphErrorDetail {
     return $msg
 }
 
-Ensure-Module "Microsoft.Graph.Groups"
-
 $__ms365ConnRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 . (Join-Path $__ms365ConnRoot 'Connect-Mg365App.ps1')
 Write-Host "Verbinde mit Microsoft Graph..."
@@ -61,6 +49,8 @@ try {
     Write-JsonResult @{ status = "error"; message = "Verbindung fehlgeschlagen: $($_.Exception.Message)" }
     exit 1
 }
+
+Ensure-Module "Microsoft.Graph.Groups"
 
 try {
     switch ($Action) {

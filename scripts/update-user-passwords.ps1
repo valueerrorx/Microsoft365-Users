@@ -29,27 +29,12 @@ if (-not (Test-Path -Path $CSVFilePath)) {
     return
 }
 
-# Installiere/Importiere benötigte Module
-try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
-try { Install-PackageProvider -Name NuGet -Force -Scope CurrentUser -Confirm:$false -ErrorAction Stop | Out-Null } catch {}
-try { Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue } catch {}
-if (-not (Get-Module -ListAvailable -Name Microsoft.Graph.Users)) {
-    Install-Module Microsoft.Graph.Users -Force -Scope CurrentUser -Confirm:$false -ErrorAction Stop
-}
-Import-Module Microsoft.Graph.Users -Force -ErrorAction Stop
-
-# Microsoft.Graph.Users.Actions für Set-MgUserLicense
-if (-not (Get-Module -ListAvailable -Name Microsoft.Graph.Users.Actions)) {
-    Install-Module Microsoft.Graph.Users.Actions -Force -Scope CurrentUser -Confirm:$false -ErrorAction Stop
-}
-Import-Module Microsoft.Graph.Users.Actions -Force -ErrorAction Stop
-
-if (-not (Get-Module -ListAvailable -Name Microsoft.Graph.Identity.DirectoryManagement)) {
-    Install-Module Microsoft.Graph.Identity.DirectoryManagement -Force -Scope CurrentUser -Confirm:$false -ErrorAction Stop
-}
-Import-Module Microsoft.Graph.Identity.DirectoryManagement -Force -ErrorAction Stop
-
 $__ms365ConnRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+. (Join-Path $__ms365ConnRoot 'Mg365-GraphModules.ps1')
+Ensure-Mg365GraphModule -Name 'Microsoft.Graph.Users'
+Ensure-Mg365GraphModule -Name 'Microsoft.Graph.Users.Actions'
+Ensure-Mg365GraphModule -Name 'Microsoft.Graph.Identity.DirectoryManagement'
+
 . (Join-Path $__ms365ConnRoot 'Connect-Mg365App.ps1')
 Connect-Mg365App
 

@@ -9,6 +9,8 @@
 $ErrorActionPreference = 'Continue'
 $ProgressPreference = 'SilentlyContinue'
 
+$__ms365ConnRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+
 function Write-Mg365AuthLog {
     param([string]$Message)
     Write-Host "[MG365-AUTH] check-graph: $Message"
@@ -21,7 +23,8 @@ try {
     if (-not (Test-Path -LiteralPath $authRecordPath)) {
         throw "Keine bestehende Anmeldung."
     }
-    Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
+    . (Join-Path $__ms365ConnRoot 'Mg365-GraphModules.ps1')
+    Ensure-Mg365GraphModule -Name 'Microsoft.Graph.Authentication'
     if ($env:MS365_ELECTRON_APP -eq '1') {
         Write-Mg365AuthLog "Connect-MgGraph -UseDeviceCode User.Read (Cache-Reconnect)"
         Connect-MgGraph -Scopes @('User.Read') -UseDeviceCode -NoWelcome -ErrorAction Stop | Out-Null

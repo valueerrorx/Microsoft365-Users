@@ -2,85 +2,98 @@
 <!-- Copyright (C) Mag. Thomas Michael Weissel <valueerror@gmail.com> -->
 
 <template>
-  <nav class="app-sidebar">
+  <nav class="app-sidebar" :class="{ collapsed: isCollapsed }">
     <!-- Brand -->
-    <div class="sidebar-brand d-flex align-items-center gap-2">
-      <div style="width:28px;height:28px;background:linear-gradient(135deg,#58a6ff,#1f6feb);border-radius:6px;display:flex;align-items:center;justify-content:center;">
-        <i class="bi bi-microsoft" style="color:white;font-size:0.85rem;"></i>
-      </div>
-      <div>
-        <div style="font-size:0.875rem;line-height:1.2">MS365 Manager</div>
-        <div style="font-size:0.68rem;color:#8b949e;font-weight:400">User Dashboard</div>
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-row d-flex align-items-center gap-2">
+        <img src="/icon.png" style="width:28px;border-radius:6px;flex-shrink:0;" alt="MS365 Manager" />
+        <div class="sidebar-brand-text">
+          <div style="font-size:0.875rem;line-height:1.2">MS365 Manager</div>
+          <div style="font-size:0.68rem;color:#8b949e;font-weight:400">User Dashboard</div>
+        </div>
+        <button
+          type="button"
+          class="sidebar-toggle-btn"
+          :title="isCollapsed ? 'Sidebar ausklappen' : 'Sidebar einklappen'"
+          @click="toggleCollapsed"
+        >
+          <i class="bi" :class="isCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
+        </button>
       </div>
     </div>
 
     <!-- Navigation -->
     <div class="flex-grow-1 pt-2">
       <div class="sidebar-section-label">Navigation</div>
-      <RouterLink to="/" class="nav-link-custom">
+      <RouterLink to="/" class="nav-link-custom" title="Dashboard">
         <i class="bi bi-speedometer2"></i>
-        <span>Dashboard</span>
+        <span class="nav-label">Dashboard</span>
       </RouterLink>
-      <RouterLink to="/users" class="nav-link-custom">
+      <RouterLink to="/users" class="nav-link-custom" title="Benutzerliste">
         <i class="bi bi-people"></i>
-        <span>Benutzerliste</span>
-        <span v-if="usersStore.users.length" class="ms-auto" style="font-size:0.7rem;background:rgba(88,166,255,0.15);color:#58a6ff;border-radius:10px;padding:0.1rem 0.4rem;">
+        <span class="nav-label">Benutzerliste</span>
+        <span v-if="usersStore.users.length" class="nav-badge ms-auto" style="font-size:0.7rem;background:rgba(88,166,255,0.15);color:#58a6ff;border-radius:10px;padding:0.1rem 0.4rem;">
           {{ usersStore.users.length }}
         </span>
       </RouterLink>
-      <RouterLink to="/groups" class="nav-link-custom">
+      <RouterLink to="/groups" class="nav-link-custom" title="Gruppen">
         <i class="bi bi-collection"></i>
-        <span>Gruppen</span>
-        <span v-if="groupsStore.groups.length" class="ms-auto" style="font-size:0.7rem;background:rgba(88,166,255,0.15);color:#58a6ff;border-radius:10px;padding:0.1rem 0.4rem;">
+        <span class="nav-label">Gruppen</span>
+        <span v-if="groupsStore.groups.length" class="nav-badge ms-auto" style="font-size:0.7rem;background:rgba(88,166,255,0.15);color:#58a6ff;border-radius:10px;padding:0.1rem 0.4rem;">
           {{ groupsStore.groups.length }}
         </span>
       </RouterLink>
-      <RouterLink to="/devices" class="nav-link-custom">
+      <RouterLink to="/devices" class="nav-link-custom" title="Geräte">
         <i class="bi bi-pc-display"></i>
-        <span>Geräte</span>
-        <span v-if="devicesStore.devices.length" class="ms-auto" style="font-size:0.7rem;background:rgba(88,166,255,0.15);color:#58a6ff;border-radius:10px;padding:0.1rem 0.4rem;">
+        <span class="nav-label">Geräte</span>
+        <span v-if="devicesStore.devices.length" class="nav-badge ms-auto" style="font-size:0.7rem;background:rgba(88,166,255,0.15);color:#58a6ff;border-radius:10px;padding:0.1rem 0.4rem;">
           {{ devicesStore.devices.length }}
         </span>
       </RouterLink>
-      <RouterLink to="/roles" class="nav-link-custom">
+      <RouterLink to="/roles" class="nav-link-custom" title="Rollen">
         <i class="bi bi-shield-lock"></i>
-        <span>Rollen</span>
-        <span v-if="rolesStore.roles.length" class="ms-auto" style="font-size:0.7rem;background:rgba(88,166,255,0.15);color:#58a6ff;border-radius:10px;padding:0.1rem 0.4rem;">
+        <span class="nav-label">Rollen</span>
+        <span v-if="rolesStore.roles.length" class="nav-badge ms-auto" style="font-size:0.7rem;background:rgba(88,166,255,0.15);color:#58a6ff;border-radius:10px;padding:0.1rem 0.4rem;">
           {{ rolesStore.roles.length }}
         </span>
       </RouterLink>
 
       <div class="sidebar-section-label mt-2">Aktionen</div>
-      <RouterLink to="/create" class="nav-link-custom">
+      <RouterLink to="/create" class="nav-link-custom" title="Erstellen / Import">
         <i class="bi bi-person-plus"></i>
-        <span>Erstellen / Import</span>
+        <span class="nav-label">Erstellen / Import</span>
       </RouterLink>
     </div>
 
     <!-- Connection + version (pinned bottom) -->
     <div class="sidebar-footer mt-auto">
       <div style="padding:0.75rem 1rem;border-top:1px solid var(--sidebar-border);">
-        <div class="d-flex align-items-center gap-2 mb-2">
-          <div class="conn-dot" :class="authStore.connected ? 'connected' : 'disconnected'"></div>
-          <span style="font-size:0.78rem;color:var(--text-secondary);">
+        <div class="d-flex align-items-center gap-2 mb-2" :class="{ 'justify-content-center': isCollapsed }">
+          <div
+            class="conn-dot"
+            :class="authStore.connected ? 'connected' : 'disconnected'"
+            :title="authStore.connected ? authStore.tenantDomain : 'Nicht verbunden'"
+          ></div>
+          <span class="sidebar-footer-detail" style="font-size:0.78rem;color:var(--text-secondary);">
             {{ authStore.connected ? authStore.tenantDomain : 'Nicht verbunden' }}
           </span>
         </div>
-        <div v-if="usersStore.lastFetched" style="font-size:0.7rem;color:var(--text-secondary);margin-bottom:0.4rem;">
+        <div v-if="usersStore.lastFetched" class="sidebar-footer-detail" style="font-size:0.7rem;color:var(--text-secondary);margin-bottom:0.4rem;">
           Zuletzt: {{ formatTime(usersStore.lastFetched) }}
         </div>
         <button
           type="button"
           class="sidebar-logout-btn"
           :disabled="!canLogout || authStore.loggingOut"
+          :title="authStore.loggingOut ? 'Melde ab…' : 'Abmelden'"
           @click="handleLogout"
         >
           <i class="bi bi-box-arrow-left"></i>
-          <span>{{ authStore.loggingOut ? 'Melde ab…' : 'Abmelden' }}</span>
+          <span class="btn-label">{{ authStore.loggingOut ? 'Melde ab…' : 'Abmelden' }}</span>
         </button>
-        <button type="button" class="sidebar-quit-btn mt-2" @click="handleQuit">
+        <button type="button" class="sidebar-quit-btn mt-2" title="Programm schliessen" @click="handleQuit">
           <i class="bi bi-power"></i>
-          <span>Programm schliessen</span>
+          <span class="btn-label">Programm schliessen</span>
         </button>
       </div>
       <button
@@ -118,7 +131,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+
+const SIDEBAR_COLLAPSED_KEY = 'ms365-sidebar-collapsed'
 import { useAuthStore } from '../stores/authStore'
 import { useUsersStore } from '../stores/usersStore'
 import { useGroupsStore } from '../stores/groupsStore'
@@ -131,6 +146,21 @@ const appVersion = pkg.version
 const appVersionFull = `Version ${pkg.version}`
 const xapientUrl = 'https://xapient.solutions/'
 const aboutModalOpen = ref(false)
+const isCollapsed = ref(false)
+
+// Toggle sidebar width and persist preference in localStorage.
+function toggleCollapsed() {
+  isCollapsed.value = !isCollapsed.value
+  try {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, isCollapsed.value ? '1' : '0')
+  } catch {}
+}
+
+onMounted(() => {
+  try {
+    isCollapsed.value = localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1'
+  } catch {}
+})
 
 const authStore = useAuthStore()
 const usersStore = useUsersStore()

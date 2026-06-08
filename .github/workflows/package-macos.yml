@@ -1,4 +1,4 @@
-# Manual: macOS (DMG) → artifact mac-dist
+# Manual: macOS arm64 DMG (signed + notarized) → artifact mac-dist
 name: Package (macOS)
 
 on:
@@ -11,19 +11,48 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   build:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Decode .p12 file
+        env:
+          P12_BASE64_APPLE: ${{ secrets.P12_BASE64_APPLE }}
+        run: echo "$P12_BASE64_APPLE" | base64 -d > ./certificate.p12
+
+      - name: Import signing certificate
+        env:
+          CSC_KEY_PASSWORD: ${{ secrets.P12_PASSWORD_APPLE }}
+        run: |
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import ./certificate.p12 -k ~/Library/Keychains/build.keychain -P "$CSC_KEY_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: npm
+
       - run: npm ci
-      - run: npm run build
+
+      - name: Build signed macOS arm64 DMG
+        run: npm run build:mac:arm64
         env:
-          ELECTRON_BUILDER_PUBLISH: never
+          CSC_LINK: file://./certificate.p12
+          CSC_KEY_PASSWORD: ${{ secrets.P12_PASSWORD_APPLE }}
+          APPLE_ID: ${{ secrets.APPLEID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLEIDPASS }}
+          APPLE_TEAM_ID: ${{ secrets.TEAMID }}
+          USE_HARD_LINKS: "false"
+          ELECTRON_BUILDER_DISABLE_LINKS: "true"
+
       - uses: actions/upload-artifact@v4
         with:
           name: mac-dist

@@ -96,8 +96,7 @@
     <div v-if="usersStore.loading" class="text-center py-5">
       <div class="spinner-border" style="color:#58a6ff;" role="status"></div>
       <div style="color:#8b949e;margin-top:1rem;font-size:0.875rem;">
-        Benutzerliste wird geladen...<br>
-        <small>Beim ersten Start öffnet sich eine Authentifizierungsseite im Browser</small>
+        Benutzerliste wird geladen...
       </div>
     </div>
 
@@ -137,6 +136,9 @@
                 Abteilung <i class="bi" :class="sortIcon('department')"></i>
               </th>
               <th>Status</th>
+              <th @click="setSort('lastActivityDateTime')" style="cursor:pointer;user-select:none;white-space:nowrap;">
+                Aktivität <i class="bi" :class="sortIcon('lastActivityDateTime')"></i>
+              </th>
               <th>Lizenzen</th>
               <th style="width:160px;">Aktionen</th>
             </tr>
@@ -171,6 +173,9 @@
               <td>
                 <span class="badge-active" v-if="user.accountEnabled">Aktiv</span>
                 <span class="badge-inactive" v-else>Deaktiviert</span>
+              </td>
+              <td style="font-size:0.82rem;color:#8b949e;white-space:nowrap;" :title="user.lastActivityDateTime || ''">
+                {{ formatUserDateTime(user.lastActivityDateTime) }}
               </td>
               <td>
                 <div v-if="user.assignedLicenses?.length">
@@ -367,7 +372,7 @@
 
     <!-- MFA Reset Modal -->
     <div v-if="mfaModal.show" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.6);">
-      <div class="modal-dialog">
+      <div class="modal-dialog mfa-modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">
@@ -626,7 +631,7 @@
           <div class="modal-body delete-modal-body">
             <div class="alert" style="background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.25);color:#f85149;border-radius:6px;">
               <i class="bi bi-exclamation-triangle-fill me-2"></i>
-              <strong>Achtung:</strong> {{ batchDeleteModal.targets.length }} Benutzer werden endgültig gelöscht (nacheinander).
+              <strong>Achtung:</strong> {{ batchDeleteModal.targets.length }} Benutzer werden endgültig gelöscht (Graph Batch).
             </div>
             <ul class="batch-user-list list-unstyled mb-3 small" style="color:#8b949e;">
               <li v-for="t in batchDeleteModal.targets" :key="t.userPrincipalName" class="py-1 border-bottom border-secondary border-opacity-25">
@@ -707,8 +712,14 @@ const filteredUsers = computed(() => {
   }
 
   return [...list].sort((a, b) => {
-    const av = (a[sortKey.value] || '').toLowerCase()
-    const bv = (b[sortKey.value] || '').toLowerCase()
+    const key = sortKey.value
+    if (key === 'lastActivityDateTime') {
+      const av = dateSortKey(a[key])
+      const bv = dateSortKey(b[key])
+      return av < bv ? -sortDir.value : av > bv ? sortDir.value : 0
+    }
+    const av = (a[key] || '').toLowerCase()
+    const bv = (b[key] || '').toLowerCase()
     return av < bv ? -sortDir.value : av > bv ? sortDir.value : 0
   })
 })
@@ -955,13 +966,8 @@ async function runBatchDelete() {
   }
   batchDeleteModal.running = true
   batchDeleteModal.error = ''
-  let ok = 0
-  let fail = 0
-  for (const t of batchDeleteModal.targets) {
-    const r = await usersStore.deleteUser(t.userPrincipalName, { quietToast: true })
-    if (r) ok++
-    else fail++
-  }
+  const upns = batchDeleteModal.targets.map(t => t.userPrincipalName)
+  const { ok, fail } = await usersStore.deleteUsersBatch(upns, { quietToast: true })
   batchDeleteModal.running = false
   batchDeleteModal.show = false
   clearSelection()
@@ -980,6 +986,19 @@ function setSort(key) {
 function sortIcon(key) {
   if (sortKey.value !== key) return 'bi-chevron-expand text-secondary'
   return sortDir.value === 1 ? 'bi-chevron-up' : 'bi-chevron-down'
+}
+
+function dateSortKey(iso) {
+  if (!iso) return 0
+  const t = new Date(iso).getTime()
+  return Number.isNaN(t) ? 0 : t
+}
+
+function formatUserDateTime(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })
 }
 
 const UPN_DISPLAY_MAX = 40
@@ -1207,6 +1226,7 @@ onMounted(() => {
   background: rgba(0, 0, 0, 0.15);
 }
 
+.mfa-modal-dialog { max-width: min(750px, calc(100vw - 2rem)); }
 .pw-modal-dialog { max-width: min(640px, calc(100vw - 2rem)); }
 .pw-modal-body { min-width: 0; overflow-wrap: anywhere; }
 .pw-modal-user-line { margin-bottom: 1rem; min-width: 0; }

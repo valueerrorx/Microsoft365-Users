@@ -388,7 +388,7 @@ function uiSend(channel, payload) {
 const stripAnsi = (t) => t.replace(/\x1b\[[0-9;]*[mGK]/g, '').replace(/\x1b\[[0-9;]*[HJ]/g, '')
 
 function isPwshCommand(cmd) {
-  return /(?:^|[\\/])pwsh(?:\.exe)?$/i.test(String(cmd || '').trim())
+  return /(?:^|[\\/])pwsh(?:-preview)?(?:\.exe)?$/i.test(String(cmd || '').trim())
 }
 
 // Windows: UTF-8 via -Command wrapper — must not prepend to .ps1 files (breaks leading param blocks).
@@ -416,30 +416,37 @@ function detectPowerShell() {
     })
     return r.status === 0 && !r.error ? cmd : null
   }
+  const candidates = [
+    process.env.PWSH_PATH,
+    'pwsh',
+    ...(process.platform === 'darwin'
+      ? ['/opt/homebrew/bin/pwsh', '/usr/local/bin/pwsh']
+      : []),
+    'pwsh-preview',
+    ...(process.platform === 'darwin'
+      ? ['/opt/homebrew/bin/pwsh-preview', '/usr/local/bin/pwsh-preview']
+      : []),
+    ...(process.platform === 'win32'
+      ? [
+          path.join(process.env.ProgramFiles || 'C:\\Program Files', 'PowerShell', '7', 'pwsh.exe'),
+          path.join(process.env.ProgramFiles || 'C:\\Program Files', 'PowerShell', '7-preview', 'pwsh.exe'),
+          path.join(process.env.LOCALAPPDATA || '', 'Microsoft', 'WindowsApps', 'pwsh.exe')
+        ]
+      : [])
+  ].filter(Boolean)
+  for (const cmd of candidates) {
+    const ok = tryCmd(cmd)
+    if (ok) return ok
+  }
   if (process.platform === 'win32') {
-    const candidates = [
-      process.env.PWSH_PATH,
-      'pwsh',
-      path.join(process.env.ProgramFiles || 'C:\\Program Files', 'PowerShell', '7', 'pwsh.exe'),
-      path.join(process.env.LOCALAPPDATA || '', 'Microsoft', 'WindowsApps', 'pwsh.exe')
-    ].filter(Boolean)
-    for (const cmd of candidates) {
-      const ok = tryCmd(cmd)
-      if (ok) return ok
-    }
     return tryCmd('powershell.exe') || 'powershell.exe'
   }
-  return tryCmd('pwsh') || tryCmd('powershell') || 'pwsh'
+  return tryCmd('powershell') || 'pwsh'
 }
 
-/** True when pwsh is missing or cannot start (Linux/macOS/Windows). */
+// Same resolution as detectPowerShell (PATH + default install paths), not bare "pwsh" only.
 function checkPwshForDashboard() {
-  const r = spawnSync('pwsh', ['-NoLogo', '-NoProfile', '-Command', 'exit 0'], {
-    stdio: 'ignore',
-    timeout: 15000,
-    windowsHide: true
-  })
-  const ok = r.status === 0 && !r.error
+  const ok = isPwshCommand(detectPowerShell())
   return { shouldWarn: !ok, usingLegacyPowerShell: process.platform === 'win32' && !ok }
 }
 
@@ -498,6 +505,7 @@ async function hasMgAuthCache() {
 // Bulk/read Graph scripts may run in parallel; writes stay serialized (MSAL token cache / login prompts).
 const PARALLEL_PS_SCRIPTS = new Set([
   'scripts/get-ms365-users.ps1',
+  'scripts/get-ms365-licenses.ps1',
   'scripts/get-groups-detail.ps1',
   'scripts/get-devices.ps1',
   'scripts/get-managed-directory-roles.ps1',
@@ -1055,6 +1063,25 @@ ipcMain.handle('get-users', async () => {
   }
 })
 
+ipcMain.handle('get-licenses', async () => {
+  try {
+    const result = await runPsScript('scripts/get-ms365-licenses.ps1', [], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    if (result.exitCode === -1 && !result.stdout) {
+      return { status: 'error', message: result.stderr || 'PowerShell konnte nicht gestartet werden', licenses: [] }
+    }
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) {
+      return { status: 'error', message: result.stderr || 'Keine Lizenzdaten erhalten.', licenses: [] }
+    }
+    uiSend('ps-operation-complete', { status: data.status })
+    return onGraphResponse(data)
+  } catch (e) {
+    return { status: 'error', message: e?.message, licenses: [] }
+  }
+})
+
 ipcMain.handle('reset-password', async (_event, { upn, newPassword, forceChange }) => {
   try {
     const args = ['-UPN', upn, '-NewPassword', newPassword, '-ForceChange', forceChange ? '1' : '0']
@@ -1119,6 +1146,26 @@ ipcMain.handle('delete-user', async (_event, { upn }) => {
     return data
   } catch (e) {
     return { status: 'error', message: e?.message }
+  }
+})
+
+ipcMain.handle('delete-users', async (_event, { upns = [] }) => {
+  const empty = { status: 'error', message: 'upns erforderlich', deleted: 0, failed: 0, deletedUpns: [], errors: [] }
+  try {
+    const list = Array.isArray(upns) ? upns.map((u) => String(u || '').trim()).filter(Boolean) : []
+    if (!list.length) return empty
+    const result = await runPsScript('scripts/delete-users.ps1', ['-UPNs', list.join(',')], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    if (result.exitCode === -1 && !result.stdout) {
+      return { ...empty, message: result.stderr || 'PowerShell konnte nicht gestartet werden' }
+    }
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { ...empty, message: result.stderr || 'Fehler beim Batch-Löschen' }
+    uiSend('ps-operation-complete', { status: data.status, count: list.length })
+    return data
+  } catch (e) {
+    return { ...empty, message: e?.message }
   }
 })
 
@@ -1319,9 +1366,11 @@ ipcMain.handle('get-devices', async () => {
 ipcMain.handle('retire-intune-device', async (_event, body = {}) => {
   try {
     const azureAdDeviceId = String(body?.azureAdDeviceId || '').trim()
-    if (!azureAdDeviceId) return { status: 'error', message: 'azureAdDeviceId erforderlich' }
+    const intuneManagedDeviceId = String(body?.intuneManagedDeviceId || '').trim()
+    if (!azureAdDeviceId && !intuneManagedDeviceId) return { status: 'error', message: 'azureAdDeviceId oder intuneManagedDeviceId erforderlich' }
     const disableUserAccount = body?.disableUserAccount ? '1' : '0'
     const args = ['-Action', 'Retire', '-AzureAdDeviceId', azureAdDeviceId, '-DisableUserAccount', disableUserAccount]
+    if (intuneManagedDeviceId) args.push('-IntuneManagedDeviceId', intuneManagedDeviceId)
     const upn = String(body?.userUpn || '').trim()
     if (upn) args.push('-UserUpn', upn)
     const result = await runPsScript('scripts/invoke-intune-device-action.ps1', args, (log) => {
@@ -1336,13 +1385,32 @@ ipcMain.handle('retire-intune-device', async (_event, body = {}) => {
   }
 })
 
+ipcMain.handle('delete-entra-device', async (_event, body = {}) => {
+  try {
+    const deviceId = String(body?.deviceId || '').trim()
+    if (!deviceId) return { status: 'error', message: 'deviceId erforderlich' }
+    const result = await runPsScript('scripts/delete-entra-device.ps1', ['-DeviceId', deviceId], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Keine Antwort von PowerShell.' }
+    uiSend('ps-operation-complete', { status: data.status, deviceId })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
+
 ipcMain.handle('wipe-intune-device', async (_event, body = {}) => {
   try {
     const azureAdDeviceId = String(body?.azureAdDeviceId || '').trim()
-    if (!azureAdDeviceId) return { status: 'error', message: 'azureAdDeviceId erforderlich' }
+    const intuneManagedDeviceId = String(body?.intuneManagedDeviceId || '').trim()
+    if (!azureAdDeviceId && !intuneManagedDeviceId) return { status: 'error', message: 'azureAdDeviceId oder intuneManagedDeviceId erforderlich' }
+    const wipeArgs = ['-Action', 'Wipe', '-AzureAdDeviceId', azureAdDeviceId]
+    if (intuneManagedDeviceId) wipeArgs.push('-IntuneManagedDeviceId', intuneManagedDeviceId)
     const result = await runPsScript(
       'scripts/invoke-intune-device-action.ps1',
-      ['-Action', 'Wipe', '-AzureAdDeviceId', azureAdDeviceId],
+      wipeArgs,
       (log) => {
         uiSend('ps-operation-log', log)
       }

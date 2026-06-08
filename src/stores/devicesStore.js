@@ -17,7 +17,7 @@ export const useDevicesStore = defineStore('devices', {
   getters: {
     totalDevices: (state) => state.devices.length,
     // Counts Graph directory devices with isManaged true (MDM/Intune per Microsoft Graph).
-    managedDevicesCount: (state) => state.devices.filter((d) => d.isManaged === true).length,
+    managedDevicesCount: (state) => state.devices.filter((d) => d.isIntuneManaged === true).length,
     // Counts devices where isCompliant is explicitly true (Intune/MDM compliance signal from Graph).
     compliantDevicesCount: (state) => state.devices.filter((d) => d.isCompliant === true).length
   },
@@ -77,11 +77,12 @@ export const useDevicesStore = defineStore('devices', {
       }
     },
 
-    async retireIntuneDevice({ azureAdDeviceId, disableUserAccount, userUpn }) {
+    async retireIntuneDevice({ azureAdDeviceId, intuneManagedDeviceId, disableUserAccount, userUpn }) {
       const auth = useAuthStore()
       try {
         const result = await window.ipcRenderer.invoke('retire-intune-device', {
           azureAdDeviceId,
+          intuneManagedDeviceId: intuneManagedDeviceId || undefined,
           disableUserAccount: !!disableUserAccount,
           userUpn: userUpn || undefined
         })
@@ -103,10 +104,37 @@ export const useDevicesStore = defineStore('devices', {
       }
     },
 
-    async wipeIntuneDevice({ azureAdDeviceId }) {
+    async deleteEntraDevice(deviceId) {
+      const auth = useAuthStore()
+      const id = String(deviceId || '').trim()
+      if (!id) return false
+      auth.addLog({ type: 'info', message: `Entra-Gerät löschen: ${id}` })
+      try {
+        const result = await window.ipcRenderer.invoke('delete-entra-device', { deviceId: id })
+        if (result.status === 'ok') {
+          const idx = this.devices.findIndex((d) => d.id === id)
+          if (idx !== -1) this.devices.splice(idx, 1)
+          auth.addLog({ type: 'success', message: result.message || 'Entra-Gerät gelöscht' })
+          auth.showToast(result.message || 'Entra-Gerät gelöscht', 'success')
+          return true
+        }
+        auth.addLog({ type: 'error', message: result.message || 'Fehler' })
+        auth.showToast(result.message || 'Fehler', 'error')
+        return false
+      } catch (e) {
+        auth.addLog({ type: 'error', message: e.message })
+        auth.showToast(e.message, 'error')
+        return false
+      }
+    },
+
+    async wipeIntuneDevice({ azureAdDeviceId, intuneManagedDeviceId }) {
       const auth = useAuthStore()
       try {
-        const result = await window.ipcRenderer.invoke('wipe-intune-device', { azureAdDeviceId })
+        const result = await window.ipcRenderer.invoke('wipe-intune-device', {
+          azureAdDeviceId,
+          intuneManagedDeviceId: intuneManagedDeviceId || undefined
+        })
         if (result.status === 'ok') {
           auth.showToast(result.message || 'Wipe ausgelöst', 'success')
           await this.refreshDevicesList()
@@ -132,7 +160,8 @@ export const useDevicesStore = defineStore('devices', {
         const label = row.displayName || row.id
         try {
           const result = await window.ipcRenderer.invoke('retire-intune-device', {
-            azureAdDeviceId: row.id,
+            azureAdDeviceId: row.deviceId || row.id,
+            intuneManagedDeviceId: row.intuneManagedDeviceId || undefined,
             disableUserAccount: !!disableUserAccount,
             userUpn: row.ownerUserPrincipalName || undefined
           })
