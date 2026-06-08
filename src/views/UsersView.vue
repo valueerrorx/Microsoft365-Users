@@ -125,7 +125,6 @@
                   @change="toggleSelectPage"
                 />
               </th>
-              <th style="width:32px;"></th>
               <th @click="setSort('displayName')" style="cursor:pointer;user-select:none;">
                 Name <i class="bi" :class="sortIcon('displayName')"></i>
               </th>
@@ -154,11 +153,13 @@
                 />
               </td>
               <td>
-                <div class="user-avatar">{{ initials(user.displayName) }}</div>
-              </td>
-              <td>
-                <div style="font-weight:500;">{{ user.displayName }}</div>
-                <div v-if="user.jobTitle" style="font-size:0.73rem;color:#8b949e;">{{ user.jobTitle }}</div>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="user-avatar">{{ initials(user.displayName) }}</div>
+                  <div>
+                    <div style="font-weight:500;">{{ user.displayName }}</div>
+                    <div v-if="user.jobTitle" style="font-size:0.73rem;color:#8b949e;">{{ user.jobTitle }}</div>
+                  </div>
+                </div>
               </td>
               <td>
                 <div
