@@ -47,9 +47,9 @@ jobs:
         env:
           CSC_LINK: file://./certificate.p12
           CSC_KEY_PASSWORD: ${{ secrets.P12_PASSWORD_APPLE }}
-          APPLEID: ${{ secrets.APPLEID }}
-          APPLEIDPASS: ${{ secrets.APPLEIDPASS }}
-          TEAMID: ${{ secrets.TEAMID }}
+          APPLE_ID: ${{ secrets.APPLEID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLEIDPASS }}
+          APPLE_TEAM_ID: ${{ secrets.TEAMID }}
           USE_HARD_LINKS: "false"
           ELECTRON_BUILDER_DISABLE_LINKS: "true"
 
