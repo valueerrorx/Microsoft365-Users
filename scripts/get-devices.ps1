@@ -8,8 +8,6 @@ $ProgressPreference = 'SilentlyContinue'
 $__mg365ScriptsRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 . (Join-Path $__mg365ScriptsRoot 'Mg365-GraphModules.ps1')
 
-Ensure-Module "Microsoft.Graph.Identity.DirectoryManagement"
-
 $__ms365ConnRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 . (Join-Path $__ms365ConnRoot 'Connect-Mg365App.ps1')
 Write-Host "Verbinde mit Microsoft Graph..."
@@ -26,6 +24,8 @@ try {
     Write-Output "###JSON_END###"
     exit 1
 }
+
+Ensure-Module "Microsoft.Graph.Identity.DirectoryManagement"
 
 function Get-TrustTypeLabel {
     param([string]$TrustType)

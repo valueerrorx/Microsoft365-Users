@@ -40,8 +40,6 @@ function Get-GraphErrorDetail {
     return $msg
 }
 
-Ensure-Module "Microsoft.Graph.Groups"
-
 $__ms365ConnRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 . (Join-Path $__ms365ConnRoot 'Connect-Mg365App.ps1')
 Write-Host "Verbinde mit Microsoft Graph..."
@@ -51,6 +49,8 @@ try {
     Write-JsonResult @{ status = "error"; message = "Verbindung fehlgeschlagen: $($_.Exception.Message)" }
     exit 1
 }
+
+Ensure-Module "Microsoft.Graph.Groups"
 
 try {
     switch ($Action) {

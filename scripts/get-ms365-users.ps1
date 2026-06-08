@@ -11,9 +11,6 @@ $ProgressPreference = 'SilentlyContinue'
 $__mg365ScriptsRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 . (Join-Path $__mg365ScriptsRoot 'Mg365-GraphModules.ps1')
 
-Ensure-Module "Microsoft.Graph.Users"
-Ensure-Module "Microsoft.Graph.Identity.DirectoryManagement"
-
 # Pick the best cached sign-in timestamp from the user object's signInActivity block.
 function Get-LastActivityFromSignInActivity {
     param($Sa)
@@ -46,6 +43,9 @@ try {
     Write-Output "###JSON_END###"
     exit 1
 }
+
+Ensure-Module "Microsoft.Graph.Users"
+Ensure-Module "Microsoft.Graph.Identity.DirectoryManagement"
 
 # Tenant-Domain ermitteln
 $tenantDomain = ""
