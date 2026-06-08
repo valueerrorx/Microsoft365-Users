@@ -18,6 +18,15 @@ function Connect-Mg365App {
     Write-Mg365AuthLog "HOME=$HOME USERPROFILE=$env:USERPROFILE MS365_ELECTRON_APP=$env:MS365_ELECTRON_APP MS365_GRAPH_SESSION_WARM=$env:MS365_GRAPH_SESSION_WARM"
     Ensure-Mg365GraphModule -Name 'Microsoft.Graph.Authentication'
     Write-Mg365AuthLog "Microsoft.Graph.Authentication version=$((Get-Module Microsoft.Graph.Authentication).Version)"
+
+    # Electron main already acquired the token — avoid a second WAM/browser prompt in this pwsh process.
+    if ($env:MS365_GRAPH_ACCESS_TOKEN) {
+        Write-Mg365AuthLog 'connect via MS365_GRAPH_ACCESS_TOKEN'
+        $secure = ConvertTo-SecureString -String $env:MS365_GRAPH_ACCESS_TOKEN -AsPlainText -Force
+        Connect-MgGraph -AccessToken $secure -NoWelcome -ErrorAction Stop
+        return
+    }
+
     $scopes = @(
         'AuditLog.Read.All',
         'Device.Read.All',
@@ -32,48 +41,21 @@ function Connect-Mg365App {
         'UserAuthenticationMethod.ReadWrite.All',
         'RoleManagement.ReadWrite.Directory'
     )
-    $useDeviceCode = $env:MS365_ELECTRON_APP -eq '1'
-    Write-Mg365AuthLog "useDeviceCode=$useDeviceCode scopeCount=$($scopes.Count)"
-    if ($useDeviceCode) {
-        $authRecordPath = Join-Path $HOME '.mg\mg.authrecord.json'
-        $hasCache = Test-Path -LiteralPath $authRecordPath
-        Write-Mg365AuthLog "authRecordPath=$authRecordPath exists=$hasCache"
-        if (-not $hasCache) {
-            Write-Host "Device-Code-Anmeldung - Browser oeffnet sich automatisch..." -ForegroundColor Yellow
-            Write-Host "Code steht unten im Ausgabefenster; auf der Seite eingeben und anmelden." -ForegroundColor Yellow
-        } else {
-            Write-Mg365AuthLog "Cache vorhanden — Connect-MgGraph -UseDeviceCode (MSAL soll Cache still nutzen)"
-        }
-        Write-Mg365AuthLog "Connect-MgGraph -UseDeviceCode start (ClientTimeout=600)"
-        try {
-            Connect-MgGraph -Scopes $scopes -UseDeviceCode -NoWelcome -ClientTimeout 600 -ErrorAction Stop
-            $ctx = Get-MgContext
-            if ($ctx) {
-                Write-Mg365AuthLog "Connect OK account=$($ctx.Account) tenant=$($ctx.TenantId) scopes=$($ctx.Scopes -join ',')"
-            } else {
-                Write-Mg365AuthLog "Connect fertig aber Get-MgContext ist leer"
-            }
-            Write-Host "Anmeldung erfolgreich."
-        } catch {
-            Write-Mg365AuthLog "Connect FEHLER: $($_.Exception.Message)"
-            throw
-        }
-        return
-    }
     $authRecordPath = Join-Path $HOME '.mg\mg.authrecord.json'
     $hasCache = Test-Path -LiteralPath $authRecordPath
-    Write-Mg365AuthLog "Linux browser mode hasCache=$hasCache authRecordPath=$authRecordPath"
-    if ($hasCache) {
-        Write-Host "Bestehende Microsoft-Anmeldung wird verwendet."
-    } else {
-        Write-Host "Browser-Anmeldung — Gleich oeffnet sich ein Browserfenster zur Microsoft-Anmeldung." -ForegroundColor Yellow
-        Write-Host "Bitte dort anmelden. Falls kein Fenster sichtbar ist: Taskleiste oder andere Arbeitsflaeche pruefen." -ForegroundColor Yellow
+    Write-Mg365AuthLog "hasCache=$hasCache authRecordPath=$authRecordPath sessionWarm=$($env:MS365_GRAPH_SESSION_WARM)"
+
+    # Same app session + cache: reconnect with full scopes (no extra login UI when cache is fresh).
+    if ($env:MS365_GRAPH_SESSION_WARM -eq '1' -and $hasCache) {
+        Write-Mg365AuthLog 'warm reconnect'
+        Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
+        return
     }
-    Write-Mg365AuthLog "Connect-MgGraph Browser-Modus start"
+
+    Write-Mg365AuthLog "authMode=wam-browser hasCache=$hasCache"
     Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
     $ctxLinux = Get-MgContext
     if ($ctxLinux) {
         Write-Mg365AuthLog "Connect OK account=$($ctxLinux.Account) tenant=$($ctxLinux.TenantId)"
     }
-    Write-Host "Anmeldung erfolgreich."
 }

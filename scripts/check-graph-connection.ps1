@@ -25,13 +25,9 @@ try {
     }
     . (Join-Path $__ms365ConnRoot 'Mg365-GraphModules.ps1')
     Ensure-Mg365GraphModule -Name 'Microsoft.Graph.Authentication'
-    if ($env:MS365_ELECTRON_APP -eq '1') {
-        Write-Mg365AuthLog "Connect-MgGraph -UseDeviceCode User.Read (Cache-Reconnect)"
-        Connect-MgGraph -Scopes @('User.Read') -UseDeviceCode -NoWelcome -ErrorAction Stop | Out-Null
-    } else {
-        Write-Mg365AuthLog "Connect-MgGraph -NoWelcome (Linux Cache-Reconnect)"
-        Connect-MgGraph -NoWelcome -ErrorAction Stop | Out-Null
-    }
+    # WAM/browser cache reconnect — -UseDeviceCode breaks subsequent Graph API calls (SDK #3495).
+    Write-Mg365AuthLog "Connect-MgGraph -NoWelcome (Cache-Reconnect)"
+    Connect-MgGraph -Scopes @('User.Read') -NoWelcome -ErrorAction Stop | Out-Null
     $ctx = Get-MgContext
     if (-not $ctx -or -not $ctx.Account) { throw "Keine aktive Sitzung" }
     Write-Mg365AuthLog "Session OK account=$($ctx.Account) tenant=$($ctx.TenantId)"

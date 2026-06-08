@@ -38,6 +38,10 @@ let isQuitting = false
 let deviceLoginBrowserOpened = false
 let deviceLoginCodeEmitted = null
 let graphSessionWarm = false
+let graphAccessToken = null
+let graphTokenExpiresOn = 0
+let graphTokenInflight = null
+const USE_ELECTRON_GRAPH_TOKEN = process.platform === 'win32'
 let pendingDeviceLoginCode = null
 let csvData = []
 let scheduledDirectoryRoles = null
@@ -71,7 +75,11 @@ function isAuthNoisePsLine(line) {
     /Connect-MgGraph/i.test(line) ||
     /useDeviceCode=/i.test(line) ||
     /authRecordPath=/i.test(line) ||
-    /Connect OK account=/i.test(line)
+    /Connect OK account=/i.test(line) ||
+    /Bestehende Microsoft-Anmeldung/i.test(line) ||
+    /Microsoft-Anmeldung/i.test(line) ||
+    /Falls nichts sichtbar/i.test(line) ||
+    /Taskleiste pruefen/i.test(line)
   )
 }
 
@@ -87,6 +95,12 @@ function forwardPsLineToUi(line, onLog, type = 'info') {
 
 // Scripts that must never bootstrap Electron device-code auth (silent cache probe only).
 const SKIPS_ELECTRON_AUTH = new Set(['scripts/check-graph-connection.ps1'])
+
+// Scripts that must not trigger Electron-side Graph token acquisition.
+const SCRIPTS_WITHOUT_GRAPH_TOKEN = new Set([
+  'scripts/check-graph-connection.ps1',
+  'scripts/disconnect-mg365.ps1'
+])
 
 function extractDeviceLoginCode(line) {
   if (!/enter the code|to authenticate|login\.microsoft\.com\/device/i.test(line)) return null
@@ -122,24 +136,24 @@ function maybeEmitDeviceLoginCode(line, runId) {
   if (rotated) deviceLoginBrowserOpened = false
   authDebug('device-code', { runId, code, rotated })
   emitDeviceLoginCode(code)
-  maybeOpenDeviceLoginBrowser('enter the code device-code-anmeldung', runId)
+  maybeOpenDeviceLoginBrowser(line, runId)
 }
 
 function maybeOpenDeviceLoginBrowser(line, runId) {
-  if (graphSessionWarm) {
-    authDebug('browser:skip', { runId, reason: 'graphSessionWarm' })
-    return
-  }
+  if (graphSessionWarm) return
   if (deviceLoginBrowserOpened) return
-  if (/Bestehende Anmeldung wiederverwendet/i.test(line)) return
-  if (!/to sign in|devicelogin|enter the code|device-code-anmeldung|browser oeffnet|code erscheint/i.test(line)) return
+  if (!extractDeviceLoginCode(line)) return
   deviceLoginBrowserOpened = true
   authDebug('browser:open', { runId })
   void shell.openExternal('https://microsoft.com/devicelogin')
 }
 
-// Logs whether Graph PowerShell persisted tokens under ~/.mg/mg.authrecord.json.
+// Logs session persistence: Electron token (Windows) or ~/.mg/mg.authrecord.json (Graph PowerShell).
 async function logMgAuthCacheStatus() {
+  if (graphAccessToken) {
+    authLogUi('Session aktiv (Electron-Token)', 'success')
+    return
+  }
   const cachePath = getMgAuthRecordPath()
   const ok = await hasMgAuthCache()
   authLogUi(
@@ -168,6 +182,44 @@ function resetGraphAuthUiState(reason = 'unknown') {
 
 function markGraphSessionReady() {
   scheduledDirectoryRoles?.setGraphSessionReady(true)
+}
+
+// Clears in-memory Graph token state (sign-out / failed auth).
+function resetGraphAccessTokenState() {
+  graphAccessToken = null
+  graphTokenExpiresOn = 0
+  graphTokenInflight = null
+}
+
+// One browser login in Electron main; pwsh scripts reuse MS365_GRAPH_ACCESS_TOKEN (no per-process WAM).
+async function ensureGraphAccessToken() {
+  const now = Date.now()
+  if (graphAccessToken && graphTokenExpiresOn > now + 60_000) return graphAccessToken
+  if (graphTokenInflight) return graphTokenInflight
+  graphTokenInflight = (async () => {
+    authLogUi('Microsoft-Anmeldung — Anmeldefenster oeffnet sich gleich.', 'info')
+    const { getGraphDelegatedToken } = await import('./graph-device-auth.mjs')
+    const { token, expiresOnTimestamp } = await getGraphDelegatedToken()
+    graphAccessToken = token
+    graphTokenExpiresOn = expiresOnTimestamp || now + 3600_000
+    if (!graphSessionWarm) {
+      graphSessionWarm = true
+      authLogUi('Mit Microsoft Graph verbunden', 'success')
+      void logMgAuthCacheStatus()
+      markGraphSessionReady()
+      resetGraphAuthUiState('electron-graph-token')
+    }
+    authDebug('graph-token:acquired', { expiresOn: graphTokenExpiresOn })
+    return graphAccessToken
+  })()
+  try {
+    return await graphTokenInflight
+  } catch (e) {
+    resetGraphAccessTokenState()
+    throw e
+  } finally {
+    graphTokenInflight = null
+  }
 }
 
 function onGraphResponse(data, source = 'graph') {
@@ -312,7 +364,7 @@ async function promptQuitChoice() {
     type: 'question',
     title: 'App beenden',
     message: 'Möchten Sie sich auch von Microsoft Graph abmelden?',
-    detail: 'Abmelden löscht die gespeicherte Anmeldung. Beenden behält die Session für den nächsten Start.',
+    detail: 'Abmelden löscht die gespeicherte Microsoft-Anmeldung. Beenden behält die Session für den nächsten Start.',
     buttons: ['Abmelden und beenden', 'Beenden', 'Abbrechen'],
     defaultId: 1,
     cancelId: 2,
@@ -321,6 +373,8 @@ async function promptQuitChoice() {
   if (response === 2) return
   if (response === 0) {
     await performDisconnectMg365({ notifyUi: false })
+  } else {
+    await killAllPsProcesses()
   }
   isQuitting = true
   if (tray) {
@@ -342,8 +396,12 @@ if (!gotTheLock) {
   })
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   authDebug('app:ready', { platform: process.platform, authDebug: AUTH_DEBUG, electron: process.versions.electron })
+  if (USE_ELECTRON_GRAPH_TOKEN) {
+    const { setGraphAuthStorageDir } = await import('./graph-device-auth.mjs')
+    setGraphAuthStorageDir(app.getPath('userData'))
+  }
   scheduledDirectoryRoles = createScheduledDirectoryRolesManager({
     app,
     runPsScript,
@@ -502,6 +560,22 @@ async function hasMgAuthCache() {
   }
 }
 
+// Fast startup probe: parse ~/.mg/mg.authrecord.json without spawning pwsh.
+async function readMgAuthRecordFromCache() {
+  try {
+    const raw = await fs.readFile(getMgAuthRecordPath(), 'utf8')
+    const data = JSON.parse(raw)
+    const account = String(data?.username || '').trim()
+    const tenantId = String(data?.tenantId || '').trim()
+    if (!account && !tenantId) return null
+    const at = account.indexOf('@')
+    const tenantDomain = at > 0 ? account.slice(at + 1) : tenantId
+    return { account, tenantDomain: tenantDomain || tenantId }
+  } catch {
+    return null
+  }
+}
+
 // Bulk/read Graph scripts may run in parallel; writes stay serialized (MSAL token cache / login prompts).
 const PARALLEL_PS_SCRIPTS = new Set([
   'scripts/get-ms365-users.ps1',
@@ -516,6 +590,63 @@ const PARALLEL_PS_SCRIPTS = new Set([
 ])
 
 let psScriptQueueTail = Promise.resolve()
+const activePsProcesses = new Set()
+
+// Tracks spawned pwsh children so disconnect/quit can kill them immediately.
+function trackPsProcess(proc) {
+  if (!proc?.pid) return
+  activePsProcesses.add(proc)
+  const untrack = () => activePsProcesses.delete(proc)
+  proc.once('exit', untrack)
+  proc.once('error', untrack)
+}
+
+// Force-kills all app-owned pwsh processes (Windows: full process tree).
+async function killAllPsProcesses() {
+  const procs = [...activePsProcesses]
+  activePsProcesses.clear()
+  psScriptQueueTail = Promise.resolve()
+  for (const proc of procs) {
+    const pid = proc.pid
+    if (!pid) continue
+    try {
+      if (process.platform === 'win32') {
+        spawnSync('taskkill', ['/PID', String(pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true })
+      } else {
+        proc.kill('SIGKILL')
+      }
+    } catch {
+      try { proc.kill('SIGKILL') } catch {}
+    }
+  }
+  authDebug('ps:kill-all', { count: procs.length })
+}
+
+// Removes legacy Graph PowerShell token dirs (~/.mg, ~/.graph, IdentityService/mg*).
+async function clearLegacyGraphPsCacheFiles() {
+  let removed = 0
+  const localAppData = process.env.LOCALAPPDATA
+  if (localAppData) {
+    const idSvc = path.join(localAppData, '.IdentityService')
+    try {
+      for (const name of await fs.readdir(idSvc)) {
+        if (!name.startsWith('mg')) continue
+        try {
+          await fs.rm(path.join(idSvc, name), { recursive: true, force: true })
+          removed++
+        } catch {}
+      }
+    } catch {}
+  }
+  const profileRoot = process.env.USERPROFILE || process.env.HOME || os.homedir()
+  for (const name of ['.mg', '.graph']) {
+    try {
+      await fs.rm(path.join(profileRoot, name), { recursive: true, force: true })
+      removed++
+    } catch {}
+  }
+  return removed
+}
 
 async function runPsScript(scriptRelPath, args = [], onLog = null) {
   const allowParallel = process.platform !== 'win32' && graphSessionWarm && PARALLEL_PS_SCRIPTS.has(scriptRelPath)
@@ -560,12 +691,24 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
         : 'Hinweis: pwsh nicht im PATH — Graph-Aktionen sind möglicherweise eingeschränkt.'
     })
   }
+
+  let accessToken = null
+  if (USE_ELECTRON_GRAPH_TOKEN && !SCRIPTS_WITHOUT_GRAPH_TOKEN.has(scriptRelPath)) {
+    try {
+      accessToken = await ensureGraphAccessToken()
+    } catch (e) {
+      authLogUi(`Anmeldung fehlgeschlagen: ${e?.message}`, 'error')
+      return { exitCode: -1, stdout: '', stderr: e?.message || 'Graph-Anmeldung fehlgeschlagen' }
+    }
+  }
+
   const env = {
     ...process.env,
     POWERSHELL_UPDATECHECK: 'Off',
     POWERSHELL_TELEMETRY_OPTOUT: '1',
     ...(process.platform === 'win32' ? { MS365_ELECTRON_APP: '1' } : {}),
-    ...(graphSessionWarm ? { MS365_GRAPH_SESSION_WARM: '1' } : {})
+    ...(graphSessionWarm ? { MS365_GRAPH_SESSION_WARM: '1' } : {}),
+    ...(accessToken ? { MS365_GRAPH_ACCESS_TOKEN: accessToken } : {})
   }
 
   const PS_TIMEOUT_MS = 5 * 60 * 1000
@@ -587,12 +730,13 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
     stdinMode: stdio[0]
   })
   authDebug('ps:start-ui', { runId, scriptRelPath, graphSessionWarm })
-  if (!graphSessionWarm && !SKIPS_ELECTRON_AUTH.has(scriptRelPath) && !(await hasMgAuthCache())) {
-    if (process.platform === 'win32') {
-      authLogUi('Device-Code-Anmeldung — Browser oeffnet sich gleich. Code im Dialog eingeben.')
-    } else {
-      authLogUi('Browser-Anmeldung — Ein Browserfenster oeffnet sich gleich. Bitte bei Microsoft anmelden.')
-    }
+  if (
+    !USE_ELECTRON_GRAPH_TOKEN &&
+    !graphSessionWarm &&
+    !SKIPS_ELECTRON_AUTH.has(scriptRelPath) &&
+    !(await hasMgAuthCache())
+  ) {
+    authLogUi('Microsoft-Anmeldung — Anmeldefenster oeffnet sich gleich (WAM/Browser).')
   }
 
   return new Promise((resolve) => {
@@ -601,6 +745,7 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
     let timedOut = false
     let settled = false
     const ps = spawn(psCmd, buildPsSpawnArgs(tmpScript, args), { cwd: psCwd, env, stdio })
+    trackPsProcess(ps)
     if (process.platform === 'win32') {
       try { ps.stdin?.end() } catch {}
     }
@@ -820,26 +965,27 @@ ipcMain.handle('get-device-login-code', async () => ({ code: pendingDeviceLoginC
 
 async function performDisconnectMg365({ notifyUi = true } = {}) {
   authDebug('disconnect-ms365', { graphSessionWarm: false })
+  await killAllPsProcesses()
   csvData = []
   graphSessionWarm = false
-  scheduledDirectoryRoles?.setGraphSessionReady(false)
+  resetGraphAccessTokenState()
+  resetGraphAuthUiState('disconnect-ms365')
   try {
-    const result = await runPsScript('scripts/disconnect-mg365.ps1', [], (log) => {
-      if (notifyUi) uiSend('ps-operation-log', log)
-    })
-    const data = parseJsonFromOutput(result.stdout)
-    if (data) {
-      if (data.status === 'ok') resetGraphAuthUiState()
-      if (notifyUi) uiSend('ps-operation-complete', { status: data.status })
-      return data
-    }
-    if (result.exitCode === 0) {
-      return { status: 'ok', message: 'Abgemeldet' }
-    }
-    return { status: 'error', message: result.stderr || 'Abmelden fehlgeschlagen' }
-  } catch (e) {
-    return { status: 'error', message: e?.message }
+    const { resetGraphCredential, deletePersistedGraphAuth } = await import('./graph-device-auth.mjs')
+    resetGraphCredential()
+    await deletePersistedGraphAuth()
+  } catch {}
+  scheduledDirectoryRoles?.setGraphSessionReady(false)
+  const removed = await clearLegacyGraphPsCacheFiles()
+  const message = removed > 0
+    ? `Microsoft Graph abgemeldet — ${removed} Cache-Einträge gelöscht.`
+    : 'Microsoft Graph abgemeldet.'
+  const data = { status: 'ok', message }
+  if (notifyUi) {
+    authLogUi(message, 'success')
+    uiSend('ps-operation-complete', { status: 'ok' })
   }
+  return data
 }
 
 ipcMain.handle('disconnect-ms365', async () => performDisconnectMg365({ notifyUi: true }))
@@ -920,6 +1066,7 @@ ipcMain.handle('run-password-update', async () => {
     const pwsh = spawn(psCmd, buildPsSpawnArgs(scriptPath, ['-CSVPath', tmpCsv]), {
       cwd: path.dirname(tmpCsv), env
     })
+    trackPsProcess(pwsh)
 
     const parseFail = (line) => {
       const markerIdx = line.indexOf('###USER_FAIL###')
@@ -983,37 +1130,35 @@ ipcMain.handle('run-password-update', async () => {
 
 // ===================== IPC: User Management =====================
 
-// Stiller Status-Check beim App-Start: erkennt vorhandene Anmeldung ohne Device-Code
+// Stiller Status-Check beim App-Start: MSAL-Cache (Windows/Electron) oder mg.authrecord.json (Linux/PS).
 ipcMain.handle('graph-connection-status', async () => {
   authDebug('ipc:graph-connection-status')
   try {
     if (graphSessionWarm) {
       return { status: 'ok', tenantDomain: 'Microsoft 365' }
     }
-    const cachePath = getMgAuthRecordPath()
-    if (!(await hasMgAuthCache())) {
-      authDebug('start-check:no-cache-file', { cachePath })
-      authLogUi(`Keine gespeicherte Session (${cachePath})`, 'info')
+    if (USE_ELECTRON_GRAPH_TOKEN) {
+      const { tryRestoreGraphSession } = await import('./graph-device-auth.mjs')
+      const restored = await tryRestoreGraphSession()
+      if (restored) {
+        graphAccessToken = restored.token
+        graphTokenExpiresOn = restored.expiresOnTimestamp || Date.now() + 3600_000
+        graphSessionWarm = true
+        markGraphSessionReady()
+        authLogUi(`Sitzung wiederhergestellt (${restored.tenantDomain || restored.account || 'Microsoft 365'})`, 'success')
+        return { status: 'ok', tenantDomain: restored.tenantDomain, account: restored.account }
+      }
+      authDebug('start-check:no-electron-session')
       return { status: 'error', message: 'Keine bestehende Anmeldung.' }
     }
-    authDebug('start-check:cache-found', { cachePath })
-    const result = await runPsScript('scripts/check-graph-connection.ps1', [], (log) => {
-      uiSend('ps-operation-log', log)
-    })
-    const data = parseJsonFromOutput(result.stdout)
-    authDebug('ipc:graph-connection-status', {
-      exitCode: result.exitCode,
-      parsedStatus: data?.status,
-      stderr: result.stderr?.slice(0, 500)
-    })
-    if (data?.status === 'ok') {
-      graphSessionWarm = true
-      authLogUi(`Sitzung aktiv (${data.tenantDomain || data.account || 'Microsoft 365'})`, 'success')
-      markGraphSessionReady()
-      return data
+    const cached = await readMgAuthRecordFromCache()
+    if (!cached) {
+      authDebug('start-check:no-cache-file', { cachePath: getMgAuthRecordPath() })
+      return { status: 'error', message: 'Keine bestehende Anmeldung.' }
     }
-    authDebug('start-check:no-session', { exitCode: result.exitCode })
-    return { status: 'error', message: data?.message || result.stderr || 'Keine bestehende Anmeldung.' }
+    authDebug('start-check:cache-found', { account: cached.account, tenantDomain: cached.tenantDomain })
+    authLogUi(`Sitzung aus Cache (${cached.tenantDomain || cached.account || 'Microsoft 365'})`, 'success')
+    return { status: 'ok', tenantDomain: cached.tenantDomain, account: cached.account }
   } catch (e) {
     authDebug('ipc:graph-connection-status:error', e?.message)
     return { status: 'error', message: e?.message }
