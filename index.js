@@ -451,7 +451,7 @@ function uiSend(channel, payload) {
 
 // ===================== PowerShell Utilities =====================
 
-const stripAnsi = (t) => t.replace(/\x1b\[[0-9;]*[mGK]/g, '').replace(/\x1b\[[0-9;]*[HJ]/g, '')
+const stripAnsi = (t) => t.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '')
 
 function isPwshCommand(cmd) {
   return /(?:^|[\\/])pwsh(?:-preview)?(?:\.exe)?$/i.test(String(cmd || '').trim())
@@ -594,7 +594,8 @@ const PARALLEL_PS_SCRIPTS = new Set([
   'scripts/get-groups.ps1',
   'scripts/get-group-owners.ps1',
   'scripts/get-group-members.ps1',
-  'scripts/group-lifecycle.ps1'
+  'scripts/group-lifecycle.ps1',
+  'scripts/backup-tenant.ps1'
 ])
 
 let psScriptQueueTail = Promise.resolve()
@@ -750,6 +751,9 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
   return new Promise((resolve) => {
     let stdout = ''
     let stderr = ''
+    // Suppress UI log forwarding while inside the ###JSON_START###/###JSON_END### result block
+    // (the payload can be a single huge line that otherwise floods the operation log).
+    let inJsonBlock = false
     let timedOut = false
     let settled = false
     const ps = spawn(psCmd, buildPsSpawnArgs(tmpScript, args), { cwd: psCwd, env, stdio })
@@ -797,7 +801,14 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
       for (const line of text.split(/\r?\n/)) {
         const clean = stripAnsi(line.trim())
         if (!clean) continue
-        if (!clean.includes('###JSON_')) {
+        if (clean.includes('###JSON_')) {
+          if (clean.includes('###JSON_START###')) inJsonBlock = true
+          else if (clean.includes('###JSON_END###')) inJsonBlock = false
+          authDebug(`ps:${runId}:stdout-json-marker`, clean)
+        } else if (inJsonBlock) {
+          // JSON payload line(s) between the markers — keep in stdout, never forward to UI log.
+          authDebug(`ps:${runId}:stdout-json-body`, clean)
+        } else {
           authDebug(`ps:${runId}:stdout-line`, clean)
           maybeOpenDeviceLoginBrowser(clean, runId)
           maybeEmitDeviceLoginCode(clean, runId)
@@ -805,8 +816,6 @@ async function runPsScriptBody(scriptRelPath, args = [], onLog = null) {
             noteGraphAuthSuccess('stdout:connect-ok', runId)
           }
           forwardPsLineToUi(clean, onLog, 'info')
-        } else {
-          authDebug(`ps:${runId}:stdout-json-marker`, clean)
         }
       }
     })
@@ -963,6 +972,101 @@ ipcMain.handle('open-external-url', async (_event, rawUrl) => {
 })
 
 ipcMain.handle('check-pwsh', async () => checkPwshForDashboard())
+
+// ===================== IPC: Interactive Graph PowerShell Console =====================
+// Persistent pwsh process that stays connected to Microsoft Graph (reuses the same
+// auth as the data scripts). Commands are fed via stdin; stdout/stderr stream back to
+// the UI. State (variables, $-values) survives between commands.
+
+let graphConsole = null // { proc, ready, starting }
+
+// Builds the env used for the persistent console (same token/warm reuse as runPsScriptBody).
+async function graphConsoleEnv() {
+  let accessToken = null
+  if (USE_ELECTRON_GRAPH_TOKEN) {
+    accessToken = await ensureGraphAccessToken()
+  }
+  return {
+    ...process.env,
+    POWERSHELL_UPDATECHECK: 'Off',
+    POWERSHELL_TELEMETRY_OPTOUT: '1',
+    ...(process.platform === 'win32' ? { MS365_ELECTRON_APP: '1' } : {}),
+    ...(graphSessionWarm ? { MS365_GRAPH_SESSION_WARM: '1' } : {}),
+    ...(accessToken ? { MS365_GRAPH_ACCESS_TOKEN: accessToken } : {})
+  }
+}
+
+// Marker echoed after each command so the UI knows when a command finished.
+const GRAPH_CONSOLE_DONE = '###MG365_CONSOLE_DONE###'
+
+// Starts (or returns) the persistent Graph-connected pwsh session.
+async function ensureGraphConsole() {
+  if (graphConsole?.proc && !graphConsole.proc.killed) return graphConsole
+  // Reuse one copied scripts dir so Connect-Mg365App.ps1 + its helpers are dot-sourceable.
+  const connectScript = await getScriptPath('Connect-Mg365App.ps1')
+  const scriptsDir = path.dirname(connectScript)
+  const env = await graphConsoleEnv()
+  const psCmd = detectPowerShell()
+  const proc = spawn(psCmd, ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-NoExit', '-Command', '-'], {
+    cwd: scriptsDir,
+    env,
+    stdio: ['pipe', 'pipe', 'pipe']
+  })
+  trackPsProcess(proc)
+  graphConsole = { proc, ready: false }
+  proc.stdout?.setEncoding('utf8')
+  proc.stderr?.setEncoding('utf8')
+  proc.stdout?.on('data', (d) => {
+    const clean = stripAnsi(String(d))
+    if (clean.includes(GRAPH_CONSOLE_DONE)) {
+      for (const part of clean.split(GRAPH_CONSOLE_DONE)) {
+        if (part) uiSend('graph-console-output', { type: 'info', text: part })
+      }
+      uiSend('graph-console-done', {})
+      return
+    }
+    uiSend('graph-console-output', { type: 'info', text: clean })
+  })
+  proc.stderr?.on('data', (d) => {
+    uiSend('graph-console-output', { type: 'error', text: stripAnsi(String(d)) })
+  })
+  proc.on('exit', (code) => {
+    uiSend('graph-console-output', { type: 'warning', text: `\n[Session beendet${code != null ? ` (Exit ${code})` : ''}]\n` })
+    uiSend('graph-console-exit', { code })
+    graphConsole = null
+  })
+  proc.on('error', (err) => {
+    uiSend('graph-console-output', { type: 'error', text: `[Fehler: ${err?.message}]\n` })
+    graphConsole = null
+  })
+  // Connect to Graph once on startup, then signal readiness.
+  proc.stdin.write(`Remove-Module PSReadLine -ErrorAction SilentlyContinue; . './Connect-Mg365App.ps1'; Connect-Mg365App; Write-Output '${GRAPH_CONSOLE_DONE}'\n`)
+  graphConsole.ready = true
+  return graphConsole
+}
+
+// Sends a command to the persistent console; auto-starts the session on first use.
+ipcMain.handle('graph-console-exec', async (_event, { command } = {}) => {
+  const cmd = String(command || '').trim()
+  if (!cmd) return { status: 'error', message: 'Kein Befehl' }
+  try {
+    const con = await ensureGraphConsole()
+    uiSend('graph-console-output', { type: 'command', text: `PS> ${cmd}\n` })
+    con.proc.stdin.write(`${cmd}\nWrite-Output '${GRAPH_CONSOLE_DONE}'\n`)
+    return { status: 'ok' }
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
+
+// Kills the persistent console session (e.g. on manual reset).
+ipcMain.handle('graph-console-reset', async () => {
+  try {
+    if (graphConsole?.proc) graphConsole.proc.kill('SIGTERM')
+  } catch {}
+  graphConsole = null
+  return { status: 'ok' }
+})
 
 ipcMain.handle('request-app-close', async () => {
   await promptQuitChoice()
@@ -1322,6 +1426,87 @@ ipcMain.handle('delete-users', async (_event, { upns = [] }) => {
   }
 })
 
+ipcMain.handle('backup-tenant', async (_event, { categories = [] } = {}) => {
+  try {
+    const cats = (Array.isArray(categories) ? categories : []).map((c) => String(c).trim()).filter(Boolean)
+    if (!cats.length) return { status: 'error', message: 'Mindestens eine Kategorie wählen' }
+    const result = await runPsScript('scripts/backup-tenant.ps1', ['-Categories', cats.join(',')], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Fehler beim Erstellen des Backups' }
+    if (data.status !== 'ok' || !data.backup) {
+      uiSend('ps-operation-complete', { status: data.status })
+      return data
+    }
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      title: 'Backup speichern',
+      defaultPath: `ms365-backup-${stamp}.json`,
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    })
+    if (canceled || !filePath) return { status: 'cancelled' }
+    await fs.writeFile(filePath, JSON.stringify(data.backup, null, 2), 'utf8')
+    uiSend('ps-operation-complete', { status: 'ok' })
+    return { status: 'ok', message: 'Backup gespeichert', filePath, backup: data.backup }
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
+
+ipcMain.handle('open-backup-dialog', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+    title: 'Backup-Datei wählen',
+    properties: ['openFile'],
+    filters: [{ name: 'JSON', extensions: ['json'] }]
+  })
+  if (canceled || !filePaths?.length) return { status: 'cancelled' }
+  try {
+    const content = await fs.readFile(filePaths[0], 'utf8')
+    const backup = JSON.parse(content)
+    // Return a small preview (counts + meta) so the UI can show what will be restored.
+    const cats = backup?.categories || {}
+    const counts = {
+      users: Array.isArray(cats.users) ? cats.users.length : 0,
+      groups: Array.isArray(cats.groups) ? cats.groups.length : 0,
+      roles: Array.isArray(cats.roles) ? cats.roles.length : 0
+    }
+    return {
+      status: 'ok',
+      filePath: filePaths[0],
+      schemaVersion: backup?.schemaVersion ?? null,
+      createdAt: backup?.createdAt ?? null,
+      tenantDomain: backup?.tenantDomain ?? null,
+      counts
+    }
+  } catch (e) {
+    return { status: 'error', message: 'Backup-Datei ungültig: ' + (e?.message || 'JSON-Fehler') }
+  }
+})
+
+ipcMain.handle('restore-tenant', async (_event, { backupPath, categories = [], defaultPassword = '' } = {}) => {
+  try {
+    const path = String(backupPath || '').trim()
+    if (!path) return { status: 'error', message: 'Backup-Datei erforderlich' }
+    const cats = (Array.isArray(categories) ? categories : []).map((c) => String(c).trim()).filter(Boolean)
+    if (!cats.length) return { status: 'error', message: 'Mindestens eine Kategorie wählen' }
+    if (cats.includes('users') && !defaultPassword) {
+      return { status: 'error', message: 'Start-Passwort für neue Benutzer erforderlich' }
+    }
+    const args = ['-BackupPath', path, '-Categories', cats.join(',')]
+    if (defaultPassword) args.push('-DefaultPassword', String(defaultPassword))
+    const result = await runPsScript('scripts/restore-tenant.ps1', args, (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Fehler bei der Wiederherstellung' }
+    uiSend('ps-operation-complete', { status: data.status })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message }
+  }
+})
+
 ipcMain.handle('update-user-licenses', async (_event, { upn, addSkuIds = [], removeSkuIds = [] }) => {
   try {
     const add = Array.isArray(addSkuIds) ? addSkuIds.filter(Boolean).join(',') : ''
@@ -1616,6 +1801,27 @@ ipcMain.handle('get-group-members', async (_event, { groupId }) => {
     return data
   } catch (e) {
     return { status: 'error', message: e?.message, members: [] }
+  }
+})
+
+ipcMain.handle('create-group', async (_event, { displayName, description, type, mailNickname, visibility, ownerUpns } = {}) => {
+  try {
+    const name = String(displayName || '').trim()
+    if (!name) return { status: 'error', message: 'Gruppenname erforderlich' }
+    const args = ['-DisplayName', name, '-Type', type === 'unified' ? 'unified' : 'security']
+    if (description) args.push('-Description', String(description))
+    if (mailNickname) args.push('-MailNickname', String(mailNickname))
+    if (type === 'unified') args.push('-Visibility', visibility === 'Public' ? 'Public' : 'Private')
+    if (ownerUpns) args.push('-OwnerUpns', String(ownerUpns))
+    const result = await runPsScript('scripts/create-group.ps1', args, (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { status: 'error', message: result.stderr || 'Fehler beim Erstellen der Gruppe' }
+    uiSend('ps-operation-complete', { status: data.status, groupId: data.groupId })
+    return data
+  } catch (e) {
+    return { status: 'error', message: e?.message }
   }
 })
 

@@ -1,6 +1,6 @@
 {
   "name": "microsoft365-manager",
-  "version": "2.2.11",
+  "version": "2.3.0",
   "description": "MS-365 User Management Dashboard",
   "main": "index.js",
   "type": "module",

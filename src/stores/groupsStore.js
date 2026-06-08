@@ -78,6 +78,25 @@ export const useGroupsStore = defineStore('groups', {
       return await window.ipcRenderer.invoke('get-group-members', { groupId })
     },
 
+    async createGroup({ displayName, description, type, mailNickname, visibility, ownerUpns }) {
+      const auth = useAuthStore()
+      try {
+        const result = await window.ipcRenderer.invoke('create-group', {
+          displayName, description, type, mailNickname, visibility, ownerUpns
+        })
+        if (result.status === 'ok') {
+          auth.showToast(result.message || 'Gruppe erstellt', 'success')
+          await this.fetchGroupsDetail()
+          return { ok: true, result }
+        }
+        auth.showToast(result.message || 'Fehler beim Erstellen', 'error')
+        return { ok: false, result }
+      } catch (e) {
+        auth.showToast(e.message, 'error')
+        return { ok: false, result: null }
+      }
+    },
+
     async updateGroup({ groupId, displayName, description }) {
       const auth = useAuthStore()
       try {

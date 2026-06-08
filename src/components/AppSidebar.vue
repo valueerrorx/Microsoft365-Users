@@ -67,6 +67,14 @@
         <i class="bi bi-person-dash"></i>
         <span class="nav-label">Entfernen / CSV</span>
       </RouterLink>
+      <RouterLink to="/create-group" class="nav-link-custom" title="Gruppe erstellen">
+        <i class="bi bi-collection"></i>
+        <span class="nav-label">Gruppe erstellen</span>
+      </RouterLink>
+      <RouterLink to="/backup" class="nav-link-custom" title="Backup / Wiederherstellen">
+        <i class="bi bi-archive"></i>
+        <span class="nav-label">Backup</span>
+      </RouterLink>
     </div>
 
     <!-- Connection + version (pinned bottom) -->

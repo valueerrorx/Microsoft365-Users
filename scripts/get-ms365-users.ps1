@@ -15,10 +15,11 @@ $__mg365ScriptsRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Pa
 function Get-LastActivityFromSignInActivity {
     param($Sa)
     if (-not $Sa) { return $null }
-    if ($Sa.LastSuccessfulSignInDateTime) { return $Sa.LastSuccessfulSignInDateTime }
+    # Graph hashtable output uses camelCase keys.
+    if ($Sa.lastSuccessfulSignInDateTime) { return $Sa.lastSuccessfulSignInDateTime }
     $fallbacks = @(
-        $Sa.LastNonInteractiveSignInDateTime
-        $Sa.LastSignInDateTime
+        $Sa.lastNonInteractiveSignInDateTime
+        $Sa.lastSignInDateTime
     ) | Where-Object { $_ }
     if (-not $fallbacks.Count) { return $null }
     return $fallbacks | Sort-Object -Descending | Select-Object -First 1
@@ -85,31 +86,43 @@ Write-Host "Lade Benutzerliste..."
 $usersData = @()
 try {
     $selectFields = "id,userPrincipalName,displayName,givenName,surname,department,jobTitle,accountEnabled,usageLocation,assignedLicenses,mail,mobilePhone,createdDateTime,signInActivity"
-    $users = Get-MgUser -All -Property $selectFields -ErrorAction Stop
+    # Manual paging (instead of Get-MgUser -All) so we can log progress while loading, not only after.
+    $users = New-Object System.Collections.Generic.List[object]
+    $next = "/v1.0/users?`$select=$selectFields&`$top=999"
+    while ($next) {
+        $resp = Invoke-MgGraphRequest -Method GET -Uri $next -OutputType HashTable -ErrorAction Stop
+        $page = @($resp['value'])
+        foreach ($p in $page) { $users.Add($p) }
+        Write-Host "  $($users.Count) Benutzer geladen..."
+        $next = $resp['@odata.nextLink']
+    }
 
+    $totalUsers = $users.Count
+    Write-Host "$totalUsers Benutzer gefunden, verarbeite..."
     foreach ($user in $users) {
-        $lastActivity = Get-LastActivityFromSignInActivity -Sa $user.SignInActivity
+        # Graph hashtable output uses camelCase keys.
+        $lastActivity = Get-LastActivityFromSignInActivity -Sa $user.signInActivity
         $assignedLics = @()
-        if ($user.AssignedLicenses) {
-            foreach ($lic in $user.AssignedLicenses) {
-                $assignedLics += @{ skuId = $lic.SkuId }
+        if ($user.assignedLicenses) {
+            foreach ($lic in @($user.assignedLicenses)) {
+                $assignedLics += @{ skuId = $lic.skuId }
             }
         }
 
         $usersData += @{
-            id                  = $user.Id
-            userPrincipalName   = $user.UserPrincipalName
-            displayName         = $user.DisplayName
-            givenName           = $user.GivenName
-            surname             = $user.Surname
-            department          = $user.Department
-            jobTitle            = $user.JobTitle
-            accountEnabled      = $user.AccountEnabled
-            usageLocation       = $user.UsageLocation
-            mail                = $user.Mail
-            mobilePhone         = $user.MobilePhone
+            id                  = $user.id
+            userPrincipalName   = $user.userPrincipalName
+            displayName         = $user.displayName
+            givenName           = $user.givenName
+            surname             = $user.surname
+            department          = $user.department
+            jobTitle            = $user.jobTitle
+            accountEnabled      = $user.accountEnabled
+            usageLocation       = $user.usageLocation
+            mail                = $user.mail
+            mobilePhone         = $user.mobilePhone
             assignedLicenses    = $assignedLics
-            createdDateTime     = $user.CreatedDateTime
+            createdDateTime     = $user.createdDateTime
             lastActivityDateTime = $lastActivity
         }
     }
