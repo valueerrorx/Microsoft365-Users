@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - 'package.json'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -30,6 +31,11 @@ jobs:
           set -euo pipefail
           CURR=$(node -p "require('./package.json').version")
           echo "version=$CURR" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            echo "Manual workflow_dispatch — building version $CURR."
+            exit 0
+          fi
           BEFORE="${{ github.event.before }}"
           if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
             echo "build=true" >> "$GITHUB_OUTPUT"
@@ -139,6 +145,9 @@ jobs:
       - name: Changelog
         run: |
           set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            NOTES="- Manual release rebuild"
+          else
           BEFORE="${{ github.event.before }}"
           if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
             NOTES=$(git log --no-merges -n 40 --pretty=format:'- %s (%h)' HEAD)
@@ -147,6 +156,7 @@ jobs:
           fi
           if [ -z "$NOTES" ]; then
             NOTES="- (no commits in range)"
+          fi
           fi
           {
             echo "## Changes"
@@ -173,6 +183,15 @@ jobs:
           set -euo pipefail
           TAG="v${{ needs.check-version.outputs.version }}"
           NAME="Microsoft 365 Manager ${{ needs.check-version.outputs.version }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              echo "Manual rerun: deleting existing release $TAG"
+              gh release delete "$TAG" --yes --cleanup
+            elif git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+              echo "Manual rerun: deleting orphan tag $TAG"
+              git push origin ":refs/tags/$TAG"
+            fi
+          fi
           echo "Creating release ${TAG}"
           mapfile -t ASSET_FILES < <(find release-assets -maxdepth 1 -type f | sort)
           if [ "${#ASSET_FILES[@]}" -eq 0 ]; then
