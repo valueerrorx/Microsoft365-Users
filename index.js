@@ -263,9 +263,16 @@ function resolveIconPath(fileName) {
 }
 
 function loadTrayIcon() {
-  const small = nativeImage.createFromPath(resolveIconPath('icon-small.png'))
-  if (!small.isEmpty()) return small
-  return nativeImage.createFromPath(resolveIconPath('icon.png'))
+  let img = nativeImage.createFromPath(resolveIconPath('icon-small.png'))
+  if (img.isEmpty()) img = nativeImage.createFromPath(resolveIconPath('icon.png'))
+  if (process.platform !== 'darwin' || img.isEmpty()) return img
+  // macOS menu bar expects ~16pt; PNG pixel size is not auto-scaled
+  const base = img.resize({ width: 16, height: 16, quality: 'best' })
+  const retina = img.resize({ width: 32, height: 32, quality: 'best' })
+  if (!retina.isEmpty()) {
+    base.addRepresentation({ scaleFactor: 2, width: 16, height: 16, buffer: retina.toPNG() })
+  }
+  return base
 }
 
 function showMainWindow() {

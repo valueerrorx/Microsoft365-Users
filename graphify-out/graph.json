@@ -182,7 +182,7 @@
       "label": "acquireGraphTokenViaDeviceCode()",
       "file_type": "code",
       "source_file": "graph-device-auth.mjs",
-      "source_location": "L24",
+      "source_location": "L25",
       "id": "graph_device_auth_acquiregraphtokenviadevicecode",
       "community": 62,
       "norm_label": "acquiregraphtokenviadevicecode()"
@@ -398,7 +398,7 @@
       "label": "showMainWindow()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L219",
+      "source_location": "L226",
       "id": "index_showmainwindow",
       "community": 0,
       "norm_label": "showmainwindow()"
@@ -407,7 +407,7 @@
       "label": "hideToTray()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L227",
+      "source_location": "L234",
       "id": "index_hidetotray",
       "community": 0,
       "norm_label": "hidetotray()"
@@ -416,7 +416,7 @@
       "label": "createTray()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L233",
+      "source_location": "L240",
       "id": "index_createtray",
       "community": 0,
       "norm_label": "createtray()"
@@ -425,7 +425,7 @@
       "label": "createWindow()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L245",
+      "source_location": "L252",
       "id": "index_createwindow",
       "community": 0,
       "norm_label": "createwindow()"
@@ -434,7 +434,7 @@
       "label": "promptQuitChoice()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L309",
+      "source_location": "L316",
       "id": "index_promptquitchoice",
       "community": 0,
       "norm_label": "promptquitchoice()"
@@ -443,7 +443,7 @@
       "label": "gotTheLock",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L334",
+      "source_location": "L341",
       "id": "index_gotthelock",
       "community": 0,
       "norm_label": "gotthelock"
@@ -452,7 +452,7 @@
       "label": "emitDeviceLoginCode()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L372",
+      "source_location": "L379",
       "id": "index_emitdevicelogincode",
       "community": 0,
       "norm_label": "emitdevicelogincode()"
@@ -461,7 +461,7 @@
       "label": "uiSend()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L377",
+      "source_location": "L384",
       "id": "index_uisend",
       "community": 0,
       "norm_label": "uisend()"
@@ -470,7 +470,7 @@
       "label": "stripAnsi()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L388",
+      "source_location": "L395",
       "id": "index_stripansi",
       "community": 0,
       "norm_label": "stripansi()"
@@ -479,7 +479,7 @@
       "label": "isPwshCommand()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L390",
+      "source_location": "L397",
       "id": "index_ispwshcommand",
       "community": 0,
       "norm_label": "ispwshcommand()"
@@ -488,7 +488,7 @@
       "label": "buildPsSpawnArgs()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L395",
+      "source_location": "L402",
       "id": "index_buildpsspawnargs",
       "community": 0,
       "norm_label": "buildpsspawnargs()"
@@ -497,7 +497,7 @@
       "label": "detectPowerShell()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L410",
+      "source_location": "L417",
       "id": "index_detectpowershell",
       "community": 0,
       "norm_label": "detectpowershell()"
@@ -506,7 +506,7 @@
       "label": "checkPwshForDashboard()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L436",
+      "source_location": "L455",
       "id": "index_checkpwshfordashboard",
       "community": 0,
       "norm_label": "checkpwshfordashboard()"
@@ -515,7 +515,7 @@
       "label": "resolveScriptsDir()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L446",
+      "source_location": "L460",
       "id": "index_resolvescriptsdir",
       "community": 0,
       "norm_label": "resolvescriptsdir()"
@@ -524,7 +524,7 @@
       "label": "getScriptPath()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L457",
+      "source_location": "L471",
       "id": "index_getscriptpath",
       "community": 0,
       "norm_label": "getscriptpath()"
@@ -533,7 +533,7 @@
       "label": "getMgAuthRecordPath()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L484",
+      "source_location": "L498",
       "id": "index_getmgauthrecordpath",
       "community": 0,
       "norm_label": "getmgauthrecordpath()"
@@ -542,7 +542,7 @@
       "label": "hasMgAuthCache()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L489",
+      "source_location": "L503",
       "id": "index_hasmgauthcache",
       "community": 0,
       "norm_label": "hasmgauthcache()"
@@ -551,7 +551,7 @@
       "label": "PARALLEL_PS_SCRIPTS",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L499",
+      "source_location": "L513",
       "id": "index_parallel_ps_scripts",
       "community": 0,
       "norm_label": "parallel_ps_scripts"
@@ -560,7 +560,7 @@
       "label": "psScriptQueueTail",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L511",
+      "source_location": "L525",
       "id": "index_psscriptqueuetail",
       "community": 0,
       "norm_label": "psscriptqueuetail"
@@ -569,7 +569,7 @@
       "label": "runPsScript()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L513",
+      "source_location": "L527",
       "id": "index_runpsscript",
       "community": 0,
       "norm_label": "runpsscript()"
@@ -578,7 +578,7 @@
       "label": "runPsScriptBody()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L532",
+      "source_location": "L546",
       "id": "index_runpsscriptbody",
       "community": 0,
       "norm_label": "runpsscriptbody()"
@@ -587,7 +587,7 @@
       "label": "parseJsonFromOutput()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L698",
+      "source_location": "L712",
       "id": "index_parsejsonfromoutput",
       "community": 0,
       "norm_label": "parsejsonfromoutput()"
@@ -596,7 +596,7 @@
       "label": "normalizeForUPN()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L715",
+      "source_location": "L729",
       "id": "index_normalizeforupn",
       "community": 0,
       "norm_label": "normalizeforupn()"
@@ -605,7 +605,7 @@
       "label": "parseCsvText()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L725",
+      "source_location": "L739",
       "id": "index_parsecsvtext",
       "community": 0,
       "norm_label": "parsecsvtext()"
@@ -614,7 +614,7 @@
       "label": "toSemicolonCsv()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L777",
+      "source_location": "L791",
       "id": "index_tosemicoloncsv",
       "community": 0,
       "norm_label": "tosemicoloncsv()"
@@ -623,7 +623,7 @@
       "label": "performDisconnectMg365()",
       "file_type": "code",
       "source_file": "index.js",
-      "source_location": "L814",
+      "source_location": "L828",
       "id": "index_performdisconnectmg365",
       "community": 0,
       "norm_label": "performdisconnectmg365()"
@@ -755,10 +755,19 @@
       "norm_label": "build:linux"
     },
     {
+      "label": "build:mac:arm64",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "id": "package_scripts_build_mac_arm64",
+      "community": 53,
+      "norm_label": "build:mac:arm64"
+    },
+    {
       "label": "author",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L16",
+      "source_location": "L17",
       "id": "package_author",
       "community": 53,
       "norm_label": "author"
@@ -767,7 +776,7 @@
       "label": "license",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L17",
+      "source_location": "L18",
       "id": "package_license",
       "community": 53,
       "norm_label": "license"
@@ -776,7 +785,7 @@
       "label": "build",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L18",
+      "source_location": "L19",
       "id": "package_build",
       "community": 51,
       "norm_label": "build"
@@ -785,7 +794,7 @@
       "label": "appId",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L19",
+      "source_location": "L20",
       "id": "package_build_appid",
       "community": 51,
       "norm_label": "appid"
@@ -794,7 +803,7 @@
       "label": "productName",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L20",
+      "source_location": "L21",
       "id": "package_build_productname",
       "community": 51,
       "norm_label": "productname"
@@ -803,7 +812,7 @@
       "label": "icon",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L21",
+      "source_location": "L22",
       "id": "package_build_icon",
       "community": 51,
       "norm_label": "icon"
@@ -812,7 +821,7 @@
       "label": "publish",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L22",
+      "source_location": "L23",
       "id": "package_build_publish",
       "community": 51,
       "norm_label": "publish"
@@ -821,7 +830,7 @@
       "label": "files",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L23",
+      "source_location": "L24",
       "id": "package_build_files",
       "community": 51,
       "norm_label": "files"
@@ -830,7 +839,7 @@
       "label": "linux",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L35",
+      "source_location": "L36",
       "id": "package_build_linux",
       "community": 51,
       "norm_label": "linux"
@@ -839,7 +848,7 @@
       "label": "target",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L36",
+      "source_location": "L37",
       "id": "package_linux_target",
       "community": 51,
       "norm_label": "target"
@@ -848,7 +857,7 @@
       "label": "icon",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L40",
+      "source_location": "L41",
       "id": "package_linux_icon",
       "community": 51,
       "norm_label": "icon"
@@ -857,7 +866,7 @@
       "label": "category",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L41",
+      "source_location": "L42",
       "id": "package_linux_category",
       "community": 51,
       "norm_label": "category"
@@ -866,7 +875,7 @@
       "label": "synopsis",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L42",
+      "source_location": "L43",
       "id": "package_linux_synopsis",
       "community": 51,
       "norm_label": "synopsis"
@@ -875,7 +884,7 @@
       "label": "description",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L43",
+      "source_location": "L44",
       "id": "package_linux_description",
       "community": 51,
       "norm_label": "description"
@@ -884,7 +893,7 @@
       "label": "maintainer",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L44",
+      "source_location": "L45",
       "id": "package_linux_maintainer",
       "community": 51,
       "norm_label": "maintainer"
@@ -893,7 +902,7 @@
       "label": "artifactName",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L45",
+      "source_location": "L46",
       "id": "package_linux_artifactname",
       "community": 51,
       "norm_label": "artifactname"
@@ -902,7 +911,7 @@
       "label": "desktop",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L46",
+      "source_location": "L47",
       "id": "package_linux_desktop",
       "community": 51,
       "norm_label": "desktop"
@@ -911,7 +920,7 @@
       "label": "entry",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L47",
+      "source_location": "L48",
       "id": "package_desktop_entry",
       "community": 51,
       "norm_label": "entry"
@@ -920,7 +929,7 @@
       "label": "StartupWMClass",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L48",
+      "source_location": "L49",
       "id": "package_entry_startupwmclass",
       "community": 51,
       "norm_label": "startupwmclass"
@@ -929,7 +938,7 @@
       "label": "win",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L52",
+      "source_location": "L53",
       "id": "package_build_win",
       "community": 51,
       "norm_label": "win"
@@ -938,7 +947,7 @@
       "label": "target",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L53",
+      "source_location": "L54",
       "id": "package_win_target",
       "community": 51,
       "norm_label": "target"
@@ -947,7 +956,7 @@
       "label": "icon",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L67",
+      "source_location": "L68",
       "id": "package_win_icon",
       "community": 51,
       "norm_label": "icon"
@@ -956,7 +965,7 @@
       "label": "artifactName",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L68",
+      "source_location": "L69",
       "id": "package_win_artifactname",
       "community": 51,
       "norm_label": "artifactname"
@@ -965,7 +974,7 @@
       "label": "portable",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L70",
+      "source_location": "L71",
       "id": "package_build_portable",
       "community": 51,
       "norm_label": "portable"
@@ -974,7 +983,7 @@
       "label": "useZip",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L71",
+      "source_location": "L72",
       "id": "package_portable_usezip",
       "community": 51,
       "norm_label": "usezip"
@@ -983,7 +992,7 @@
       "label": "msi",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L73",
+      "source_location": "L74",
       "id": "package_build_msi",
       "community": 51,
       "norm_label": "msi"
@@ -992,7 +1001,7 @@
       "label": "artifactName",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L74",
+      "source_location": "L75",
       "id": "package_msi_artifactname",
       "community": 51,
       "norm_label": "artifactname"
@@ -1001,7 +1010,7 @@
       "label": "mac",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L76",
+      "source_location": "L77",
       "id": "package_build_mac",
       "community": 51,
       "norm_label": "mac"
@@ -1010,7 +1019,7 @@
       "label": "category",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L77",
+      "source_location": "L78",
       "id": "package_mac_category",
       "community": 51,
       "norm_label": "category"
@@ -1019,7 +1028,7 @@
       "label": "icon",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L78",
+      "source_location": "L79",
       "id": "package_mac_icon",
       "community": 51,
       "norm_label": "icon"
@@ -1028,7 +1037,7 @@
       "label": "artifactName",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L79",
+      "source_location": "L80",
       "id": "package_mac_artifactname",
       "community": 51,
       "norm_label": "artifactname"
@@ -1037,7 +1046,7 @@
       "label": "target",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L80",
+      "source_location": "L81",
       "id": "package_mac_target",
       "community": 51,
       "norm_label": "target"
@@ -1046,16 +1055,43 @@
       "label": "darkModeSupport",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L83",
+      "source_location": "L84",
       "id": "package_mac_darkmodesupport",
       "community": 51,
       "norm_label": "darkmodesupport"
     },
     {
-      "label": "dmg",
+      "label": "hardenedRuntime",
       "file_type": "code",
       "source_file": "package.json",
       "source_location": "L85",
+      "id": "package_mac_hardenedruntime",
+      "community": 51,
+      "norm_label": "hardenedruntime"
+    },
+    {
+      "label": "gatekeeperAssess",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L86",
+      "id": "package_mac_gatekeeperassess",
+      "community": 51,
+      "norm_label": "gatekeeperassess"
+    },
+    {
+      "label": "notarize",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L87",
+      "id": "package_mac_notarize",
+      "community": 51,
+      "norm_label": "notarize"
+    },
+    {
+      "label": "dmg",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L89",
       "id": "package_build_dmg",
       "community": 51,
       "norm_label": "dmg"
@@ -1064,7 +1100,7 @@
       "label": "title",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L86",
+      "source_location": "L90",
       "id": "package_dmg_title",
       "community": 51,
       "norm_label": "title"
@@ -1073,7 +1109,7 @@
       "label": "icon",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L87",
+      "source_location": "L91",
       "id": "package_dmg_icon",
       "community": 51,
       "norm_label": "icon"
@@ -1082,7 +1118,7 @@
       "label": "window",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L88",
+      "source_location": "L92",
       "id": "package_dmg_window",
       "community": 51,
       "norm_label": "window"
@@ -1091,7 +1127,7 @@
       "label": "width",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L89",
+      "source_location": "L93",
       "id": "package_window_width",
       "community": 51,
       "norm_label": "width"
@@ -1100,7 +1136,7 @@
       "label": "height",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L90",
+      "source_location": "L94",
       "id": "package_window_height",
       "community": 51,
       "norm_label": "height"
@@ -1109,7 +1145,7 @@
       "label": "contents",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L92",
+      "source_location": "L96",
       "id": "package_dmg_contents",
       "community": 51,
       "norm_label": "contents"
@@ -1118,7 +1154,7 @@
       "label": "devDependencies",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L106",
+      "source_location": "L110",
       "id": "package_devdependencies",
       "community": 53,
       "norm_label": "devdependencies"
@@ -1127,7 +1163,7 @@
       "label": "@electron/universal",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L107",
+      "source_location": "L111",
       "id": "package_devdependencies_electron_universal",
       "community": 53,
       "norm_label": "@electron/universal"
@@ -1136,7 +1172,7 @@
       "label": "@vitejs/plugin-vue",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L108",
+      "source_location": "L112",
       "id": "package_devdependencies_vitejs_plugin_vue",
       "community": 53,
       "norm_label": "@vitejs/plugin-vue"
@@ -1145,7 +1181,7 @@
       "label": "concurrently",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L109",
+      "source_location": "L113",
       "id": "package_devdependencies_concurrently",
       "community": 53,
       "norm_label": "concurrently"
@@ -1154,7 +1190,7 @@
       "label": "cross-env",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L110",
+      "source_location": "L114",
       "id": "package_devdependencies_cross_env",
       "community": 53,
       "norm_label": "cross-env"
@@ -1163,7 +1199,7 @@
       "label": "electron",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L111",
+      "source_location": "L115",
       "id": "package_devdependencies_electron",
       "community": 53,
       "norm_label": "electron"
@@ -1172,7 +1208,7 @@
       "label": "electron-builder",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L112",
+      "source_location": "L116",
       "id": "package_devdependencies_electron_builder",
       "community": 53,
       "norm_label": "electron-builder"
@@ -1181,7 +1217,7 @@
       "label": "vite",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L113",
+      "source_location": "L117",
       "id": "package_devdependencies_vite",
       "community": 53,
       "norm_label": "vite"
@@ -1190,7 +1226,7 @@
       "label": "wait-on",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L114",
+      "source_location": "L118",
       "id": "package_devdependencies_wait_on",
       "community": 53,
       "norm_label": "wait-on"
@@ -1199,7 +1235,7 @@
       "label": "dependencies",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L116",
+      "source_location": "L120",
       "id": "package_dependencies",
       "community": 53,
       "norm_label": "dependencies"
@@ -1208,7 +1244,7 @@
       "label": "@azure/identity",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L117",
+      "source_location": "L121",
       "id": "package_dependencies_azure_identity",
       "community": 53,
       "norm_label": "@azure/identity"
@@ -1217,7 +1253,7 @@
       "label": "bootstrap",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L118",
+      "source_location": "L122",
       "id": "package_dependencies_bootstrap",
       "community": 53,
       "norm_label": "bootstrap"
@@ -1226,7 +1262,7 @@
       "label": "bootstrap-icons",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L119",
+      "source_location": "L123",
       "id": "package_dependencies_bootstrap_icons",
       "community": 53,
       "norm_label": "bootstrap-icons"
@@ -1235,7 +1271,7 @@
       "label": "pinia",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L120",
+      "source_location": "L124",
       "id": "package_dependencies_pinia",
       "community": 53,
       "norm_label": "pinia"
@@ -1244,7 +1280,7 @@
       "label": "vue",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L121",
+      "source_location": "L125",
       "id": "package_dependencies_vue",
       "community": 53,
       "norm_label": "vue"
@@ -1253,7 +1289,7 @@
       "label": "vue-router",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L122",
+      "source_location": "L126",
       "id": "package_dependencies_vue_router",
       "community": 53,
       "norm_label": "vue-router"
@@ -1325,7 +1361,7 @@
       "label": "Connect-Mg365App()",
       "file_type": "code",
       "source_file": "scripts/Connect-Mg365App.ps1",
-      "source_location": "L11",
+      "source_location": "L14",
       "id": "scripts_connect_mg365app_connect_mg365app",
       "community": 67,
       "norm_label": "connect-mg365app()"
@@ -1376,28 +1412,46 @@
       "norm_label": "get-directoryroleusermembers()"
     },
     {
-      "label": "add-directory-role-member.ps1",
+      "label": "Mg365-GraphModules.ps1",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/add-directory-role-member.ps1",
+      "source_file": "scripts/Mg365-GraphModules.ps1",
       "source_location": "L1",
-      "id": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_add_directory_role_member_ps1",
-      "community": 56,
-      "norm_label": "add-directory-role-member.ps1"
+      "id": "scripts_mg365_graphmodules",
+      "community": 67,
+      "norm_label": "mg365-graphmodules.ps1"
+    },
+    {
+      "label": "Ensure-Mg365GraphModule()",
+      "file_type": "code",
+      "source_file": "scripts/Mg365-GraphModules.ps1",
+      "source_location": "L7",
+      "id": "scripts_mg365_graphmodules_ensure_mg365graphmodule",
+      "community": 67,
+      "norm_label": "ensure-mg365graphmodule()"
     },
     {
       "label": "Ensure-Module()",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/add-directory-role-member.ps1",
-      "source_location": "L15",
-      "id": "scripts_add_directory_role_member_ensure_module",
-      "community": 56,
+      "source_file": "scripts/Mg365-GraphModules.ps1",
+      "source_location": "L50",
+      "id": "scripts_mg365_graphmodules_ensure_module",
+      "community": 67,
       "norm_label": "ensure-module()"
+    },
+    {
+      "label": "add-directory-role-member.ps1",
+      "file_type": "code",
+      "source_file": "scripts/add-directory-role-member.ps1",
+      "source_location": "L1",
+      "id": "scripts_add_directory_role_member",
+      "community": 56,
+      "norm_label": "add-directory-role-member.ps1"
     },
     {
       "label": "Test-IsAlreadyMemberError()",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/add-directory-role-member.ps1",
-      "source_location": "L27",
+      "source_file": "scripts/add-directory-role-member.ps1",
+      "source_location": "L18",
       "id": "scripts_add_directory_role_member_test_isalreadymembererror",
       "community": 56,
       "norm_label": "test-isalreadymembererror()"
@@ -1405,26 +1459,17 @@
     {
       "label": "add-group-members.ps1",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/add-group-members.ps1",
+      "source_file": "scripts/add-group-members.ps1",
       "source_location": "L1",
-      "id": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_add_group_members_ps1",
+      "id": "scripts_add_group_members",
       "community": 6,
       "norm_label": "add-group-members.ps1"
     },
     {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/add-group-members.ps1",
-      "source_location": "L15",
-      "id": "scripts_add_group_members_ensure_module",
-      "community": 6,
-      "norm_label": "ensure-module()"
-    },
-    {
       "label": "Test-IsAlreadyMemberError()",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/add-group-members.ps1",
-      "source_location": "L49",
+      "source_file": "scripts/add-group-members.ps1",
+      "source_location": "L40",
       "id": "scripts_add_group_members_test_isalreadymembererror",
       "community": 6,
       "norm_label": "test-isalreadymembererror()"
@@ -1442,7 +1487,7 @@
       "label": "Write-Mg365AuthLog()",
       "file_type": "code",
       "source_file": "scripts/check-graph-connection.ps1",
-      "source_location": "L12",
+      "source_location": "L14",
       "id": "scripts_check_graph_connection_write_mg365authlog",
       "community": 87,
       "norm_label": "write-mg365authlog()"
@@ -1457,19 +1502,10 @@
       "norm_label": "delete-entra-device.ps1"
     },
     {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "scripts/delete-entra-device.ps1",
-      "source_location": "L13",
-      "id": "scripts_delete_entra_device_ensure_module",
-      "community": 75,
-      "norm_label": "ensure-module()"
-    },
-    {
       "label": "Write-JsonResult()",
       "file_type": "code",
       "source_file": "scripts/delete-entra-device.ps1",
-      "source_location": "L25",
+      "source_location": "L16",
       "id": "scripts_delete_entra_device_write_jsonresult",
       "community": 75,
       "norm_label": "write-jsonresult()"
@@ -1477,38 +1513,20 @@
     {
       "label": "delete-group.ps1",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/delete-group.ps1",
+      "source_file": "scripts/delete-group.ps1",
       "source_location": "L1",
-      "id": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_delete_group_ps1",
+      "id": "scripts_delete_group",
       "community": 11,
       "norm_label": "delete-group.ps1"
     },
     {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/delete-group.ps1",
-      "source_location": "L13",
-      "id": "scripts_delete_group_ensure_module",
-      "community": 11,
-      "norm_label": "ensure-module()"
-    },
-    {
       "label": "delete-user.ps1",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/delete-user.ps1",
+      "source_file": "scripts/delete-user.ps1",
       "source_location": "L1",
-      "id": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_delete_user_ps1",
+      "id": "scripts_delete_user",
       "community": 12,
       "norm_label": "delete-user.ps1"
-    },
-    {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/delete-user.ps1",
-      "source_location": "L13",
-      "id": "scripts_delete_user_ensure_module",
-      "community": 12,
-      "norm_label": "ensure-module()"
     },
     {
       "label": "delete-users.ps1",
@@ -1520,19 +1538,10 @@
       "norm_label": "delete-users.ps1"
     },
     {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "scripts/delete-users.ps1",
-      "source_location": "L13",
-      "id": "scripts_delete_users_ensure_module",
-      "community": 64,
-      "norm_label": "ensure-module()"
-    },
-    {
       "label": "Write-JsonResult()",
       "file_type": "code",
       "source_file": "scripts/delete-users.ps1",
-      "source_location": "L25",
+      "source_location": "L16",
       "id": "scripts_delete_users_write_jsonresult",
       "community": 64,
       "norm_label": "write-jsonresult()"
@@ -1540,16 +1549,16 @@
     {
       "label": "disconnect-mg365.ps1",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/disconnect-mg365.ps1",
+      "source_file": "scripts/disconnect-mg365.ps1",
       "source_location": "L1",
-      "id": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_disconnect_mg365_ps1",
+      "id": "scripts_disconnect_mg365",
       "community": 85,
       "norm_label": "disconnect-mg365.ps1"
     },
     {
       "label": "Write-JsonResult()",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/disconnect-mg365.ps1",
+      "source_file": "scripts/disconnect-mg365.ps1",
       "source_location": "L9",
       "id": "scripts_disconnect_mg365_write_jsonresult",
       "community": 85,
@@ -1558,7 +1567,7 @@
     {
       "label": "Clear-Mg365TokenCacheFiles()",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/disconnect-mg365.ps1",
+      "source_file": "scripts/disconnect-mg365.ps1",
       "source_location": "L17",
       "id": "scripts_disconnect_mg365_clear_mg365tokencachefiles",
       "community": 85,
@@ -1583,19 +1592,10 @@
       "norm_label": "get-devices.ps1"
     },
     {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "scripts/get-devices.ps1",
-      "source_location": "L8",
-      "id": "scripts_get_devices_ensure_module",
-      "community": 3,
-      "norm_label": "ensure-module()"
-    },
-    {
       "label": "Get-TrustTypeLabel()",
       "file_type": "code",
       "source_file": "scripts/get-devices.ps1",
-      "source_location": "L40",
+      "source_location": "L30",
       "id": "scripts_get_devices_get_trusttypelabel",
       "community": 3,
       "norm_label": "get-trusttypelabel()"
@@ -1604,7 +1604,7 @@
       "label": "Get-ManagementLabel()",
       "file_type": "code",
       "source_file": "scripts/get-devices.ps1",
-      "source_location": "L51",
+      "source_location": "L41",
       "id": "scripts_get_devices_get_managementlabel",
       "community": 3,
       "norm_label": "get-managementlabel()"
@@ -1613,7 +1613,7 @@
       "label": "Get-SecurityManagementLabel()",
       "file_type": "code",
       "source_file": "scripts/get-devices.ps1",
-      "source_location": "L68",
+      "source_location": "L58",
       "id": "scripts_get_devices_get_securitymanagementlabel",
       "community": 3,
       "norm_label": "get-securitymanagementlabel()"
@@ -1622,7 +1622,7 @@
       "label": "Format-Iso()",
       "file_type": "code",
       "source_file": "scripts/get-devices.ps1",
-      "source_location": "L77",
+      "source_location": "L67",
       "id": "scripts_get_devices_format_iso",
       "community": 3,
       "norm_label": "format-iso()"
@@ -1630,44 +1630,26 @@
     {
       "label": "get-group-members.ps1",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-group-members.ps1",
+      "source_file": "scripts/get-group-members.ps1",
       "source_location": "L1",
-      "id": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_group_members_ps1",
+      "id": "scripts_get_group_members",
       "community": 13,
       "norm_label": "get-group-members.ps1"
     },
     {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-group-members.ps1",
-      "source_location": "L13",
-      "id": "scripts_get_group_members_ensure_module",
-      "community": 13,
-      "norm_label": "ensure-module()"
-    },
-    {
       "label": "get-group-owners.ps1",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-group-owners.ps1",
+      "source_file": "scripts/get-group-owners.ps1",
       "source_location": "L1",
-      "id": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_group_owners_ps1",
+      "id": "scripts_get_group_owners",
       "community": 1,
       "norm_label": "get-group-owners.ps1"
     },
     {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-group-owners.ps1",
-      "source_location": "L13",
-      "id": "scripts_get_group_owners_ensure_module",
-      "community": 1,
-      "norm_label": "ensure-module()"
-    },
-    {
       "label": "Get-OwnerEntries()",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-group-owners.ps1",
-      "source_location": "L26",
+      "source_file": "scripts/get-group-owners.ps1",
+      "source_location": "L16",
       "id": "scripts_get_group_owners_get_ownerentries",
       "community": 1,
       "norm_label": "get-ownerentries()"
@@ -1675,8 +1657,8 @@
     {
       "label": "Try-UserLabel()",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-group-owners.ps1",
-      "source_location": "L43",
+      "source_file": "scripts/get-group-owners.ps1",
+      "source_location": "L33",
       "id": "scripts_get_group_owners_try_userlabel",
       "community": 1,
       "norm_label": "try-userlabel()"
@@ -1684,8 +1666,8 @@
     {
       "label": "Try-GroupLabel()",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-group-owners.ps1",
-      "source_location": "L59",
+      "source_file": "scripts/get-group-owners.ps1",
+      "source_location": "L49",
       "id": "scripts_get_group_owners_try_grouplabel",
       "community": 1,
       "norm_label": "try-grouplabel()"
@@ -1693,8 +1675,8 @@
     {
       "label": "Try-SpLabel()",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-group-owners.ps1",
-      "source_location": "L73",
+      "source_file": "scripts/get-group-owners.ps1",
+      "source_location": "L63",
       "id": "scripts_get_group_owners_try_splabel",
       "community": 1,
       "norm_label": "try-splabel()"
@@ -1702,8 +1684,8 @@
     {
       "label": "Try-OrgContactLabel()",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-group-owners.ps1",
-      "source_location": "L86",
+      "source_file": "scripts/get-group-owners.ps1",
+      "source_location": "L76",
       "id": "scripts_get_group_owners_try_orgcontactlabel",
       "community": 1,
       "norm_label": "try-orgcontactlabel()"
@@ -1711,8 +1693,8 @@
     {
       "label": "Resolve-OwnerLabel()",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-group-owners.ps1",
-      "source_location": "L95",
+      "source_file": "scripts/get-group-owners.ps1",
+      "source_location": "L85",
       "id": "scripts_get_group_owners_resolve_ownerlabel",
       "community": 1,
       "norm_label": "resolve-ownerlabel()"
@@ -1720,26 +1702,17 @@
     {
       "label": "get-groups-detail.ps1",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-groups-detail.ps1",
+      "source_file": "scripts/get-groups-detail.ps1",
       "source_location": "L1",
-      "id": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_groups_detail_ps1",
+      "id": "scripts_get_groups_detail",
       "community": 7,
       "norm_label": "get-groups-detail.ps1"
     },
     {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-groups-detail.ps1",
-      "source_location": "L8",
-      "id": "scripts_get_groups_detail_ensure_module",
-      "community": 7,
-      "norm_label": "ensure-module()"
-    },
-    {
       "label": "Get-OwnerCountExact()",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-groups-detail.ps1",
-      "source_location": "L40",
+      "source_file": "scripts/get-groups-detail.ps1",
+      "source_location": "L30",
       "id": "scripts_get_groups_detail_get_ownercountexact",
       "community": 7,
       "norm_label": "get-ownercountexact()"
@@ -1747,38 +1720,20 @@
     {
       "label": "get-groups.ps1",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-groups.ps1",
+      "source_file": "scripts/get-groups.ps1",
       "source_location": "L1",
-      "id": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_groups_ps1",
+      "id": "scripts_get_groups",
       "community": 14,
       "norm_label": "get-groups.ps1"
     },
     {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-groups.ps1",
-      "source_location": "L8",
-      "id": "scripts_get_groups_ensure_module",
-      "community": 14,
-      "norm_label": "ensure-module()"
-    },
-    {
       "label": "get-managed-directory-roles.ps1",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-managed-directory-roles.ps1",
+      "source_file": "scripts/get-managed-directory-roles.ps1",
       "source_location": "L1",
-      "id": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_managed_directory_roles_ps1",
+      "id": "scripts_get_managed_directory_roles",
       "community": 81,
       "norm_label": "get-managed-directory-roles.ps1"
-    },
-    {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-managed-directory-roles.ps1",
-      "source_location": "L13",
-      "id": "scripts_get_managed_directory_roles_ensure_module",
-      "community": 81,
-      "norm_label": "ensure-module()"
     },
     {
       "label": "get-ms365-licenses.ps1",
@@ -1790,55 +1745,37 @@
       "norm_label": "get-ms365-licenses.ps1"
     },
     {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "scripts/get-ms365-licenses.ps1",
-      "source_location": "L8",
-      "id": "scripts_get_ms365_licenses_ensure_module",
-      "community": 69,
-      "norm_label": "ensure-module()"
-    },
-    {
       "label": "get-ms365-users.ps1",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-ms365-users.ps1",
+      "source_file": "scripts/get-ms365-users.ps1",
       "source_location": "L1",
-      "id": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_ms365_users_ps1",
+      "id": "scripts_get_ms365_users",
       "community": 15,
       "norm_label": "get-ms365-users.ps1"
     },
     {
-      "label": "Ensure-Module()",
+      "label": "Get-LastActivityFromSignInActivity()",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-ms365-users.ps1",
-      "source_location": "L11",
-      "id": "scripts_get_ms365_users_ensure_module",
+      "source_file": "scripts/get-ms365-users.ps1",
+      "source_location": "L15",
+      "id": "scripts_get_ms365_users_get_lastactivityfromsigninactivity",
       "community": 15,
-      "norm_label": "ensure-module()"
+      "norm_label": "get-lastactivityfromsigninactivity()"
     },
     {
       "label": "group-lifecycle.ps1",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/group-lifecycle.ps1",
+      "source_file": "scripts/group-lifecycle.ps1",
       "source_location": "L1",
-      "id": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_group_lifecycle_ps1",
+      "id": "scripts_group_lifecycle",
       "community": 5,
       "norm_label": "group-lifecycle.ps1"
     },
     {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/group-lifecycle.ps1",
-      "source_location": "L20",
-      "id": "scripts_group_lifecycle_ensure_module",
-      "community": 5,
-      "norm_label": "ensure-module()"
-    },
-    {
       "label": "Write-JsonResult()",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/group-lifecycle.ps1",
-      "source_location": "L33",
+      "source_file": "scripts/group-lifecycle.ps1",
+      "source_location": "L23",
       "id": "scripts_group_lifecycle_write_jsonresult",
       "community": 5,
       "norm_label": "write-jsonresult()"
@@ -1846,8 +1783,8 @@
     {
       "label": "Get-GraphErrorDetail()",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/group-lifecycle.ps1",
-      "source_location": "L40",
+      "source_file": "scripts/group-lifecycle.ps1",
+      "source_location": "L30",
       "id": "scripts_group_lifecycle_get_grapherrordetail",
       "community": 5,
       "norm_label": "get-grapherrordetail()"
@@ -1862,19 +1799,10 @@
       "norm_label": "invoke-intune-device-action.ps1"
     },
     {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "scripts/invoke-intune-device-action.ps1",
-      "source_location": "L26",
-      "id": "scripts_invoke_intune_device_action_ensure_module",
-      "community": 8,
-      "norm_label": "ensure-module()"
-    },
-    {
       "label": "Write-JsonResult()",
       "file_type": "code",
       "source_file": "scripts/invoke-intune-device-action.ps1",
-      "source_location": "L54",
+      "source_location": "L45",
       "id": "scripts_invoke_intune_device_action_write_jsonresult",
       "community": 8,
       "norm_label": "write-jsonresult()"
@@ -1882,110 +1810,56 @@
     {
       "label": "remove-directory-role-member.ps1",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/remove-directory-role-member.ps1",
+      "source_file": "scripts/remove-directory-role-member.ps1",
       "source_location": "L1",
-      "id": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_remove_directory_role_member_ps1",
+      "id": "scripts_remove_directory_role_member",
       "community": 82,
       "norm_label": "remove-directory-role-member.ps1"
     },
     {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/remove-directory-role-member.ps1",
-      "source_location": "L15",
-      "id": "scripts_remove_directory_role_member_ensure_module",
-      "community": 82,
-      "norm_label": "ensure-module()"
-    },
-    {
       "label": "remove-group-member.ps1",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/remove-group-member.ps1",
+      "source_file": "scripts/remove-group-member.ps1",
       "source_location": "L1",
-      "id": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_remove_group_member_ps1",
+      "id": "scripts_remove_group_member",
       "community": 16,
       "norm_label": "remove-group-member.ps1"
     },
     {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/remove-group-member.ps1",
-      "source_location": "L15",
-      "id": "scripts_remove_group_member_ensure_module",
-      "community": 16,
-      "norm_label": "ensure-module()"
-    },
-    {
       "label": "reset-mfa.ps1",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/reset-mfa.ps1",
+      "source_file": "scripts/reset-mfa.ps1",
       "source_location": "L1",
-      "id": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_reset_mfa_ps1",
+      "id": "scripts_reset_mfa",
       "community": 17,
       "norm_label": "reset-mfa.ps1"
     },
     {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/reset-mfa.ps1",
-      "source_location": "L14",
-      "id": "scripts_reset_mfa_ensure_module",
-      "community": 17,
-      "norm_label": "ensure-module()"
-    },
-    {
       "label": "update-group.ps1",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/update-group.ps1",
+      "source_file": "scripts/update-group.ps1",
       "source_location": "L1",
-      "id": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_update_group_ps1",
+      "id": "scripts_update_group",
       "community": 18,
       "norm_label": "update-group.ps1"
     },
     {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/update-group.ps1",
-      "source_location": "L15",
-      "id": "scripts_update_group_ensure_module",
-      "community": 18,
-      "norm_label": "ensure-module()"
-    },
-    {
       "label": "update-user-licenses.ps1",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/update-user-licenses.ps1",
+      "source_file": "scripts/update-user-licenses.ps1",
       "source_location": "L1",
-      "id": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_update_user_licenses_ps1",
+      "id": "scripts_update_user_licenses",
       "community": 19,
       "norm_label": "update-user-licenses.ps1"
     },
     {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/update-user-licenses.ps1",
-      "source_location": "L19",
-      "id": "scripts_update_user_licenses_ensure_module",
-      "community": 19,
-      "norm_label": "ensure-module()"
-    },
-    {
       "label": "update-user.ps1",
       "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/update-user.ps1",
+      "source_file": "scripts/update-user.ps1",
       "source_location": "L1",
-      "id": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_update_user_ps1",
+      "id": "scripts_update_user",
       "community": 20,
       "norm_label": "update-user.ps1"
-    },
-    {
-      "label": "Ensure-Module()",
-      "file_type": "code",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/update-user.ps1",
-      "source_location": "L34",
-      "id": "scripts_update_user_ensure_module",
-      "community": 20,
-      "norm_label": "ensure-module()"
     },
     {
       "label": "App.vue",
@@ -2015,10 +1889,55 @@
       "norm_label": "appsidebar.vue"
     },
     {
+      "label": "usersStore",
+      "file_type": "code",
+      "source_file": "src/components/AppSidebar.vue",
+      "source_location": "L166",
+      "id": "components_appsidebar_usersstore",
+      "community": 78,
+      "norm_label": "usersstore"
+    },
+    {
+      "label": "groupsStore",
+      "file_type": "code",
+      "source_file": "src/components/AppSidebar.vue",
+      "source_location": "L167",
+      "id": "components_appsidebar_groupsstore",
+      "community": 78,
+      "norm_label": "groupsstore"
+    },
+    {
+      "label": "devicesStore",
+      "file_type": "code",
+      "source_file": "src/components/AppSidebar.vue",
+      "source_location": "L168",
+      "id": "components_appsidebar_devicesstore",
+      "community": 78,
+      "norm_label": "devicesstore"
+    },
+    {
+      "label": "rolesStore",
+      "file_type": "code",
+      "source_file": "src/components/AppSidebar.vue",
+      "source_location": "L169",
+      "id": "components_appsidebar_rolesstore",
+      "community": 78,
+      "norm_label": "rolesstore"
+    },
+    {
+      "label": "canLogout",
+      "file_type": "code",
+      "source_file": "src/components/AppSidebar.vue",
+      "source_location": "L171",
+      "id": "components_appsidebar_canlogout",
+      "community": 78,
+      "norm_label": "canlogout"
+    },
+    {
       "label": "formatTime()",
       "file_type": "code",
       "source_file": "src/components/AppSidebar.vue",
-      "source_location": "L150",
+      "source_location": "L180",
       "id": "components_appsidebar_formattime",
       "community": 78,
       "norm_label": "formattime()"
@@ -2027,7 +1946,7 @@
       "label": "handleLogout()",
       "file_type": "code",
       "source_file": "src/components/AppSidebar.vue",
-      "source_location": "L154",
+      "source_location": "L184",
       "id": "components_appsidebar_handlelogout",
       "community": 78,
       "norm_label": "handlelogout()"
@@ -2036,7 +1955,7 @@
       "label": "handleQuit()",
       "file_type": "code",
       "source_file": "src/components/AppSidebar.vue",
-      "source_location": "L159",
+      "source_location": "L189",
       "id": "components_appsidebar_handlequit",
       "community": 78,
       "norm_label": "handlequit()"
@@ -2045,7 +1964,7 @@
       "label": "openXapientSite()",
       "file_type": "code",
       "source_file": "src/components/AppSidebar.vue",
-      "source_location": "L163",
+      "source_location": "L193",
       "id": "components_appsidebar_openxapientsite",
       "community": 78,
       "norm_label": "openxapientsite()"
@@ -3914,6 +3833,51 @@
       "norm_label": "nicht-ziele / out-of-scope (aktuell)"
     },
     {
+      "label": "Ensure-Module()",
+      "file_type": "code",
+      "source_file": "scripts/delete-entra-device.ps1",
+      "source_location": "L13",
+      "community": 75,
+      "norm_label": "ensure-module()",
+      "id": "scripts_delete_entra_device_ensure_module"
+    },
+    {
+      "label": "Ensure-Module()",
+      "file_type": "code",
+      "source_file": "scripts/delete-users.ps1",
+      "source_location": "L13",
+      "community": 64,
+      "norm_label": "ensure-module()",
+      "id": "scripts_delete_users_ensure_module"
+    },
+    {
+      "label": "Ensure-Module()",
+      "file_type": "code",
+      "source_file": "scripts/get-devices.ps1",
+      "source_location": "L8",
+      "community": 3,
+      "norm_label": "ensure-module()",
+      "id": "scripts_get_devices_ensure_module"
+    },
+    {
+      "label": "Ensure-Module()",
+      "file_type": "code",
+      "source_file": "scripts/get-ms365-licenses.ps1",
+      "source_location": "L8",
+      "community": 69,
+      "norm_label": "ensure-module()",
+      "id": "scripts_get_ms365_licenses_ensure_module"
+    },
+    {
+      "label": "Ensure-Module()",
+      "file_type": "code",
+      "source_file": "scripts/invoke-intune-device-action.ps1",
+      "source_location": "L26",
+      "community": 8,
+      "norm_label": "ensure-module()",
+      "id": "scripts_invoke_intune_device_action_ensure_module"
+    },
+    {
       "label": "settings.json",
       "file_type": "code",
       "source_file": ".claude/settings.json",
@@ -4040,51 +4004,6 @@
       "id": "scripts_directoryrole_mg365"
     },
     {
-      "label": "add-directory-role-member.ps1",
-      "file_type": "code",
-      "source_file": "scripts/add-directory-role-member.ps1",
-      "source_location": "L1",
-      "community": 56,
-      "norm_label": "add-directory-role-member.ps1",
-      "id": "scripts_add_directory_role_member"
-    },
-    {
-      "label": "add-group-members.ps1",
-      "file_type": "code",
-      "source_file": "scripts/add-group-members.ps1",
-      "source_location": "L1",
-      "community": 6,
-      "norm_label": "add-group-members.ps1",
-      "id": "scripts_add_group_members"
-    },
-    {
-      "label": "delete-group.ps1",
-      "file_type": "code",
-      "source_file": "scripts/delete-group.ps1",
-      "source_location": "L1",
-      "community": 11,
-      "norm_label": "delete-group.ps1",
-      "id": "scripts_delete_group"
-    },
-    {
-      "label": "delete-user.ps1",
-      "file_type": "code",
-      "source_file": "scripts/delete-user.ps1",
-      "source_location": "L1",
-      "community": 12,
-      "norm_label": "delete-user.ps1",
-      "id": "scripts_delete_user"
-    },
-    {
-      "label": "disconnect-mg365.ps1",
-      "file_type": "code",
-      "source_file": "scripts/disconnect-mg365.ps1",
-      "source_location": "L1",
-      "community": 85,
-      "norm_label": "disconnect-mg365.ps1",
-      "id": "scripts_disconnect_mg365"
-    },
-    {
       "label": "ensure-graph-connection.ps1",
       "file_type": "code",
       "source_file": "scripts/ensure-graph-connection.ps1",
@@ -4092,123 +4011,6 @@
       "community": 88,
       "norm_label": "ensure-graph-connection.ps1",
       "id": "scripts_ensure_graph_connection"
-    },
-    {
-      "label": "get-group-members.ps1",
-      "file_type": "code",
-      "source_file": "scripts/get-group-members.ps1",
-      "source_location": "L1",
-      "community": 13,
-      "norm_label": "get-group-members.ps1",
-      "id": "scripts_get_group_members"
-    },
-    {
-      "label": "get-group-owners.ps1",
-      "file_type": "code",
-      "source_file": "scripts/get-group-owners.ps1",
-      "source_location": "L1",
-      "community": 1,
-      "norm_label": "get-group-owners.ps1",
-      "id": "scripts_get_group_owners"
-    },
-    {
-      "label": "get-groups-detail.ps1",
-      "file_type": "code",
-      "source_file": "scripts/get-groups-detail.ps1",
-      "source_location": "L1",
-      "community": 7,
-      "norm_label": "get-groups-detail.ps1",
-      "id": "scripts_get_groups_detail"
-    },
-    {
-      "label": "get-groups.ps1",
-      "file_type": "code",
-      "source_file": "scripts/get-groups.ps1",
-      "source_location": "L1",
-      "community": 14,
-      "norm_label": "get-groups.ps1",
-      "id": "scripts_get_groups"
-    },
-    {
-      "label": "get-managed-directory-roles.ps1",
-      "file_type": "code",
-      "source_file": "scripts/get-managed-directory-roles.ps1",
-      "source_location": "L1",
-      "community": 81,
-      "norm_label": "get-managed-directory-roles.ps1",
-      "id": "scripts_get_managed_directory_roles"
-    },
-    {
-      "label": "get-ms365-users.ps1",
-      "file_type": "code",
-      "source_file": "scripts/get-ms365-users.ps1",
-      "source_location": "L1",
-      "community": 15,
-      "norm_label": "get-ms365-users.ps1",
-      "id": "scripts_get_ms365_users"
-    },
-    {
-      "label": "group-lifecycle.ps1",
-      "file_type": "code",
-      "source_file": "scripts/group-lifecycle.ps1",
-      "source_location": "L1",
-      "community": 5,
-      "norm_label": "group-lifecycle.ps1",
-      "id": "scripts_group_lifecycle"
-    },
-    {
-      "label": "remove-directory-role-member.ps1",
-      "file_type": "code",
-      "source_file": "scripts/remove-directory-role-member.ps1",
-      "source_location": "L1",
-      "community": 82,
-      "norm_label": "remove-directory-role-member.ps1",
-      "id": "scripts_remove_directory_role_member"
-    },
-    {
-      "label": "remove-group-member.ps1",
-      "file_type": "code",
-      "source_file": "scripts/remove-group-member.ps1",
-      "source_location": "L1",
-      "community": 16,
-      "norm_label": "remove-group-member.ps1",
-      "id": "scripts_remove_group_member"
-    },
-    {
-      "label": "reset-mfa.ps1",
-      "file_type": "code",
-      "source_file": "scripts/reset-mfa.ps1",
-      "source_location": "L1",
-      "community": 17,
-      "norm_label": "reset-mfa.ps1",
-      "id": "scripts_reset_mfa"
-    },
-    {
-      "label": "update-group.ps1",
-      "file_type": "code",
-      "source_file": "scripts/update-group.ps1",
-      "source_location": "L1",
-      "community": 18,
-      "norm_label": "update-group.ps1",
-      "id": "scripts_update_group"
-    },
-    {
-      "label": "update-user-licenses.ps1",
-      "file_type": "code",
-      "source_file": "scripts/update-user-licenses.ps1",
-      "source_location": "L1",
-      "community": 19,
-      "norm_label": "update-user-licenses.ps1",
-      "id": "scripts_update_user_licenses"
-    },
-    {
-      "label": "update-user.ps1",
-      "file_type": "code",
-      "source_file": "scripts/update-user.ps1",
-      "source_location": "L1",
-      "community": 20,
-      "norm_label": "update-user.ps1",
-      "id": "scripts_update_user"
     },
     {
       "label": "AGENTS.md",
@@ -4971,7 +4773,7 @@
       "file_type": "code",
       "source_file": "scripts/add-group-members.ps1",
       "source_location": "L15",
-      "community": 6,
+      "community": 90,
       "norm_label": "ensure-module()",
       "id": "add_group_members_ensure_module"
     },
@@ -4980,7 +4782,7 @@
       "file_type": "code",
       "source_file": "scripts/add-group-members.ps1",
       "source_location": "L49",
-      "community": 6,
+      "community": 91,
       "norm_label": "test-isalreadymembererror()",
       "id": "add_group_members_test_isalreadymembererror"
     },
@@ -5007,7 +4809,7 @@
       "file_type": "code",
       "source_file": "scripts/delete-group.ps1",
       "source_location": "L13",
-      "community": 11,
+      "community": 92,
       "norm_label": "ensure-module()",
       "id": "delete_group_ensure_module"
     },
@@ -5016,7 +4818,7 @@
       "file_type": "code",
       "source_file": "scripts/delete-user.ps1",
       "source_location": "L13",
-      "community": 12,
+      "community": 93,
       "norm_label": "ensure-module()",
       "id": "delete_user_ensure_module"
     },
@@ -5070,7 +4872,7 @@
       "file_type": "code",
       "source_file": "scripts/get-group-members.ps1",
       "source_location": "L13",
-      "community": 13,
+      "community": 94,
       "norm_label": "ensure-module()",
       "id": "get_group_members_ensure_module"
     },
@@ -5079,7 +4881,7 @@
       "file_type": "code",
       "source_file": "scripts/get-group-owners.ps1",
       "source_location": "L13",
-      "community": 1,
+      "community": 95,
       "norm_label": "ensure-module()",
       "id": "get_group_owners_ensure_module"
     },
@@ -5088,7 +4890,7 @@
       "file_type": "code",
       "source_file": "scripts/get-group-owners.ps1",
       "source_location": "L26",
-      "community": 1,
+      "community": 96,
       "norm_label": "get-ownerentries()",
       "id": "get_group_owners_get_ownerentries"
     },
@@ -5097,7 +4899,7 @@
       "file_type": "code",
       "source_file": "scripts/get-group-owners.ps1",
       "source_location": "L43",
-      "community": 1,
+      "community": 89,
       "norm_label": "try-userlabel()",
       "id": "get_group_owners_try_userlabel"
     },
@@ -5106,7 +4908,7 @@
       "file_type": "code",
       "source_file": "scripts/get-group-owners.ps1",
       "source_location": "L59",
-      "community": 1,
+      "community": 89,
       "norm_label": "try-grouplabel()",
       "id": "get_group_owners_try_grouplabel"
     },
@@ -5115,7 +4917,7 @@
       "file_type": "code",
       "source_file": "scripts/get-group-owners.ps1",
       "source_location": "L73",
-      "community": 1,
+      "community": 89,
       "norm_label": "try-splabel()",
       "id": "get_group_owners_try_splabel"
     },
@@ -5124,7 +4926,7 @@
       "file_type": "code",
       "source_file": "scripts/get-group-owners.ps1",
       "source_location": "L86",
-      "community": 1,
+      "community": 89,
       "norm_label": "try-orgcontactlabel()",
       "id": "get_group_owners_try_orgcontactlabel"
     },
@@ -5133,7 +4935,7 @@
       "file_type": "code",
       "source_file": "scripts/get-group-owners.ps1",
       "source_location": "L95",
-      "community": 1,
+      "community": 89,
       "norm_label": "resolve-ownerlabel()",
       "id": "get_group_owners_resolve_ownerlabel"
     },
@@ -5142,7 +4944,7 @@
       "file_type": "code",
       "source_file": "scripts/get-groups-detail.ps1",
       "source_location": "L8",
-      "community": 7,
+      "community": 97,
       "norm_label": "ensure-module()",
       "id": "get_groups_detail_ensure_module"
     },
@@ -5151,7 +4953,7 @@
       "file_type": "code",
       "source_file": "scripts/get-groups-detail.ps1",
       "source_location": "L40",
-      "community": 7,
+      "community": 98,
       "norm_label": "get-ownercountexact()",
       "id": "get_groups_detail_get_ownercountexact"
     },
@@ -5160,7 +4962,7 @@
       "file_type": "code",
       "source_file": "scripts/get-groups.ps1",
       "source_location": "L8",
-      "community": 14,
+      "community": 99,
       "norm_label": "ensure-module()",
       "id": "get_groups_ensure_module"
     },
@@ -5169,7 +4971,7 @@
       "file_type": "code",
       "source_file": "scripts/get-ms365-users.ps1",
       "source_location": "L11",
-      "community": 15,
+      "community": 100,
       "norm_label": "ensure-module()",
       "id": "get_ms365_users_ensure_module"
     },
@@ -5178,7 +4980,7 @@
       "file_type": "code",
       "source_file": "scripts/group-lifecycle.ps1",
       "source_location": "L20",
-      "community": 5,
+      "community": 101,
       "norm_label": "ensure-module()",
       "id": "group_lifecycle_ensure_module"
     },
@@ -5187,7 +4989,7 @@
       "file_type": "code",
       "source_file": "scripts/group-lifecycle.ps1",
       "source_location": "L33",
-      "community": 5,
+      "community": 103,
       "norm_label": "write-jsonresult()",
       "id": "group_lifecycle_write_jsonresult"
     },
@@ -5196,7 +4998,7 @@
       "file_type": "code",
       "source_file": "scripts/group-lifecycle.ps1",
       "source_location": "L40",
-      "community": 5,
+      "community": 102,
       "norm_label": "get-grapherrordetail()",
       "id": "group_lifecycle_get_grapherrordetail"
     },
@@ -5223,7 +5025,7 @@
       "file_type": "code",
       "source_file": "scripts/remove-group-member.ps1",
       "source_location": "L15",
-      "community": 16,
+      "community": 104,
       "norm_label": "ensure-module()",
       "id": "remove_group_member_ensure_module"
     },
@@ -5232,7 +5034,7 @@
       "file_type": "code",
       "source_file": "scripts/reset-mfa.ps1",
       "source_location": "L14",
-      "community": 17,
+      "community": 105,
       "norm_label": "ensure-module()",
       "id": "reset_mfa_ensure_module"
     },
@@ -5241,7 +5043,7 @@
       "file_type": "code",
       "source_file": "scripts/update-group.ps1",
       "source_location": "L15",
-      "community": 18,
+      "community": 106,
       "norm_label": "ensure-module()",
       "id": "update_group_ensure_module"
     },
@@ -5250,7 +5052,7 @@
       "file_type": "code",
       "source_file": "scripts/update-user-licenses.ps1",
       "source_location": "L19",
-      "community": 19,
+      "community": 108,
       "norm_label": "ensure-module()",
       "id": "update_user_licenses_ensure_module"
     },
@@ -5259,7 +5061,7 @@
       "file_type": "code",
       "source_file": "scripts/update-user.ps1",
       "source_location": "L34",
-      "community": 20,
+      "community": 107,
       "norm_label": "ensure-module()",
       "id": "update_user_ensure_module"
     },
@@ -6804,6 +6606,17 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "index.js",
+      "source_location": "L456",
+      "weight": 1.0,
+      "source": "index_checkpwshfordashboard",
+      "target": "index_ispwshcommand",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "index.js",
       "source_location": "L326",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -6819,6 +6632,17 @@
       "confidence_score": 1.0,
       "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_index_js",
       "target": "index_detectpowershell"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "index.js",
+      "source_location": "L456",
+      "weight": 1.0,
+      "source": "index_checkpwshfordashboard",
+      "target": "index_detectpowershell",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -7146,6 +6970,16 @@
       "confidence_score": 1.0,
       "source": "package_scripts",
       "target": "package_scripts_build_linux"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "package_scripts",
+      "target": "package_scripts_build_mac_arm64",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -7511,11 +7345,41 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
+      "source_location": "L86",
+      "weight": 1.0,
+      "source": "package_build_mac",
+      "target": "package_mac_gatekeeperassess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L85",
+      "weight": 1.0,
+      "source": "package_build_mac",
+      "target": "package_mac_hardenedruntime",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
       "source_location": "L59",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "package_build_mac",
       "target": "package_mac_icon"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L87",
+      "weight": 1.0,
+      "source": "package_build_mac",
+      "target": "package_mac_notarize",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -7878,6 +7742,17 @@
       "target": "scripts_connect_mg365app_get_ms365parentwindowhandle"
     },
     {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "scripts/Connect-Mg365App.ps1",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "scripts_connect_mg365app_connect_mg365app",
+      "target": "scripts_mg365_graphmodules_ensure_mg365graphmodule"
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/DirectoryRole-Mg365.ps1",
@@ -7980,32 +7855,42 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/add-directory-role-member.ps1",
-      "source_location": "L15",
+      "source_file": "scripts/Mg365-GraphModules.ps1",
+      "source_location": "L7",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_add_directory_role_member_ps1",
-      "target": "scripts_add_directory_role_member_ensure_module"
+      "source": "scripts_mg365_graphmodules",
+      "target": "scripts_mg365_graphmodules_ensure_mg365graphmodule",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/add-directory-role-member.ps1",
-      "source_location": "L27",
+      "source_file": "scripts/Mg365-GraphModules.ps1",
+      "source_location": "L50",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_add_directory_role_member_ps1",
-      "target": "scripts_add_directory_role_member_test_isalreadymembererror"
+      "source": "scripts_mg365_graphmodules",
+      "target": "scripts_mg365_graphmodules_ensure_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/Mg365-GraphModules.ps1",
+      "source_location": "L52",
+      "weight": 1.0,
+      "source": "scripts_mg365_graphmodules_ensure_module",
+      "target": "scripts_mg365_graphmodules_ensure_mg365graphmodule",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/add-directory-role-member.ps1",
-      "source_location": "L15",
+      "source_location": "L27",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "scripts_add_directory_role_member",
-      "target": "scripts_add_directory_role_member_ensure_module"
+      "target": "scripts_add_directory_role_member_get_oractivatedirectoryrole"
     },
     {
       "relation": "contains",
@@ -8016,56 +7901,6 @@
       "confidence_score": 1.0,
       "source": "scripts_add_directory_role_member",
       "target": "scripts_add_directory_role_member_test_isalreadymembererror"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/add-group-members.ps1",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_add_group_members_ps1",
-      "target": "add_group_members_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/add-group-members.ps1",
-      "source_location": "L49",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_add_group_members_ps1",
-      "target": "add_group_members_test_isalreadymembererror"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/add-group-members.ps1",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_add_group_members_ps1",
-      "target": "scripts_add_group_members_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/add-group-members.ps1",
-      "source_location": "L49",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_add_group_members_ps1",
-      "target": "scripts_add_group_members_test_isalreadymembererror"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/add-group-members.ps1",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_add_group_members",
-      "target": "scripts_add_group_members_ensure_module"
     },
     {
       "relation": "contains",
@@ -8093,9 +7928,9 @@
       "source_file": "scripts/delete-entra-device.ps1",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_delete_entra_device",
-      "target": "scripts_delete_entra_device_ensure_module",
-      "confidence_score": 1.0
+      "target": "scripts_delete_entra_device_ensure_module"
     },
     {
       "relation": "contains",
@@ -8103,69 +7938,9 @@
       "source_file": "scripts/delete-entra-device.ps1",
       "source_location": "L25",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_delete_entra_device",
-      "target": "scripts_delete_entra_device_write_jsonresult",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/delete-group.ps1",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_delete_group_ps1",
-      "target": "delete_group_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/delete-group.ps1",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_delete_group_ps1",
-      "target": "scripts_delete_group_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/delete-group.ps1",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_delete_group",
-      "target": "scripts_delete_group_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/delete-user.ps1",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_delete_user_ps1",
-      "target": "delete_user_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/delete-user.ps1",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_delete_user_ps1",
-      "target": "scripts_delete_user_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/delete-user.ps1",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_delete_user",
-      "target": "scripts_delete_user_ensure_module"
+      "target": "scripts_delete_entra_device_write_jsonresult"
     },
     {
       "relation": "contains",
@@ -8190,22 +7965,12 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/disconnect-mg365.ps1",
+      "source_file": "scripts/disconnect-mg365.ps1",
       "source_location": "L17",
       "weight": 1.0,
       "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_disconnect_mg365_ps1",
+      "source": "scripts_disconnect_mg365",
       "target": "scripts_disconnect_mg365_clear_mg365tokencachefiles"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/disconnect-mg365.ps1",
-      "source_location": "L9",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_disconnect_mg365_ps1",
-      "target": "scripts_disconnect_mg365_write_jsonresult"
     },
     {
       "relation": "contains",
@@ -8216,16 +7981,6 @@
       "confidence_score": 1.0,
       "source": "scripts_disconnect_mg365",
       "target": "scripts_disconnect_mg365_write_jsonresult"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/disconnect-mg365.ps1",
-      "source_location": "L17",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_disconnect_mg365",
-      "target": "scripts_disconnect_mg365_clear_mg365tokencachefiles"
     },
     {
       "relation": "contains",
@@ -8290,192 +8045,52 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "scripts/get-group-members.ps1",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_group_members_ps1",
-      "target": "get_group_members_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-group-members.ps1",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_group_members_ps1",
-      "target": "scripts_get_group_members_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-group-members.ps1",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_get_group_members",
-      "target": "scripts_get_group_members_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-group-owners.ps1",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_group_owners_ps1",
-      "target": "get_group_owners_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "scripts/get-group-owners.ps1",
       "source_location": "L26",
       "weight": 1.0,
       "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_group_owners_ps1",
-      "target": "get_group_owners_get_ownerentries"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-group-owners.ps1",
-      "source_location": "L95",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_group_owners_ps1",
-      "target": "get_group_owners_resolve_ownerlabel"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-group-owners.ps1",
-      "source_location": "L59",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_group_owners_ps1",
-      "target": "get_group_owners_try_grouplabel"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-group-owners.ps1",
-      "source_location": "L86",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_group_owners_ps1",
-      "target": "get_group_owners_try_orgcontactlabel"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-group-owners.ps1",
-      "source_location": "L73",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_group_owners_ps1",
-      "target": "get_group_owners_try_splabel"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-group-owners.ps1",
-      "source_location": "L43",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_group_owners_ps1",
-      "target": "get_group_owners_try_userlabel"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-group-owners.ps1",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_group_owners_ps1",
-      "target": "scripts_get_group_owners_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-group-owners.ps1",
-      "source_location": "L26",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_group_owners_ps1",
+      "source": "scripts_get_group_owners",
       "target": "scripts_get_group_owners_get_ownerentries"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-group-owners.ps1",
+      "source_file": "scripts/get-group-owners.ps1",
       "source_location": "L95",
       "weight": 1.0,
       "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_group_owners_ps1",
+      "source": "scripts_get_group_owners",
       "target": "scripts_get_group_owners_resolve_ownerlabel"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-group-owners.ps1",
+      "source_file": "scripts/get-group-owners.ps1",
       "source_location": "L59",
       "weight": 1.0,
       "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_group_owners_ps1",
+      "source": "scripts_get_group_owners",
       "target": "scripts_get_group_owners_try_grouplabel"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-group-owners.ps1",
+      "source_file": "scripts/get-group-owners.ps1",
       "source_location": "L86",
       "weight": 1.0,
       "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_group_owners_ps1",
+      "source": "scripts_get_group_owners",
       "target": "scripts_get_group_owners_try_orgcontactlabel"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-group-owners.ps1",
+      "source_file": "scripts/get-group-owners.ps1",
       "source_location": "L73",
       "weight": 1.0,
       "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_group_owners_ps1",
+      "source": "scripts_get_group_owners",
       "target": "scripts_get_group_owners_try_splabel"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-group-owners.ps1",
-      "source_location": "L43",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_group_owners_ps1",
-      "target": "scripts_get_group_owners_try_userlabel"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-group-owners.ps1",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_get_group_owners",
-      "target": "scripts_get_group_owners_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-group-owners.ps1",
-      "source_location": "L26",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_get_group_owners",
-      "target": "scripts_get_group_owners_get_ownerentries"
     },
     {
       "relation": "contains",
@@ -8498,16 +8113,6 @@
       "target": "scripts_get_group_owners_try_userlabel"
     },
     {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-group-owners.ps1",
-      "source_location": "L59",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_get_group_owners",
-      "target": "scripts_get_group_owners_try_grouplabel"
-    },
-    {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "scripts/get-group-owners.ps1",
@@ -8518,16 +8123,6 @@
       "target": "scripts_get_group_owners_try_grouplabel"
     },
     {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-group-owners.ps1",
-      "source_location": "L73",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_get_group_owners",
-      "target": "scripts_get_group_owners_try_splabel"
-    },
-    {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "scripts/get-group-owners.ps1",
@@ -8536,16 +8131,6 @@
       "confidence_score": 1.0,
       "source": "scripts_get_group_owners_resolve_ownerlabel",
       "target": "scripts_get_group_owners_try_splabel"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-group-owners.ps1",
-      "source_location": "L86",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_get_group_owners",
-      "target": "scripts_get_group_owners_try_orgcontactlabel"
     },
     {
       "relation": "calls",
@@ -8560,122 +8145,32 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "scripts/get-group-owners.ps1",
-      "source_location": "L95",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_get_group_owners",
-      "target": "scripts_get_group_owners_resolve_ownerlabel"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-groups-detail.ps1",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_groups_detail_ps1",
-      "target": "get_groups_detail_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-groups-detail.ps1",
-      "source_location": "L40",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_groups_detail_ps1",
-      "target": "get_groups_detail_get_ownercountexact"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-groups-detail.ps1",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_groups_detail_ps1",
-      "target": "scripts_get_groups_detail_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-groups-detail.ps1",
-      "source_location": "L40",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_groups_detail_ps1",
-      "target": "scripts_get_groups_detail_get_ownercountexact"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-groups-detail.ps1",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_get_groups_detail",
-      "target": "scripts_get_groups_detail_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "scripts/get-groups-detail.ps1",
       "source_location": "L40",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "scripts_get_groups_detail",
       "target": "scripts_get_groups_detail_get_ownercountexact"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-groups.ps1",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_groups_ps1",
-      "target": "get_groups_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-groups.ps1",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_groups_ps1",
-      "target": "scripts_get_groups_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-groups.ps1",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_get_groups",
-      "target": "scripts_get_groups_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-managed-directory-roles.ps1",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_managed_directory_roles_ps1",
-      "target": "scripts_get_managed_directory_roles_ensure_module"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/get-managed-directory-roles.ps1",
-      "source_location": "L13",
+      "source_location": "L33",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "scripts_get_managed_directory_roles",
-      "target": "scripts_get_managed_directory_roles_ensure_module"
+      "target": "scripts_get_managed_directory_roles_get_directoryroleusermembers"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/get-managed-directory-roles.ps1",
+      "source_location": "L25",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_get_managed_directory_roles",
+      "target": "scripts_get_managed_directory_roles_get_oractivatedirectoryrole"
     },
     {
       "relation": "contains",
@@ -8691,111 +8186,11 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/get-ms365-users.ps1",
-      "source_location": "L11",
+      "source_location": "L15",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_ms365_users_ps1",
-      "target": "get_ms365_users_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/get-ms365-users.ps1",
-      "source_location": "L11",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_get_ms365_users_ps1",
-      "target": "scripts_get_ms365_users_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-ms365-users.ps1",
-      "source_location": "L11",
-      "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_get_ms365_users",
-      "target": "scripts_get_ms365_users_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/group-lifecycle.ps1",
-      "source_location": "L20",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_group_lifecycle_ps1",
-      "target": "group_lifecycle_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/group-lifecycle.ps1",
-      "source_location": "L40",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_group_lifecycle_ps1",
-      "target": "group_lifecycle_get_grapherrordetail"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/group-lifecycle.ps1",
-      "source_location": "L33",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_group_lifecycle_ps1",
-      "target": "group_lifecycle_write_jsonresult"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/group-lifecycle.ps1",
-      "source_location": "L20",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_group_lifecycle_ps1",
-      "target": "scripts_group_lifecycle_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/group-lifecycle.ps1",
-      "source_location": "L40",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_group_lifecycle_ps1",
-      "target": "scripts_group_lifecycle_get_grapherrordetail"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/group-lifecycle.ps1",
-      "source_location": "L33",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_group_lifecycle_ps1",
-      "target": "scripts_group_lifecycle_write_jsonresult"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/group-lifecycle.ps1",
-      "source_location": "L20",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_group_lifecycle",
-      "target": "scripts_group_lifecycle_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/group-lifecycle.ps1",
-      "source_location": "L33",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_group_lifecycle",
-      "target": "scripts_group_lifecycle_write_jsonresult"
+      "target": "scripts_get_ms365_users_get_lastactivityfromsigninactivity",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -8806,6 +8201,16 @@
       "confidence_score": 1.0,
       "source": "scripts_group_lifecycle",
       "target": "scripts_group_lifecycle_get_grapherrordetail"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/group-lifecycle.ps1",
+      "source_location": "L33",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_group_lifecycle",
+      "target": "scripts_group_lifecycle_write_jsonresult"
     },
     {
       "relation": "contains",
@@ -8826,176 +8231,6 @@
       "confidence_score": 1.0,
       "source": "scripts_invoke_intune_device_action",
       "target": "scripts_invoke_intune_device_action_write_jsonresult"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/remove-directory-role-member.ps1",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_remove_directory_role_member_ps1",
-      "target": "scripts_remove_directory_role_member_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/remove-directory-role-member.ps1",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_remove_directory_role_member",
-      "target": "scripts_remove_directory_role_member_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/remove-group-member.ps1",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_remove_group_member_ps1",
-      "target": "remove_group_member_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/remove-group-member.ps1",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_remove_group_member_ps1",
-      "target": "scripts_remove_group_member_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/remove-group-member.ps1",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_remove_group_member",
-      "target": "scripts_remove_group_member_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/reset-mfa.ps1",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_reset_mfa_ps1",
-      "target": "reset_mfa_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/reset-mfa.ps1",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_reset_mfa_ps1",
-      "target": "scripts_reset_mfa_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/reset-mfa.ps1",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_reset_mfa",
-      "target": "scripts_reset_mfa_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/update-group.ps1",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_update_group_ps1",
-      "target": "scripts_update_group_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/update-group.ps1",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_update_group_ps1",
-      "target": "update_group_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/update-group.ps1",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_update_group",
-      "target": "scripts_update_group_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/update-user-licenses.ps1",
-      "source_location": "L19",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_update_user_licenses_ps1",
-      "target": "scripts_update_user_licenses_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/update-user-licenses.ps1",
-      "source_location": "L19",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_update_user_licenses_ps1",
-      "target": "update_user_licenses_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/update-user-licenses.ps1",
-      "source_location": "L19",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_update_user_licenses",
-      "target": "scripts_update_user_licenses_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "/home/valueerror/Nextcloud/WORKINPROGRESS/Microsoft365-Users/scripts/update-user.ps1",
-      "source_location": "L34",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_update_user_ps1",
-      "target": "scripts_update_user_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/update-user.ps1",
-      "source_location": "L34",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "home_valueerror_nextcloud_workinprogress_microsoft365_users_scripts_update_user_ps1",
-      "target": "update_user_ensure_module"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/update-user.ps1",
-      "source_location": "L34",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_update_user",
-      "target": "scripts_update_user_ensure_module"
     },
     {
       "relation": "contains",
@@ -9022,11 +8257,41 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/AppSidebar.vue",
+      "source_location": "L171",
+      "weight": 1.0,
+      "source": "components_appsidebar",
+      "target": "components_appsidebar_canlogout",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/AppSidebar.vue",
+      "source_location": "L168",
+      "weight": 1.0,
+      "source": "components_appsidebar",
+      "target": "components_appsidebar_devicesstore",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/AppSidebar.vue",
       "source_location": "L146",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "components_appsidebar",
       "target": "components_appsidebar_formattime"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/AppSidebar.vue",
+      "source_location": "L167",
+      "weight": 1.0,
+      "source": "components_appsidebar",
+      "target": "components_appsidebar_groupsstore",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -9057,6 +8322,26 @@
       "confidence_score": 1.0,
       "source": "components_appsidebar",
       "target": "components_appsidebar_openxapientsite"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/AppSidebar.vue",
+      "source_location": "L169",
+      "weight": 1.0,
+      "source": "components_appsidebar",
+      "target": "components_appsidebar_rolesstore",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/AppSidebar.vue",
+      "source_location": "L166",
+      "weight": 1.0,
+      "source": "components_appsidebar",
+      "target": "components_appsidebar_usersstore",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
@@ -10130,9 +9415,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L477",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_allpagedevicesselected",
-      "confidence_score": 1.0
+      "target": "views_devicesview_allpagedevicesselected"
     },
     {
       "relation": "contains",
@@ -10140,9 +9425,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L570",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_boolsortkey",
-      "confidence_score": 1.0
+      "target": "views_devicesview_boolsortkey"
     },
     {
       "relation": "contains",
@@ -10150,9 +9435,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L508",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_cleardeviceselection",
-      "confidence_score": 1.0
+      "target": "views_devicesview_cleardeviceselection"
     },
     {
       "relation": "contains",
@@ -10160,9 +9445,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L617",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_closedeleteentramodal",
-      "confidence_score": 1.0
+      "target": "views_devicesview_closedeleteentramodal"
     },
     {
       "relation": "contains",
@@ -10170,9 +9455,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L410",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_currentpage",
-      "confidence_score": 1.0
+      "target": "views_devicesview_currentpage"
     },
     {
       "relation": "contains",
@@ -10180,9 +9465,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L564",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_datesortkey",
-      "confidence_score": 1.0
+      "target": "views_devicesview_datesortkey"
     },
     {
       "relation": "contains",
@@ -10190,9 +9475,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L600",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_deleteentraconfirmexpected",
-      "confidence_score": 1.0
+      "target": "views_devicesview_deleteentraconfirmexpected"
     },
     {
       "relation": "contains",
@@ -10200,9 +9485,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L602",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_deleteentraconfirmlabel",
-      "confidence_score": 1.0
+      "target": "views_devicesview_deleteentraconfirmlabel"
     },
     {
       "relation": "contains",
@@ -10210,9 +9495,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L583",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_deviceconfirmtarget",
-      "confidence_score": 1.0
+      "target": "views_devicesview_deviceconfirmtarget"
     },
     {
       "relation": "contains",
@@ -10220,9 +9505,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L407",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_filtercompliant",
-      "confidence_score": 1.0
+      "target": "views_devicesview_filtercompliant"
     },
     {
       "relation": "contains",
@@ -10230,9 +9515,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L414",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_filtereddevices",
-      "confidence_score": 1.0
+      "target": "views_devicesview_filtereddevices"
     },
     {
       "relation": "contains",
@@ -10240,9 +9525,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L406",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_filterenabled",
-      "confidence_score": 1.0
+      "target": "views_devicesview_filterenabled"
     },
     {
       "relation": "contains",
@@ -10250,9 +9535,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L405",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_filtertrust",
-      "confidence_score": 1.0
+      "target": "views_devicesview_filtertrust"
     },
     {
       "relation": "contains",
@@ -10260,9 +9545,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L576",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_formatdevicedatetime",
-      "confidence_score": 1.0
+      "target": "views_devicesview_formatdevicedatetime"
     },
     {
       "relation": "contains",
@@ -10270,9 +9555,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L486",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_isdevicerowselected",
-      "confidence_score": 1.0
+      "target": "views_devicesview_isdevicerowselected"
     },
     {
       "relation": "contains",
@@ -10280,9 +9565,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L512",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_openbulkretiremodal",
-      "confidence_score": 1.0
+      "target": "views_devicesview_openbulkretiremodal"
     },
     {
       "relation": "contains",
@@ -10290,9 +9575,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L608",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_opendeleteentramodal",
-      "confidence_score": 1.0
+      "target": "views_devicesview_opendeleteentramodal"
     },
     {
       "relation": "contains",
@@ -10300,9 +9585,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L636",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_openretiremodal",
-      "confidence_score": 1.0
+      "target": "views_devicesview_openretiremodal"
     },
     {
       "relation": "contains",
@@ -10310,9 +9595,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L656",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_openwipemodal",
-      "confidence_score": 1.0
+      "target": "views_devicesview_openwipemodal"
     },
     {
       "relation": "contains",
@@ -10320,9 +9605,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L475",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_pagedeviceids",
-      "confidence_score": 1.0
+      "target": "views_devicesview_pagedeviceids"
     },
     {
       "relation": "contains",
@@ -10330,9 +9615,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L481",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_pagedevicesselectionindeterminate",
-      "confidence_score": 1.0
+      "target": "views_devicesview_pagedevicesselectionindeterminate"
     },
     {
       "relation": "contains",
@@ -10340,9 +9625,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L412",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_pagesize",
-      "confidence_score": 1.0
+      "target": "views_devicesview_pagesize"
     },
     {
       "relation": "contains",
@@ -10350,9 +9635,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L411",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_pagesizeoptions",
-      "confidence_score": 1.0
+      "target": "views_devicesview_pagesizeoptions"
     },
     {
       "relation": "contains",
@@ -10360,9 +9645,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L469",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_paginateddevices",
-      "confidence_score": 1.0
+      "target": "views_devicesview_paginateddevices"
     },
     {
       "relation": "contains",
@@ -10370,9 +9655,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L518",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_runbulkretire",
-      "confidence_score": 1.0
+      "target": "views_devicesview_runbulkretire"
     },
     {
       "relation": "contains",
@@ -10380,9 +9665,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L622",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_rundeleteentra",
-      "confidence_score": 1.0
+      "target": "views_devicesview_rundeleteentra"
     },
     {
       "relation": "contains",
@@ -10390,9 +9675,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L642",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_runretire",
-      "confidence_score": 1.0
+      "target": "views_devicesview_runretire"
     },
     {
       "relation": "contains",
@@ -10400,9 +9685,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L662",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_runwipe",
-      "confidence_score": 1.0
+      "target": "views_devicesview_runwipe"
     },
     {
       "relation": "contains",
@@ -10410,9 +9695,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L404",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_searchquery",
-      "confidence_score": 1.0
+      "target": "views_devicesview_searchquery"
     },
     {
       "relation": "contains",
@@ -10420,9 +9705,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L550",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_setsort",
-      "confidence_score": 1.0
+      "target": "views_devicesview_setsort"
     },
     {
       "relation": "contains",
@@ -10430,9 +9715,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L409",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_sortdir",
-      "confidence_score": 1.0
+      "target": "views_devicesview_sortdir"
     },
     {
       "relation": "contains",
@@ -10440,9 +9725,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L559",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_sorticon",
-      "confidence_score": 1.0
+      "target": "views_devicesview_sorticon"
     },
     {
       "relation": "contains",
@@ -10450,9 +9735,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L408",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_sortkey",
-      "confidence_score": 1.0
+      "target": "views_devicesview_sortkey"
     },
     {
       "relation": "contains",
@@ -10460,9 +9745,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L490",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_toggledevicerowselected",
-      "confidence_score": 1.0
+      "target": "views_devicesview_toggledevicerowselected"
     },
     {
       "relation": "contains",
@@ -10470,9 +9755,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L498",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_toggleselectdevicespage",
-      "confidence_score": 1.0
+      "target": "views_devicesview_toggleselectdevicespage"
     },
     {
       "relation": "contains",
@@ -10480,9 +9765,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L463",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_totalpages",
-      "confidence_score": 1.0
+      "target": "views_devicesview_totalpages"
     },
     {
       "relation": "contains",
@@ -10490,9 +9775,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L592",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_wipeconfirmexpected",
-      "confidence_score": 1.0
+      "target": "views_devicesview_wipeconfirmexpected"
     },
     {
       "relation": "contains",
@@ -10500,9 +9785,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L594",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_wipeconfirmlabel",
-      "confidence_score": 1.0
+      "target": "views_devicesview_wipeconfirmlabel"
     },
     {
       "relation": "contains",
@@ -10510,9 +9795,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L588",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview",
-      "target": "views_devicesview_wipeconfirmtarget",
-      "confidence_score": 1.0
+      "target": "views_devicesview_wipeconfirmtarget"
     },
     {
       "relation": "calls",
@@ -10521,9 +9806,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L528",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview_runbulkretire",
-      "target": "views_devicesview_cleardeviceselection",
-      "confidence_score": 1.0
+      "target": "views_devicesview_cleardeviceselection"
     },
     {
       "relation": "calls",
@@ -10532,9 +9817,9 @@
       "source_file": "src/views/DevicesView.vue",
       "source_location": "L589",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "views_devicesview_wipeconfirmtarget",
-      "target": "views_devicesview_deviceconfirmtarget",
-      "confidence_score": 1.0
+      "target": "views_devicesview_deviceconfirmtarget"
     },
     {
       "relation": "imports_from",
@@ -11763,36 +11048,6 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "scripts/add-directory-role-member.ps1",
-      "source_location": "L27",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_add_directory_role_member",
-      "target": "scripts_add_directory_role_member_get_oractivatedirectoryrole"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-managed-directory-roles.ps1",
-      "source_location": "L33",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_get_managed_directory_roles",
-      "target": "scripts_get_managed_directory_roles_get_directoryroleusermembers"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/get-managed-directory-roles.ps1",
-      "source_location": "L25",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_get_managed_directory_roles",
-      "target": "scripts_get_managed_directory_roles_get_oractivatedirectoryrole"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "AGENTS.md",
       "source_location": "L1",
       "weight": 1.0,
@@ -12795,5 +12050,5 @@
       "source_file": "src/views/DashboardView.vue"
     }
   ],
-  "built_at_commit": "f28583a89dd8d7a8d1cacced2a25ed5760544fa9"
+  "built_at_commit": "4a502fdb7d467ea3c8972e0a5002a15235ff8764"
 }
