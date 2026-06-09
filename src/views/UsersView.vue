@@ -82,6 +82,9 @@
           <button type="button" class="btn btn-outline-danger btn-sm" @click="openBatchDeactivate">
             <i class="bi bi-person-slash me-1"></i>Deaktivieren
           </button>
+          <button type="button" class="btn btn-outline-success btn-sm" @click="openBatchActivate">
+            <i class="bi bi-person-check me-1"></i>Aktivieren
+          </button>
           <button type="button" class="btn btn-outline-danger btn-sm" @click="openBatchDelete">
             <i class="bi bi-trash me-1"></i>Löschen
           </button>
@@ -618,6 +621,38 @@
       </div>
     </div>
 
+    <!-- Batch activate -->
+    <div v-if="batchActivateModal.show" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.6);">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-person-check me-2 text-success"></i>
+              Konten aktivieren (Batch)
+            </h5>
+            <button type="button" class="btn-close" :disabled="batchActivateModal.running" @click="batchActivateModal.show = false"></button>
+          </div>
+          <div class="modal-body">
+            <p class="small" style="color:#8b949e;">
+              Es werden <strong style="color:#e6edf3;">{{ batchActivateModal.targets.length }}</strong> deaktivierte Konten aktiviert (nacheinander).
+            </p>
+            <ul class="batch-user-list list-unstyled mb-0 small" style="color:#8b949e;">
+              <li v-for="t in batchActivateModal.targets" :key="t.userPrincipalName" class="py-1 border-bottom border-secondary border-opacity-25">
+                <strong style="color:#e6edf3;">{{ t.displayName }}</strong>
+                <span class="d-block font-monospace" style="font-size:0.78rem;">{{ t.userPrincipalName }}</span>
+              </li>
+            </ul>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" :disabled="batchActivateModal.running" @click="batchActivateModal.show = false">Abbrechen</button>
+            <button type="button" class="btn btn-success btn-sm" :disabled="batchActivateModal.running" @click="runBatchActivate">
+              {{ batchActivateModal.running ? 'Wird ausgeführt...' : 'Alle aktivieren' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Batch delete -->
     <div v-if="batchDeleteModal.show" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.6);">
       <div class="modal-dialog modal-lg delete-modal-dialog">
@@ -806,6 +841,7 @@ watch(
 
 const batchMfaModal = reactive({ show: false, running: false, targets: [] })
 const batchDeactivateModal = reactive({ show: false, running: false, targets: [] })
+const batchActivateModal = reactive({ show: false, running: false, targets: [] })
 const batchDeleteModal = reactive({
   show: false,
   running: false,
@@ -908,6 +944,20 @@ function openBatchDeactivate() {
   batchDeactivateModal.show = true
 }
 
+function openBatchActivate() {
+  if (selectedUserObjects.value.length < 2) return
+  const inactives = selectedUserObjects.value.filter((u) => !u.accountEnabled)
+  if (!inactives.length) {
+    authStore.showToast('Keine deaktivierten Konten in der Auswahl.', 'warning')
+    return
+  }
+  batchActivateModal.targets = inactives.map((u) => ({
+    displayName: u.displayName || u.userPrincipalName,
+    userPrincipalName: u.userPrincipalName
+  }))
+  batchActivateModal.show = true
+}
+
 function openBatchDelete() {
   if (selectedUserObjects.value.length < 2) return
   batchDeleteModal.targets = selectedUserObjects.value.map((u) => ({
@@ -956,6 +1006,27 @@ async function runBatchDeactivate() {
   clearSelection()
   authStore.showToast(
     `Deaktivieren (Batch): ${ok} OK${fail ? `, ${fail} fehlgeschlagen` : ''}`,
+    fail ? 'warning' : 'success'
+  )
+}
+
+async function runBatchActivate() {
+  batchActivateModal.running = true
+  let ok = 0
+  let fail = 0
+  for (const t of batchActivateModal.targets) {
+    const r = await usersStore.updateUser(
+      { upn: t.userPrincipalName, accountEnabled: true },
+      { quietToast: true }
+    )
+    if (r) ok++
+    else fail++
+  }
+  batchActivateModal.running = false
+  batchActivateModal.show = false
+  clearSelection()
+  authStore.showToast(
+    `Aktivieren (Batch): ${ok} OK${fail ? `, ${fail} fehlgeschlagen` : ''}`,
     fail ? 'warning' : 'success'
   )
 }
