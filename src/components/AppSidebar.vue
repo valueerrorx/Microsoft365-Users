@@ -63,9 +63,13 @@
         <i class="bi bi-person-plus"></i>
         <span class="nav-label">Erstellen / Import</span>
       </RouterLink>
-      <RouterLink to="/remove" class="nav-link-custom" title="Entfernen / CSV">
+      <RouterLink to="/remove" class="nav-link-custom" title="Benutzer entfernen / CSV">
         <i class="bi bi-person-dash"></i>
         <span class="nav-label">Entfernen / CSV</span>
+      </RouterLink>
+      <RouterLink to="/remove-devices" class="nav-link-custom" title="Geräte entfernen / CSV">
+        <i class="bi bi-pc-display"></i>
+        <span class="nav-label">Geräte entfernen / CSV</span>
       </RouterLink>
       <RouterLink to="/create-group" class="nav-link-custom" title="Gruppe erstellen">
         <i class="bi bi-collection"></i>

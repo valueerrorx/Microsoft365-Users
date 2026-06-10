@@ -6,6 +6,7 @@ import DashboardView from '../views/DashboardView.vue'
 import UsersView from '../views/UsersView.vue'
 import CreateUsersView from '../views/CreateUsersView.vue'
 import RemoveUsersView from '../views/RemoveUsersView.vue'
+import RemoveDevicesView from '../views/RemoveDevicesView.vue'
 import CreateGroupView from '../views/CreateGroupView.vue'
 import BackupView from '../views/BackupView.vue'
 import GroupsView from '../views/GroupsView.vue'
@@ -20,6 +21,7 @@ const routes = [
   { path: '/roles', component: RolesView, name: 'roles' },
   { path: '/create', component: CreateUsersView, name: 'create' },
   { path: '/remove', component: RemoveUsersView, name: 'remove' },
+  { path: '/remove-devices', component: RemoveDevicesView, name: 'remove-devices' },
   { path: '/create-group', component: CreateGroupView, name: 'create-group' },
   { path: '/backup', component: BackupView, name: 'backup' }
 ]

@@ -189,6 +189,77 @@ export const useDevicesStore = defineStore('devices', {
       else if (fail || partial) auth.showToast(msg, 'warning')
       else auth.showToast(msg, 'success')
       return { ok, partial, fail }
+    },
+
+    // Removes devices from the tenant per type: Intune-managed -> retire (cleans up Entra too), Entra-only -> delete directory object.
+    async removeDevicesAutoBatch(deviceRows) {
+      const auth = useAuthStore()
+      const rows = Array.isArray(deviceRows) ? deviceRows.filter((r) => r?.id) : []
+      if (!rows.length) return { ok: 0, fail: 0 }
+      let ok = 0
+      let fail = 0
+      for (const row of rows) {
+        const label = row.displayName || row.id
+        try {
+          let result
+          if (row.isIntuneManaged) {
+            result = await window.ipcRenderer.invoke('retire-intune-device', {
+              azureAdDeviceId: row.deviceId || row.id,
+              intuneManagedDeviceId: row.intuneManagedDeviceId || undefined,
+              disableUserAccount: false,
+              userUpn: row.ownerUserPrincipalName || undefined
+            })
+          } else {
+            result = await window.ipcRenderer.invoke('delete-entra-device', { deviceId: row.id })
+          }
+          if (result.status === 'ok' || result.status === 'partial') {
+            ok++
+            auth.addLog({ type: 'success', message: `${label}: ${result.message || 'OK'}` })
+          } else {
+            fail++
+            auth.addLog({ type: 'error', message: `${label}: ${result.message || 'Fehler'}` })
+          }
+        } catch (e) {
+          fail++
+          auth.addLog({ type: 'error', message: `${label}: ${e.message}` })
+        }
+      }
+      await this.refreshDevicesList()
+      const msg = `Geräte entfernen (CSV): ${ok} ok${fail ? `, ${fail} Fehler` : ''}`
+      auth.showToast(msg, fail && !ok ? 'error' : fail ? 'warning' : 'success')
+      return { ok, fail }
+    },
+
+    // Adds device directory-object IDs to a group via the shared add-group-members handler.
+    async addDevicesToGroup({ groupId, deviceIds }) {
+      const auth = useAuthStore()
+      const ids = (deviceIds || []).filter(Boolean)
+      if (!groupId || !ids.length) {
+        auth.showToast('Gruppe und Geräte erforderlich', 'error')
+        return { ok: false, result: null }
+      }
+      auth.addLog({ type: 'info', message: `Füge ${ids.length} Geräte zur Gruppe hinzu...` })
+      try {
+        const result = await window.ipcRenderer.invoke('add-group-members', { groupId, userIds: ids })
+        if (result.status === 'error') {
+          auth.addLog({ type: 'error', message: result.message || 'Gruppenzuweisung fehlgeschlagen' })
+          auth.showToast(result.message || 'Gruppenzuweisung fehlgeschlagen', 'error')
+          return { ok: false, result }
+        }
+        const msg = result.message || `${result.added ?? 0} hinzugefügt`
+        if (result.status === 'partial') {
+          auth.addLog({ type: 'info', message: msg })
+          auth.showToast(msg, 'warning')
+        } else {
+          auth.addLog({ type: 'success', message: msg })
+          auth.showToast(msg, 'success')
+        }
+        return { ok: true, result }
+      } catch (e) {
+        auth.addLog({ type: 'error', message: e.message })
+        auth.showToast(e.message, 'error')
+        return { ok: false, result: null }
+      }
     }
   }
 })

@@ -52,6 +52,13 @@
               <option value="unknown">Konform: unbekannt</option>
             </select>
           </div>
+          <div class="col-6 col-md-3 col-lg-2">
+            <select v-model="filterLicense" class="form-select form-select-sm" aria-label="Lizenz des Besitzers filtern">
+              <option value="all">Lizenz Besitzer: alle</option>
+              <option value="none">Ohne Lizenz / kein Besitzer</option>
+              <option v-for="o in ownerLicenseOptions" :key="o.skuId" :value="o.skuId">{{ o.label }}</option>
+            </select>
+          </div>
           <div class="col-auto ms-md-auto">
             <span style="font-size:0.8rem;color:#8b949e;">{{ filteredDevices.length }} Treffer</span>
           </div>
@@ -69,6 +76,9 @@
         </span>
         <button type="button" class="btn btn-outline-primary btn-sm" :disabled="!selectedIntuneDeviceRows.length" @click="openBulkRetireModal">
           <i class="bi bi-link-45deg me-1"></i>Abkoppeln (Retire)
+        </button>
+        <button type="button" class="btn btn-outline-primary btn-sm" @click="openAddToGroupModal">
+          <i class="bi bi-people me-1"></i>Zu Gruppe hinzufügen
         </button>
         <button type="button" class="btn btn-link btn-sm text-secondary ms-auto p-0" @click="clearDeviceSelection">
           Auswahl aufheben
@@ -161,10 +171,11 @@
               <td style="font-size:0.82rem;font-family:monospace;color:#8b949e;">{{ d.operatingSystemVersion || '—' }}</td>
               <td>
                 <span v-if="d.trustType === 'AzureAd'" class="badge-license">{{ d.trustTypeLabel || d.trustType }}</span>
+                <span v-else-if="d.trustType === 'Workplace'" class="badge-entra-registered">{{ d.trustTypeLabel || d.trustType }}</span>
                 <span v-else style="font-size:0.82rem;">{{ d.trustTypeLabel || d.trustType || '—' }}</span>
               </td>
               <td>
-                <div style="font-size:0.82rem;">{{ d.ownerDisplayName || '—' }}</div>
+                <div style="font-size:0.82rem;">{{ ownerName(d) }}</div>
                 <div v-if="d.ownerUserPrincipalName" style="font-size:0.72rem;color:#8b949e;font-family:monospace;">{{ d.ownerUserPrincipalName }}</div>
               </td>
               <td>
@@ -379,14 +390,95 @@
         </div>
       </div>
     </div>
+
+    <!-- Zu Gruppe hinzufügen (Geräte) -->
+    <div v-if="groupPickerModal.show" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.6);">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-people me-2" style="color:#58a6ff;"></i>
+              Geräte zur Gruppe hinzufügen
+            </h5>
+            <button type="button" class="btn-close" :disabled="groupPickerModal.running" @click="closeGroupPickerModal"></button>
+          </div>
+          <div class="modal-body">
+            <p class="small mb-2" style="color:#8b949e;">
+              <strong style="color:#e6edf3;">{{ groupPickerModal.deviceCount }}</strong> Geräte werden der gewählten Gruppe zugeordnet.
+              Bereits vorhandene Mitglieder werden übersprungen. Dynamische Gruppen sind nicht wählbar.
+            </p>
+            <div class="input-group input-group-sm mb-2">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input
+                v-model="groupSearchQuery"
+                type="text"
+                class="form-control"
+                placeholder="Gruppe suchen (Name, E-Mail-Alias)..."
+                :disabled="groupsStore.loading || groupPickerModal.running"
+              />
+            </div>
+            <div v-if="groupsStore.loading" class="text-center py-4" style="color:#8b949e;">
+              <div class="spinner-border spinner-border-sm me-2" style="color:#58a6ff;"></div>
+              Gruppen werden geladen...
+            </div>
+            <div v-else-if="!filteredDirectoryGroups.length" class="py-3 text-center small" style="color:#8b949e;">
+              Keine Gruppen passend zum Filter.
+            </div>
+            <div v-else class="group-picker-list">
+              <label
+                v-for="g in filteredDirectoryGroups"
+                :key="g.id"
+                class="d-flex align-items-start gap-2 py-2 px-2 group-picker-row"
+                :class="{ 'group-picker-row-active': groupPickerModal.selectedGroupId === g.id }"
+              >
+                <input
+                  v-model="groupPickerModal.selectedGroupId"
+                  type="radio"
+                  class="form-check-input mt-1"
+                  :value="g.id"
+                  :disabled="groupPickerModal.running"
+                />
+                <span class="flex-grow-1" style="min-width:0;">
+                  <span class="d-block fw-medium" style="color:#e6edf3;">{{ g.displayName || g.id }}</span>
+                  <span v-if="g.mailNickname" class="d-block font-monospace small" style="color:#8b949e;">{{ g.mailNickname }}</span>
+                  <span class="badge rounded-pill me-1 mt-1" style="font-size:0.65rem;background:#30363d;color:#8b949e;">{{ groupKindLabel(g) }}</span>
+                </span>
+              </label>
+            </div>
+          </div>
+          <div class="modal-footer flex-wrap gap-2">
+            <span v-if="groupPickerModal.selectedGroupId" class="me-auto small" style="color:#8b949e;">
+              Gewählt: <strong style="color:#e6edf3;">{{ selectedGroupDisplayName }}</strong>
+            </span>
+            <button type="button" class="btn btn-secondary btn-sm" :disabled="groupPickerModal.running" @click="closeGroupPickerModal">Abbrechen</button>
+            <button
+              type="button"
+              class="btn btn-primary btn-sm"
+              :disabled="groupPickerModal.running || !groupPickerModal.selectedGroupId || groupsStore.loading"
+              @click="runAddDevicesToGroup"
+            >
+              {{ groupPickerModal.running ? 'Wird ausgeführt...' : 'Hinzufügen' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, reactive, watch, onMounted } from 'vue'
 import { useDevicesStore } from '../stores/devicesStore'
+import { useUsersStore } from '../stores/usersStore'
+import { useGroupsStore } from '../stores/groupsStore'
+import { humanLicenseLabel } from '../utils/licenseLabel.js'
 
 const devicesStore = useDevicesStore()
+const usersStore = useUsersStore()
+const groupsStore = useGroupsStore()
+
+// Statische (nicht-dynamische) Gruppen aus dem geteilten groupsStore — dynamische erlauben kein manuelles Hinzufügen
+const assignableGroups = computed(() => groupsStore.groups.filter((g) => !g.isDynamic))
 
 const retireModal = reactive({ show: false, device: null, disableUserAccount: false, running: false })
 const bulkRetireModal = reactive({ show: false, disableUserAccount: false, running: false, count: 0 })
@@ -405,6 +497,45 @@ const searchQuery = ref('')
 const filterTrust = ref('all')
 const filterEnabled = ref('all')
 const filterCompliant = ref('all')
+const filterLicense = ref('all') // skuId des Gerätebesitzers, 'all', 'none' (kein/unlizenzierter Besitzer)
+
+// UPN (lowercase) -> User-Objekt (für Besitzer-Lizenz und -Name)
+const userByUpn = computed(() => {
+  const map = {}
+  for (const u of usersStore.users) {
+    const upn = String(u.userPrincipalName || '').toLowerCase()
+    if (upn) map[upn] = u
+  }
+  return map
+})
+
+// UPN (lowercase) -> Set der zugewiesenen skuIds des Besitzers
+const ownerSkuMap = computed(() => {
+  const map = {}
+  for (const [upn, u] of Object.entries(userByUpn.value)) {
+    map[upn] = new Set((u.assignedLicenses || []).map((l) => l.skuId))
+  }
+  return map
+})
+
+// Besitzername = "Nachname Vorname" aus dem User-Objekt; Fallback auf den Geräte-Besitzer-Anzeigenamen
+function ownerName(d) {
+  const upn = String(d.ownerUserPrincipalName || '').toLowerCase()
+  const u = upn ? userByUpn.value[upn] : null
+  const parts = [u?.surname, u?.givenName].filter(Boolean)
+  return parts.length ? parts.join(' ') : (d.ownerDisplayName || '—')
+}
+
+// Lizenz-Filteroptionen: nur SKUs die bei mind. einem Gerätebesitzer vorkommen
+const ownerLicenseOptions = computed(() => {
+  const seen = new Set()
+  for (const skus of Object.values(ownerSkuMap.value)) {
+    for (const id of skus) seen.add(id)
+  }
+  return [...seen]
+    .map((id) => ({ skuId: id, label: humanLicenseLabel(usersStore.licenseMap[id]?.skuPartNumber) || id }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+})
 const sortKey = ref('displayName')
 const sortDir = ref(1)
 const currentPage = ref(1)
@@ -418,6 +549,7 @@ const filteredDevices = computed(() => {
     list = list.filter(
       (d) =>
         (d.displayName || '').toLowerCase().includes(q) ||
+        ownerName(d).toLowerCase().includes(q) ||
         (d.ownerDisplayName || '').toLowerCase().includes(q) ||
         (d.ownerUserPrincipalName || '').toLowerCase().includes(q) ||
         (d.operatingSystem || '').toLowerCase().includes(q) ||
@@ -441,6 +573,15 @@ const filteredDevices = computed(() => {
   if (fc === 'yes') list = list.filter((d) => d.isCompliant === true)
   if (fc === 'no') list = list.filter((d) => d.isCompliant === false)
   if (fc === 'unknown') list = list.filter((d) => d.isCompliant !== true && d.isCompliant !== false)
+  const fl = filterLicense.value
+  if (fl !== 'all') {
+    list = list.filter((d) => {
+      const upn = String(d.ownerUserPrincipalName || '').toLowerCase()
+      const skus = upn ? ownerSkuMap.value[upn] : null
+      if (fl === 'none') return !skus || skus.size === 0
+      return !!skus && skus.has(fl)
+    })
+  }
 
   return [...list].sort((a, b) => {
     const key = sortKey.value
@@ -454,8 +595,8 @@ const filteredDevices = computed(() => {
       const bv = dateSortKey(b[key])
       return av < bv ? -sortDir.value : av > bv ? sortDir.value : 0
     }
-    const av = (a[key] || '').toLowerCase()
-    const bv = (b[key] || '').toLowerCase()
+    const av = (key === 'ownerDisplayName' ? ownerName(a) : (a[key] || '')).toLowerCase()
+    const bv = (key === 'ownerDisplayName' ? ownerName(b) : (b[key] || '')).toLowerCase()
     return av < bv ? -sortDir.value : av > bv ? sortDir.value : 0
   })
 })
@@ -543,7 +684,7 @@ watch(searchQuery, () => {
   currentPage.value = 1
 })
 
-watch([filterTrust, filterEnabled, filterCompliant], () => {
+watch([filterTrust, filterEnabled, filterCompliant, filterLicense], () => {
   currentPage.value = 1
 })
 
@@ -671,8 +812,70 @@ async function runWipe() {
   if (ok) wipeModal.show = false
 }
 
+// --- Zu Gruppe hinzufügen (Geräte) ---
+const groupPickerModal = reactive({ show: false, running: false, selectedGroupId: '', deviceCount: 0 })
+const groupSearchQuery = ref('')
+
+const filteredDirectoryGroups = computed(() => {
+  const q = groupSearchQuery.value.trim().toLowerCase()
+  const list = assignableGroups.value
+  if (!q) return list
+  return list.filter(
+    (g) =>
+      (g.displayName || '').toLowerCase().includes(q) ||
+      (g.mailNickname || '').toLowerCase().includes(q)
+  )
+})
+
+const selectedGroupDisplayName = computed(() => {
+  const id = groupPickerModal.selectedGroupId
+  if (!id) return ''
+  const g = assignableGroups.value.find((x) => x.id === id)
+  return g?.displayName || id
+})
+
+function groupKindLabel(g) {
+  const types = g.groupTypes || []
+  if (types.includes('Unified')) return 'Microsoft 365'
+  if (g.securityEnabled === true) return 'Security'
+  return 'Gruppe'
+}
+
+async function openAddToGroupModal() {
+  if (selectedDeviceIds.value.length < 2) return
+  groupPickerModal.deviceCount = selectedDeviceIds.value.length
+  groupPickerModal.selectedGroupId = ''
+  groupSearchQuery.value = ''
+  groupPickerModal.running = false
+  groupPickerModal.show = true
+  if (!groupsStore.groups.length && !groupsStore.loading) await groupsStore.fetchGroupsDetail()
+}
+
+function closeGroupPickerModal() {
+  if (groupPickerModal.running) return
+  groupPickerModal.show = false
+}
+
+async function runAddDevicesToGroup() {
+  if (!groupPickerModal.selectedGroupId) return
+  // selectedDeviceIds enthält bereits die Entra-Geräte-Objekt-IDs (d.id)
+  const ids = selectedDeviceIds.value.filter(Boolean)
+  if (!ids.length) return
+  groupPickerModal.running = true
+  const { ok } = await devicesStore.addDevicesToGroup({
+    groupId: groupPickerModal.selectedGroupId,
+    deviceIds: ids
+  })
+  groupPickerModal.running = false
+  if (ok) {
+    groupPickerModal.show = false
+    clearDeviceSelection()
+  }
+}
+
 onMounted(() => {
   if (!devicesStore.devices.length && !devicesStore.loading) devicesStore.fetchDevices()
+  if (!usersStore.users.length && !usersStore.loading) usersStore.fetchUsers()
 })
 </script>
 
@@ -684,5 +887,23 @@ onMounted(() => {
   to {
     transform: rotate(360deg);
   }
+}
+.group-picker-list {
+  max-height: 280px;
+  overflow: auto;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.12);
+}
+.group-picker-row {
+  cursor: pointer;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.55);
+  margin: 0;
+}
+.group-picker-row:hover {
+  background: rgba(88, 166, 255, 0.06);
+}
+.group-picker-row-active {
+  background: rgba(88, 166, 255, 0.12);
 }
 </style>

@@ -505,10 +505,10 @@
                 type="text"
                 class="form-control"
                 placeholder="Gruppe suchen (Name, E-Mail-Alias)..."
-                :disabled="usersStore.directoryGroupsLoading || groupPickerModal.running"
+                :disabled="groupsStore.loading || groupPickerModal.running"
               />
             </div>
-            <div v-if="usersStore.directoryGroupsLoading" class="text-center py-4" style="color:#8b949e;">
+            <div v-if="groupsStore.loading" class="text-center py-4" style="color:#8b949e;">
               <div class="spinner-border spinner-border-sm me-2" style="color:#58a6ff;"></div>
               Gruppen werden geladen...
             </div>
@@ -545,7 +545,7 @@
             <button
               type="button"
               class="btn btn-primary btn-sm"
-              :disabled="groupPickerModal.running || !groupPickerModal.selectedGroupId || usersStore.directoryGroupsLoading"
+              :disabled="groupPickerModal.running || !groupPickerModal.selectedGroupId || groupsStore.loading"
               @click="runAddUsersToGroup"
             >
               {{ groupPickerModal.running ? 'Wird ausgeführt...' : 'Hinzufügen' }}
@@ -703,12 +703,17 @@
 import { ref, computed, reactive, watch, onMounted } from 'vue'
 import { useUsersStore } from '../stores/usersStore'
 import { useAuthStore } from '../stores/authStore'
+import { useGroupsStore } from '../stores/groupsStore'
 import PasswordInput from '../components/PasswordInput.vue'
 import { validatePassword } from '../utils/passwordValidator.js'
 import { humanLicenseLabel } from '../utils/licenseLabel.js'
 
 const usersStore = useUsersStore()
 const authStore = useAuthStore()
+const groupsStore = useGroupsStore()
+
+// Statische (nicht-dynamische) Gruppen aus dem geteilten groupsStore — dynamische erlauben kein manuelles Hinzufügen
+const assignableGroups = computed(() => groupsStore.groups.filter((g) => !g.isDynamic))
 
 // ---- Filters & Sorting ----
 const searchQuery = ref('')
@@ -860,7 +865,7 @@ const groupSearchQuery = ref('')
 
 const filteredDirectoryGroups = computed(() => {
   const q = groupSearchQuery.value.trim().toLowerCase()
-  const list = usersStore.directoryGroups
+  const list = assignableGroups.value
   if (!q) return list
   return list.filter(
     (g) =>
@@ -872,7 +877,7 @@ const filteredDirectoryGroups = computed(() => {
 const selectedGroupDisplayName = computed(() => {
   const id = groupPickerModal.selectedGroupId
   if (!id) return ''
-  const g = usersStore.directoryGroups.find((x) => x.id === id)
+  const g = assignableGroups.value.find((x) => x.id === id)
   return g?.displayName || id
 })
 
@@ -890,7 +895,7 @@ async function openAddToGroupModal() {
   groupSearchQuery.value = ''
   groupPickerModal.running = false
   groupPickerModal.show = true
-  await usersStore.fetchDirectoryGroups()
+  if (!groupsStore.groups.length && !groupsStore.loading) await groupsStore.fetchGroupsDetail()
 }
 
 function closeGroupPickerModal() {

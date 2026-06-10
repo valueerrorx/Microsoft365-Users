@@ -41,7 +41,7 @@
             <select v-model="groupTypeFilter" class="form-select form-select-sm" aria-label="Gruppentyp filtern">
               <option value="all">Alle Gruppentypen</option>
               <option value="m365">Microsoft 365</option>
-              <option value="m365dynamic">Microsoft 365 (dynamisch)</option>
+              <option value="m365dynamic">Dynamisch (alle)</option>
               <option value="other">Sonstige (ohne M365)</option>
             </select>
           </div>
@@ -562,7 +562,7 @@ const filteredGroups = computed(() => {
       const unified = types.includes('Unified')
       const dynamic = types.includes('DynamicMembership')
       if (tf === 'm365') return unified
-      if (tf === 'm365dynamic') return unified && dynamic
+      if (tf === 'm365dynamic') return dynamic
       if (tf === 'other') return !unified
       return true
     })
@@ -954,13 +954,14 @@ function memberTypeLabel(m) {
   const t = m.odataType || ''
   if (t.includes('user')) return 'User'
   if (t.includes('group')) return 'Gruppe'
+  if (t.includes('device')) return 'Gerät'
   if (t.includes('servicePrincipal')) return 'App'
   return t.replace('#microsoft.graph.', '') || '—'
 }
 
 function canRemoveMember(m) {
   const t = (m.odataType || '').toLowerCase()
-  return t.includes('user') || t.includes('group') || t.includes('serviceprincipal')
+  return t.includes('user') || t.includes('group') || t.includes('serviceprincipal') || t.includes('device')
 }
 
 async function openMembersModal(g) {

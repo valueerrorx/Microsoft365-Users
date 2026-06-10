@@ -439,6 +439,16 @@ html, body, #app {
   margin-right: 3px;
 }
 
+.badge-entra-registered {
+  background: rgba(240, 136, 62, 0.12);
+  color: #f0883e;
+  border: 1px solid rgba(240, 136, 62, 0.25);
+  font-size: 0.68rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  margin-right: 3px;
+}
+
 .badge-mdm {
   background: rgba(163, 113, 247, 0.12);
   color: #b87fff;
