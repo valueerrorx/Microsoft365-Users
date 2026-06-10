@@ -157,9 +157,9 @@
               </td>
               <td>
                 <div class="d-flex align-items-center gap-2">
-                  <div class="user-avatar">{{ initials(user.displayName) }}</div>
+                  <div class="user-avatar">{{ initials(nameOf(user)) }}</div>
                   <div>
-                    <div style="font-weight:500;">{{ user.displayName }}</div>
+                    <div style="font-weight:500;">{{ nameOf(user) }}</div>
                     <div v-if="user.jobTitle" style="font-size:0.73rem;color:#8b949e;">{{ user.jobTitle }}</div>
                   </div>
                 </div>
@@ -731,7 +731,7 @@ const filteredUsers = computed(() => {
   const q = searchQuery.value.toLowerCase()
   if (q) {
     list = list.filter(u =>
-      u.displayName?.toLowerCase().includes(q) ||
+      nameOf(u).toLowerCase().includes(q) ||
       u.userPrincipalName?.toLowerCase().includes(q) ||
       u.department?.toLowerCase().includes(q) ||
       u.jobTitle?.toLowerCase().includes(q)
@@ -754,8 +754,8 @@ const filteredUsers = computed(() => {
       const bv = dateSortKey(b[key])
       return av < bv ? -sortDir.value : av > bv ? sortDir.value : 0
     }
-    const av = (a[key] || '').toLowerCase()
-    const bv = (b[key] || '').toLowerCase()
+    const av = (key === 'displayName' ? nameOf(a) : (a[key] || '')).toLowerCase()
+    const bv = (key === 'displayName' ? nameOf(b) : (b[key] || '')).toLowerCase()
     return av < bv ? -sortDir.value : av > bv ? sortDir.value : 0
   })
 })
@@ -1059,6 +1059,12 @@ function formatUpnDisplay(upn) {
   const s = upn || ''
   if (s.length <= UPN_DISPLAY_MAX) return s
   return `${s.slice(0, UPN_DISPLAY_MAX)}...`
+}
+
+// Anzeigename = "Nachname Vorname"; Fallback auf hinterlegten displayName
+function nameOf(user) {
+  const parts = [user?.surname, user?.givenName].filter(Boolean)
+  return parts.length ? parts.join(' ') : (user?.displayName || '')
 }
 
 function initials(name) {
