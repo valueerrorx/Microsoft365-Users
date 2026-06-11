@@ -553,29 +553,25 @@ async function runSetDept() {
     const dept = deptModal.value.trim()
     if (!dept || !matchedRows.value.length) return
     usersStore.bulkRunning = true
-    let ok = 0
-    let fail = 0
-    let skipped = 0
     try {
         // Skip users that already have the target department.
-        const todo = matchedRows.value.filter((row) => {
-            const u = usersStore.users.find((x) => x.userPrincipalName?.toLowerCase() === row.upn?.toLowerCase())
-            if (u && (u.department || '') === dept) { skipped++; return false }
-            return true
-        })
-        const total = todo.length
-        let done = 0
-        // Process in parallel chunks instead of strictly sequential — much faster for many users.
-        const chunkSize = 10
-        for (let i = 0; i < todo.length; i += chunkSize) {
-            const chunk = todo.slice(i, i + chunkSize)
-            const results = await Promise.all(
-                chunk.map((row) => usersStore.updateUser({ upn: row.upn, department: dept }, { quietToast: true }))
-            )
-            for (const r of results) r ? ok++ : fail++
-            done += chunk.length
-            deptModal.progress = `${done} / ${total}...`
+        let skipped = 0
+        const upns = matchedRows.value
+            .filter((row) => {
+                const u = usersStore.users.find((x) => x.userPrincipalName?.toLowerCase() === row.upn?.toLowerCase())
+                if (u && (u.department || '') === dept) { skipped++; return false }
+                return true
+            })
+            .map((row) => row.upn)
+
+        if (!upns.length) {
+            authStore.showToast(`Alle ${skipped} bereits in "${dept}"`, 'info')
+            deptModal.show = false
+            return
         }
+        deptModal.progress = `${upns.length} werden gesetzt...`
+        // One PS call + Graph $batch (20 PATCHes/request) instead of many single requests.
+        const { ok, fail } = await usersStore.setDepartmentBatch(upns, dept)
         const msg = `Abteilung gesetzt: ${ok}${skipped ? `, übersprungen: ${skipped}` : ''}${fail ? `, fehlgeschlagen: ${fail}` : ''}`
         if (fail && !ok) authStore.showToast(msg, 'error')
         else if (fail) authStore.showToast(msg, 'warning')
