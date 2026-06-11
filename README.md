@@ -22,7 +22,7 @@ Electron-App zur Verwaltung von Microsoft-365-/Entra-ID-**Benutzern**, **Gruppen
 - **Intune-Plattform-Script** an Gruppe deployen (Ausführungsstatus abrufbar)
 
 ### Geräte (`/devices`)
-- Suche, Filter (Verknüpfung, Aktivierung, Konformität)
+- Suche (Name/Besitzer/OS), Filter (Verknüpfung, Aktivierung, Konformität, **Besitzer-Lizenz**), sortierbare Spalten, Pagination
 - Intune: **Retire** (einzeln/Bulk), **Remote Wipe**; reine Entra-Geräte: **löschen**
 - **BitLocker-Wiederherstellungsschlüssel** anzeigen
 
