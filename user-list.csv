@@ -1,4 +1,4 @@
-Vorname;Nachname;Abteilung;UserType;NewPassword;ForceChange
-demo;test1;2025;Schüler;#Europa123;0
-demiè;test2;2025;Schüler;#Europa123;0
-demö;test3;2025;Schüler;#Europa123;0
+Vorname,Nachname,Abteilung,UserType,NewPassword,ForceChange
+demomitÃ©,test1,2025,SchÃ¼ler,#Europa123,0
+demomitÃ¼,test2,2025,SchÃ¼ler,#Europa123,0
+demomitÃ¢,test3,2025,SchÃ¼ler,#Europa123,0

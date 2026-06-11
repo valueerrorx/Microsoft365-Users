@@ -63,9 +63,9 @@
         <i class="bi bi-person-plus"></i>
         <span class="nav-label">Erstellen / Import</span>
       </RouterLink>
-      <RouterLink to="/remove" class="nav-link-custom" title="Benutzer entfernen / CSV">
+      <RouterLink to="/remove" class="nav-link-custom" title="CSV Batch-Verwaltung">
         <i class="bi bi-person-dash"></i>
-        <span class="nav-label">Entfernen / CSV</span>
+        <span class="nav-label">Batch / CSV</span>
       </RouterLink>
       <RouterLink to="/remove-devices" class="nav-link-custom" title="Geräte entfernen / CSV">
         <i class="bi bi-pc-display"></i>

@@ -5,8 +5,8 @@
     <div>
         <!-- Header -->
         <div class="page-header">
-            <h1 class="page-title">Benutzer entfernen</h1>
-            <p class="page-subtitle">Benutzer per CSV-Datei eindeutig identifizieren und endgültig löschen</p>
+            <h1 class="page-title">CSV Batch-Verwaltung</h1>
+            <p class="page-subtitle">Benutzer per CSV suchen und Batch-Aktionen ausführen</p>
         </div>
 
         <div class="content-card">
@@ -62,19 +62,35 @@ Anna;Schmidt</pre>
 
                 <!-- Preview Table -->
                 <div v-if="usersStore.csvEntries.length">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
                         <span style="font-size:0.875rem;">
                             <span style="color:#3fb950;font-weight:600;">{{ matchedRows.length }} gefunden</span>
                             <span style="color:#8b949e;"> · {{ unmatchedRows.length }} nicht gefunden</span>
                             <span v-if="ambiguousRows.length" style="color:#d29922;"> · {{ ambiguousRows.length }} mehrdeutig</span>
                         </span>
-                        <button
-                            class="btn btn-danger"
-                            :disabled="!matchedRows.length || !usersStore.users.length || usersStore.bulkRunning"
-                            @click="openConfirm"
-                        >
-                            <i class="bi bi-trash me-1"></i> {{ matchedRows.length }} Benutzer löschen
-                        </button>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button
+                                class="btn btn-outline-secondary btn-sm"
+                                :disabled="!matchedRows.length || !usersStore.users.length || usersStore.bulkRunning"
+                                @click="openAddGroup"
+                            >
+                                <i class="bi bi-collection me-1"></i> Zu Gruppe hinzufügen
+                            </button>
+                            <button
+                                class="btn btn-outline-secondary btn-sm"
+                                :disabled="!matchedRows.length || !usersStore.users.length || usersStore.bulkRunning"
+                                @click="openSetDept"
+                            >
+                                <i class="bi bi-building me-1"></i> Abteilung setzen
+                            </button>
+                            <button
+                                class="btn btn-danger btn-sm"
+                                :disabled="!matchedRows.length || !usersStore.users.length || usersStore.bulkRunning"
+                                @click="openConfirm"
+                            >
+                                <i class="bi bi-trash me-1"></i> {{ matchedRows.length }} Benutzer löschen
+                            </button>
+                        </div>
                     </div>
 
                     <div class="table-ms365-hscroll table-ms365-hscroll--y">
@@ -84,6 +100,7 @@ Anna;Schmidt</pre>
                                     <th>#</th>
                                     <th>Vorname</th>
                                     <th>Nachname</th>
+                                    <th>Abteilung</th>
                                     <th>UPN</th>
                                     <th>Status</th>
                                 </tr>
@@ -93,6 +110,7 @@ Anna;Schmidt</pre>
                                     <td style="color:#8b949e;">{{ i + 1 }}</td>
                                     <td>{{ row.entry.vorname }}</td>
                                     <td>{{ row.entry.nachname }}</td>
+                                    <td style="font-size:0.82rem;color:#8b949e;">{{ row.department || '—' }}</td>
                                     <td style="font-family:monospace;font-size:0.72rem;color:#8b949e;">{{ row.upn || '—' }}</td>
                                     <td>
                                         <span v-if="row.status === 'matched'" style="color:#3fb950;font-size:0.8rem;">
@@ -113,7 +131,7 @@ Anna;Schmidt</pre>
             </div>
         </div>
 
-        <!-- Confirm modal -->
+        <!-- Delete confirm modal -->
         <div v-if="confirm.show" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.6);">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -152,6 +170,111 @@ Anna;Schmidt</pre>
                 </div>
             </div>
         </div>
+
+        <!-- Add to Group modal -->
+        <div v-if="groupModal.show" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.6);">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi bi-collection me-2" style="color:#58a6ff;"></i>
+                            Zu Gruppe hinzufügen
+                        </h5>
+                        <button type="button" class="btn-close" :disabled="usersStore.bulkRunning" @click="groupModal.show = false"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div v-if="!groupsStore.groups.length" class="mb-3">
+                            <div class="alert mb-0" style="background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.3);color:#d29922;border-radius:6px;">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                Gruppen nicht geladen.
+                                <button class="btn btn-sm btn-outline-secondary ms-2" :disabled="groupsStore.loading" @click="groupsStore.fetchGroupsDetail()">
+                                    <i class="bi" :class="groupsStore.loading ? 'bi-arrow-repeat spin' : 'bi-collection'"></i>
+                                    {{ groupsStore.loading ? 'Lädt...' : 'Gruppen laden' }}
+                                </button>
+                            </div>
+                        </div>
+                        <template v-else>
+                            <input
+                                v-model="groupModal.search"
+                                type="text"
+                                class="form-control form-control-sm mb-2"
+                                placeholder="Gruppe suchen..."
+                            />
+                            <div style="max-height:260px;overflow-y:auto;border:1px solid rgba(255,255,255,0.08);border-radius:6px;">
+                                <div
+                                    v-for="g in filteredGroups"
+                                    :key="g.id"
+                                    @click="groupModal.selectedId = g.id"
+                                    style="padding:0.45rem 0.75rem;cursor:pointer;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.05);"
+                                    :style="groupModal.selectedId === g.id ? 'background:rgba(88,166,255,0.15);color:#58a6ff;' : 'color:#e6edf3;'"
+                                >
+                                    <i class="bi bi-collection me-2" style="font-size:0.78rem;opacity:0.6;"></i>
+                                    {{ g.displayName }}
+                                </div>
+                                <div v-if="!filteredGroups.length" style="padding:0.75rem;color:#8b949e;font-size:0.82rem;text-align:center;">
+                                    Keine Gruppen gefunden
+                                </div>
+                            </div>
+                        </template>
+                        <p class="mt-2 mb-0" style="font-size:0.8rem;color:#8b949e;">
+                            {{ matchedRows.length }} Benutzer werden zur gewählten Gruppe hinzugefügt.
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" :disabled="usersStore.bulkRunning" @click="groupModal.show = false">Abbrechen</button>
+                        <button
+                            type="button"
+                            class="btn btn-primary btn-sm"
+                            :disabled="!groupModal.selectedId || usersStore.bulkRunning"
+                            @click="runAddToGroup"
+                        >
+                            <i class="bi bi-collection me-1"></i>
+                            {{ usersStore.bulkRunning ? 'Läuft...' : 'Hinzufügen' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Set Department modal -->
+        <div v-if="deptModal.show" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.6);">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi bi-building me-2" style="color:#58a6ff;"></i>
+                            Abteilung setzen
+                        </h5>
+                        <button type="button" class="btn-close" :disabled="usersStore.bulkRunning" @click="deptModal.show = false"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label class="form-label">Neue Abteilung für {{ matchedRows.length }} Benutzer</label>
+                        <input
+                            v-model="deptModal.value"
+                            type="text"
+                            class="form-control"
+                            placeholder="z.B. IT-Abteilung"
+                            :disabled="usersStore.bulkRunning"
+                        />
+                        <div v-if="deptModal.progress" class="mt-2" style="font-size:0.82rem;color:#8b949e;">
+                            {{ deptModal.progress }}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" :disabled="usersStore.bulkRunning" @click="deptModal.show = false">Abbrechen</button>
+                        <button
+                            type="button"
+                            class="btn btn-primary btn-sm"
+                            :disabled="!deptModal.value.trim() || usersStore.bulkRunning"
+                            @click="runSetDept"
+                        >
+                            <i class="bi bi-building me-1"></i>
+                            {{ usersStore.bulkRunning ? 'Läuft...' : 'Setzen' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -159,13 +282,17 @@ Anna;Schmidt</pre>
 import { ref, computed, reactive } from 'vue'
 import { useUsersStore } from '../stores/usersStore'
 import { useAuthStore } from '../stores/authStore'
+import { useGroupsStore } from '../stores/groupsStore'
 import { buildUpn } from '../utils/upn.js'
 
 const usersStore = useUsersStore()
 const authStore = useAuthStore()
+const groupsStore = useGroupsStore()
 
 const confirmWord = 'LÖSCHEN'
 const confirm = reactive({ show: false, text: '' })
+const groupModal = reactive({ show: false, search: '', selectedId: '' })
+const deptModal = reactive({ show: false, value: '', progress: '' })
 
 const domain = computed(() => authStore.tenantDomain || '')
 
@@ -179,19 +306,36 @@ const upnCounts = computed(() => {
     return m
 })
 
+// Lowercased UPN -> user object index for quick department lookup.
+const userByUpn = computed(() => {
+    const m = new Map()
+    for (const u of usersStore.users) {
+        const upn = String(u.userPrincipalName || '').toLowerCase()
+        if (upn) m.set(upn, u)
+    }
+    return m
+})
+
 // Reconstruct UPN per CSV row (same logic as create) and classify against the user list.
 const rows = computed(() =>
     usersStore.csvEntries.map((entry) => {
         const upn = buildUpn(entry.vorname, entry.nachname, domain.value)
         const count = upn ? (upnCounts.value.get(upn.toLowerCase()) || 0) : 0
         const status = count === 1 ? 'matched' : count > 1 ? 'ambiguous' : 'unmatched'
-        return { entry, upn, count, status }
+        const department = status === 'matched' ? (userByUpn.value.get(upn.toLowerCase())?.department || '') : ''
+        return { entry, upn, count, status, department }
     })
 )
 
 const matchedRows = computed(() => rows.value.filter((r) => r.status === 'matched'))
 const unmatchedRows = computed(() => rows.value.filter((r) => r.status === 'unmatched'))
 const ambiguousRows = computed(() => rows.value.filter((r) => r.status === 'ambiguous'))
+
+const filteredGroups = computed(() => {
+    const q = groupModal.search.toLowerCase()
+    if (!q) return groupsStore.groups
+    return groupsStore.groups.filter((g) => g.displayName?.toLowerCase().includes(q))
+})
 
 async function importCsv() {
     await usersStore.importCsv()
@@ -219,6 +363,61 @@ async function runDelete() {
             )
         }
     } finally {
+        usersStore.bulkRunning = false
+    }
+}
+
+function openAddGroup() {
+    if (!matchedRows.value.length) return
+    groupModal.search = ''
+    groupModal.selectedId = ''
+    groupModal.show = true
+    if (!groupsStore.groups.length) groupsStore.fetchGroupsDetail()
+}
+
+async function runAddToGroup() {
+    if (!groupModal.selectedId || !matchedRows.value.length) return
+    const userIds = matchedRows.value
+        .map((r) => usersStore.users.find((u) => u.userPrincipalName?.toLowerCase() === r.upn?.toLowerCase())?.id)
+        .filter(Boolean)
+    if (!userIds.length) return
+    usersStore.bulkRunning = true
+    try {
+        await usersStore.addUsersToGroup({ groupId: groupModal.selectedId, userIds })
+        groupModal.show = false
+    } finally {
+        usersStore.bulkRunning = false
+    }
+}
+
+function openSetDept() {
+    if (!matchedRows.value.length) return
+    deptModal.value = ''
+    deptModal.progress = ''
+    deptModal.show = true
+}
+
+async function runSetDept() {
+    const dept = deptModal.value.trim()
+    if (!dept || !matchedRows.value.length) return
+    usersStore.bulkRunning = true
+    let ok = 0
+    let fail = 0
+    try {
+        const total = matchedRows.value.length
+        for (const row of matchedRows.value) {
+            deptModal.progress = `${ok + fail + 1} / ${total}...`
+            const res = await usersStore.updateUser({ upn: row.upn, department: dept }, { quietToast: true })
+            if (res) ok++
+            else fail++
+        }
+        const msg = `Abteilung gesetzt: ${ok}${fail ? `, fehlgeschlagen: ${fail}` : ''}`
+        if (fail && !ok) authStore.showToast(msg, 'error')
+        else if (fail) authStore.showToast(msg, 'warning')
+        else authStore.showToast(msg, 'success')
+        deptModal.show = false
+    } finally {
+        deptModal.progress = ''
         usersStore.bulkRunning = false
     }
 }
