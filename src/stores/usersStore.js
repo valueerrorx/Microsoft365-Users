@@ -175,9 +175,12 @@ export const useUsersStore = defineStore('users', {
         const result = await window.ipcRenderer.invoke('update-user', params)
         if (result.status === 'ok') {
           // Refresh user in local list
-          const idx = this.users.findIndex(u => u.userPrincipalName === params.upn)
+          const upnLc = String(params.upn || '').toLowerCase()
+          const idx = this.users.findIndex(u => String(u.userPrincipalName || '').toLowerCase() === upnLc)
           if (idx !== -1) {
-            this.users[idx] = { ...this.users[idx], ...result.user }
+            // Merge server response; fall back to the params we sent so the list reflects edits
+            // even if the backend response omits a field (e.g. department).
+            this.users[idx] = { ...this.users[idx], ...params, ...result.user }
           }
           auth.addLog({ type: 'success', message: `Benutzer ${params.upn} aktualisiert` })
           if (!quietToast) auth.showToast(`Benutzer aktualisiert`, 'success')

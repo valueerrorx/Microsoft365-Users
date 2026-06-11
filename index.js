@@ -1443,6 +1443,27 @@ ipcMain.handle('delete-users', async (_event, { upns = [] }) => {
   }
 })
 
+ipcMain.handle('set-department', async (_event, { upns = [], department = '' } = {}) => {
+  const empty = { status: 'error', message: 'upns erforderlich', updated: 0, failed: 0, updatedUpns: [], errors: [] }
+  try {
+    const list = Array.isArray(upns) ? upns.map((u) => String(u || '').trim()).filter(Boolean) : []
+    const dept = String(department || '').trim()
+    if (!list.length || !dept) return { ...empty, message: 'upns und department erforderlich' }
+    const result = await runPsScript('scripts/set-department.ps1', ['-UPNs', list.join(','), '-Department', dept], (log) => {
+      uiSend('ps-operation-log', log)
+    })
+    if (result.exitCode === -1 && !result.stdout) {
+      return { ...empty, message: result.stderr || 'PowerShell konnte nicht gestartet werden' }
+    }
+    const data = parseJsonFromOutput(result.stdout)
+    if (!data) return { ...empty, message: result.stderr || 'Fehler beim Batch-Update' }
+    uiSend('ps-operation-complete', { status: data.status, count: list.length })
+    return data
+  } catch (e) {
+    return { ...empty, message: e?.message }
+  }
+})
+
 ipcMain.handle('set-users-enabled', async (_event, { upns = [], enabled } = {}) => {
   const empty = { status: 'error', message: 'upns erforderlich', updated: 0, failed: 0, updatedUpns: [], errors: [] }
   try {

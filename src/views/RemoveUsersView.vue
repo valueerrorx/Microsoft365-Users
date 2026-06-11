@@ -555,15 +555,28 @@ async function runSetDept() {
     usersStore.bulkRunning = true
     let ok = 0
     let fail = 0
+    let skipped = 0
     try {
-        const total = matchedRows.value.length
-        for (const row of matchedRows.value) {
-            deptModal.progress = `${ok + fail + 1} / ${total}...`
-            const res = await usersStore.updateUser({ upn: row.upn, department: dept }, { quietToast: true })
-            if (res) ok++
-            else fail++
+        // Skip users that already have the target department.
+        const todo = matchedRows.value.filter((row) => {
+            const u = usersStore.users.find((x) => x.userPrincipalName?.toLowerCase() === row.upn?.toLowerCase())
+            if (u && (u.department || '') === dept) { skipped++; return false }
+            return true
+        })
+        const total = todo.length
+        let done = 0
+        // Process in parallel chunks instead of strictly sequential — much faster for many users.
+        const chunkSize = 10
+        for (let i = 0; i < todo.length; i += chunkSize) {
+            const chunk = todo.slice(i, i + chunkSize)
+            const results = await Promise.all(
+                chunk.map((row) => usersStore.updateUser({ upn: row.upn, department: dept }, { quietToast: true }))
+            )
+            for (const r of results) r ? ok++ : fail++
+            done += chunk.length
+            deptModal.progress = `${done} / ${total}...`
         }
-        const msg = `Abteilung gesetzt: ${ok}${fail ? `, fehlgeschlagen: ${fail}` : ''}`
+        const msg = `Abteilung gesetzt: ${ok}${skipped ? `, übersprungen: ${skipped}` : ''}${fail ? `, fehlgeschlagen: ${fail}` : ''}`
         if (fail && !ok) authStore.showToast(msg, 'error')
         else if (fail) authStore.showToast(msg, 'warning')
         else authStore.showToast(msg, 'success')
