@@ -11,7 +11,9 @@ export const useDevicesStore = defineStore('devices', {
     devices: [],
     loading: false,
     error: null,
-    lastFetched: null
+    lastFetched: null,
+    // Imported owner CSV for the device-removal view; kept here so it survives navigation.
+    csvEntries: []
   }),
 
   getters: {

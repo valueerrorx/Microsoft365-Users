@@ -2,7 +2,7 @@
 <!-- Copyright (C) Mag. Thomas Michael Weissel <valueerror@gmail.com> -->
 
 <template>
-    <div>
+    <div class="remove-users-view">
         <!-- Header -->
         <div class="page-header">
             <h1 class="page-title">CSV Batch-Verwaltung</h1>
@@ -16,22 +16,22 @@
                     <button class="btn btn-primary" @click="importCsv" :disabled="usersStore.bulkRunning">
                         <i class="bi bi-upload me-1"></i> CSV-Datei importieren
                     </button>
-                    <button v-if="usersStore.csvEntries.length" class="btn btn-outline-secondary" @click="usersStore.csvEntries = []">
+                    <button v-if="usersStore.batchEntries.length" class="btn btn-outline-secondary" @click="usersStore.batchEntries = []">
                         <i class="bi bi-x-circle me-1"></i> Liste leeren
                     </button>
                 </div>
 
                 <!-- CSV Format Info -->
-                <div v-if="!usersStore.csvEntries.length" class="mb-4">
+                <div v-if="!usersStore.batchEntries.length" class="mb-4">
                     <div style="background:rgba(88,166,255,0.06);border:1px solid rgba(88,166,255,0.15);border-radius:6px;padding:1rem;">
                         <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem;">
                             <i class="bi bi-info-circle me-1" style="color:#58a6ff;"></i> CSV-Format
                         </div>
-                        <pre style="font-family:monospace;font-size:0.78rem;color:#8b949e;margin:0;white-space:pre-wrap;">Vorname;Nachname
+                        <pre style="font-family:monospace;font-size:0.78rem;color:#8b949e;margin:0;white-space:pre-wrap;">Vorname;Familienname
 Max;Mustermann
 Anna;Schmidt</pre>
                         <div style="font-size:0.78rem;color:#8b949e;margin-top:0.5rem;">
-                            Nur <strong>Vorname</strong> + <strong>Nachname</strong> werden verwendet. Die Erstell-CSV
+                            Nur <strong>Vorname</strong> + <strong>Familienname</strong> werden verwendet. Die Erstell-CSV
                             (mit Abteilung, Passwort usw.) funktioniert ebenso — Zusatzspalten werden ignoriert.
                             Der UPN wird daraus exakt wie beim Erstellen gebildet
                             (<span style="font-family:monospace;">nachname.vorname@{{ domain || 'domain' }}</span>)
@@ -41,7 +41,7 @@ Anna;Schmidt</pre>
                 </div>
 
                 <!-- Userlist required hint -->
-                <div v-if="usersStore.csvEntries.length && !usersStore.users.length" class="mb-3">
+                <div v-if="usersStore.batchEntries.length && !usersStore.users.length" class="mb-3">
                     <div class="alert mb-0" style="background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.3);color:#d29922;border-radius:6px;">
                         <i class="bi bi-exclamation-triangle me-2"></i>
                         Benutzerliste ist nicht geladen — ohne sie kann kein Abgleich erfolgen.
@@ -53,7 +53,7 @@ Anna;Schmidt</pre>
                 </div>
 
                 <!-- Domain missing hint -->
-                <div v-if="usersStore.csvEntries.length && !domain" class="mb-3">
+                <div v-if="usersStore.batchEntries.length && !domain" class="mb-3">
                     <div class="alert mb-0" style="background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.3);color:#d29922;border-radius:6px;">
                         <i class="bi bi-exclamation-triangle me-2"></i>
                         Keine Tenant-Domain bekannt — bitte zuerst die Benutzerliste laden.
@@ -61,13 +61,25 @@ Anna;Schmidt</pre>
                 </div>
 
                 <!-- Preview Table -->
-                <div v-if="usersStore.csvEntries.length">
+                <div v-if="usersStore.batchEntries.length" class="preview-block">
                     <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
-                        <span style="font-size:0.875rem;">
+                        <div class="d-flex align-items-center gap-3 flex-wrap" style="font-size:0.875rem;">
                             <span style="color:#3fb950;font-weight:600;">{{ matchedRows.length }} gefunden</span>
-                            <span style="color:#8b949e;"> · {{ unmatchedRows.length }} nicht gefunden</span>
-                            <span v-if="ambiguousRows.length" style="color:#d29922;"> · {{ ambiguousRows.length }} mehrdeutig</span>
-                        </span>
+                            <span v-if="lazyRows.length" style="color:#58a6ff;">(inkl. {{ lazyRows.length }} bestätigt)</span>
+                            <span style="color:#8b949e;">· {{ unmatchedRows.length }} nicht gefunden</span>
+                            <span v-if="ambiguousRows.length" style="color:#d29922;">· {{ ambiguousRows.length }} mehrdeutig</span>
+                            <span class="d-inline-flex align-items-center gap-3 ms-2" style="font-size:0.8rem;">
+                                <label class="d-inline-flex align-items-center gap-1 mb-0" style="cursor:pointer;color:#3fb950;">
+                                    <input type="checkbox" class="form-check-input mt-0" style="width:14px;height:14px;flex:none;" v-model="filters.green" /> gefunden
+                                </label>
+                                <label class="d-inline-flex align-items-center gap-1 mb-0" style="cursor:pointer;color:#d29922;">
+                                    <input type="checkbox" class="form-check-input mt-0" style="width:14px;height:14px;flex:none;" v-model="filters.orange" /> fuzzy
+                                </label>
+                                <label class="d-inline-flex align-items-center gap-1 mb-0" style="cursor:pointer;color:#8b949e;">
+                                    <input type="checkbox" class="form-check-input mt-0" style="width:14px;height:14px;flex:none;" v-model="filters.gray" /> nicht gefunden
+                                </label>
+                            </span>
+                        </div>
                         <div class="d-flex gap-2 flex-wrap">
                             <button
                                 class="btn btn-outline-secondary btn-sm"
@@ -93,31 +105,48 @@ Anna;Schmidt</pre>
                         </div>
                     </div>
 
-                    <div class="table-ms365-hscroll table-ms365-hscroll--y">
+                    <div class="table-ms365-hscroll table-ms365-hscroll--y preview-table-scroll">
                         <table class="table table-ms365">
                             <thead>
                                 <tr>
                                     <th>#</th>
-                                    <th>Vorname</th>
                                     <th>Nachname</th>
+                                    <th>Vorname</th>
                                     <th>Abteilung</th>
                                     <th>UPN</th>
-                                    <th>Status</th>
+                                    <th @click="toggleStatusSort" style="cursor:pointer;user-select:none;">
+                                        Status
+                                        <i class="bi" :class="statusSortDir === 'asc' ? 'bi-caret-up-fill' : 'bi-caret-down-fill'" style="font-size:0.7rem;"></i>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="(row, i) in rows" :key="i">
+                                <tr v-for="(row, i) in sortedRows" :key="i">
                                     <td style="color:#8b949e;">{{ i + 1 }}</td>
-                                    <td>{{ row.entry.vorname }}</td>
                                     <td>{{ row.entry.nachname }}</td>
+                                    <td>{{ row.entry.vorname }}</td>
                                     <td style="font-size:0.82rem;color:#8b949e;">{{ row.department || '—' }}</td>
-                                    <td style="font-family:monospace;font-size:0.72rem;color:#8b949e;">{{ row.upn || '—' }}</td>
+                                    <td style="font-family:monospace;font-size:0.72rem;" :style="{ color: row.candidate ? '#d29922' : (row.status === 'matched' || row.status === 'lazy') ? '#3fb950' : '#8b949e' }">{{ row.upn || '—' }}</td>
                                     <td>
                                         <span v-if="row.status === 'matched'" style="color:#3fb950;font-size:0.8rem;">
                                             <i class="bi bi-check-circle-fill me-1"></i> gefunden
                                         </span>
+                                        <span v-else-if="row.status === 'lazy'" class="d-inline-flex align-items-center gap-2" style="color:#58a6ff;font-size:0.8rem;">
+                                            <span><i class="bi bi-link-45deg me-1"></i> bestätigt</span>
+                                            <button class="btn-action" style="font-size:0.7rem;" title="Bestätigung aufheben" @click="unconfirmMatch(row)">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        </span>
                                         <span v-else-if="row.status === 'ambiguous'" style="color:#d29922;font-size:0.8rem;">
                                             <i class="bi bi-exclamation-triangle-fill me-1"></i> mehrdeutig ({{ row.count }})
+                                        </span>
+                                        <span v-else-if="row.candidate" class="d-inline-flex align-items-center gap-2" style="font-size:0.8rem;">
+                                            <span style="color:#d29922;" :title="'Vorschlag: ' + row.candidate.upn">
+                                                <i class="bi bi-question-circle"></i>
+                                            </span>
+                                            <button class="btn-action success" style="font-size:0.7rem;" title="Als gefunden bestätigen" @click="confirmCandidate(row)">
+                                                <i class="bi bi-check-lg"></i>
+                                            </button>
                                         </span>
                                         <span v-else style="color:#8b949e;font-size:0.8rem;">
                                             <i class="bi bi-dash-circle me-1"></i> nicht gefunden
@@ -283,7 +312,7 @@ import { ref, computed, reactive } from 'vue'
 import { useUsersStore } from '../stores/usersStore'
 import { useAuthStore } from '../stores/authStore'
 import { useGroupsStore } from '../stores/groupsStore'
-import { buildUpn } from '../utils/upn.js'
+import { buildUpn, normalizeForUPN } from '../utils/upn.js'
 
 const usersStore = useUsersStore()
 const authStore = useAuthStore()
@@ -316,20 +345,141 @@ const userByUpn = computed(() => {
     return m
 })
 
+// Index: normalized lastname -> [{ upn, firstNorm, user }] for fuzzy candidate lookup.
+const usersByLastName = computed(() => {
+    const m = new Map()
+    for (const u of usersStore.users) {
+        const upn = String(u.userPrincipalName || '').toLowerCase()
+        const local = upn.split('@')[0] || ''
+        const dot = local.indexOf('.')
+        if (dot < 1) continue
+        const lastNorm = local.slice(0, dot)
+        const firstNorm = local.slice(dot + 1)
+        if (!m.has(lastNorm)) m.set(lastNorm, [])
+        m.get(lastNorm).push({ upn, firstNorm, user: u })
+    }
+    return m
+})
+
+// Stable per-row key so confirmed lazy matches survive recomputes.
+const rowKey = (entry) => `${normalizeForUPN(entry.vorname)}|${normalizeForUPN(entry.nachname)}`
+
+// User-confirmed lazy matches: rowKey -> chosen account UPN.
+const confirmedMatches = reactive({})
+
+// Does an account's first-name part plausibly match the CSV first name?
+// allowExact: when the lastname itself is a reduced double-name variant, an exact
+// first-name match is a valid candidate (the full UPN already failed to match anyway).
+function firstNameMatches(accountFirst, vn, vnFirstPart, allowExact) {
+    if (accountFirst === vn) return allowExact
+    const longer = accountFirst.length >= vn.length ? accountFirst : vn
+    const shorter = accountFirst.length >= vn.length ? vn : accountFirst
+    return (shorter.length >= 3 && longer.startsWith(shorter)) || accountFirst === vnFirstPart
+}
+
+// Find best fuzzy candidate for an unmatched entry.
+// Handles double names in BOTH parts: "Köfler-Leschanz" -> also tries "koefler",
+// "Sophie Frederike" -> also tries "sophie".
+function findCandidate(entry) {
+    const vn = normalizeForUPN(entry.vorname)
+    const nn = normalizeForUPN(entry.nachname)
+    if (!vn || !nn) return null
+    // Lastname variants: full + first part of a double name.
+    const nnFirstPart = normalizeForUPN(String(entry.nachname).split(/[-\s]/)[0])
+    const lastNameVariants = nnFirstPart && nnFirstPart !== nn ? [nn, nnFirstPart] : [nn]
+    const vnFirstPart = normalizeForUPN(String(entry.vorname).split(/[-\s]/)[0])
+    for (const ln of lastNameVariants) {
+        const list = usersByLastName.value.get(ln)
+        if (!list) continue
+        const isReducedLastName = ln !== nn // a shortened double-name variant
+        for (const c of list) {
+            if (firstNameMatches(c.firstNorm, vn, vnFirstPart, isReducedLastName)) return c
+        }
+    }
+    return null
+}
+
 // Reconstruct UPN per CSV row (same logic as create) and classify against the user list.
 const rows = computed(() =>
-    usersStore.csvEntries.map((entry) => {
+    usersStore.batchEntries.map((entry) => {
         const upn = buildUpn(entry.vorname, entry.nachname, domain.value)
         const count = upn ? (upnCounts.value.get(upn.toLowerCase()) || 0) : 0
-        const status = count === 1 ? 'matched' : count > 1 ? 'ambiguous' : 'unmatched'
-        const department = status === 'matched' ? (userByUpn.value.get(upn.toLowerCase())?.department || '') : ''
-        return { entry, upn, count, status, department }
+        const key = rowKey(entry)
+        let status = count === 1 ? 'matched' : count > 1 ? 'ambiguous' : 'unmatched'
+        let effectiveUpn = upn
+        let candidate = null
+        // Only run fuzzy logic for rows that didn't match exactly.
+        if (status === 'unmatched') {
+            const confirmed = confirmedMatches[key]
+            if (confirmed && upnCounts.value.get(confirmed)) {
+                status = 'lazy'
+                effectiveUpn = confirmed
+            } else {
+                candidate = findCandidate(entry)
+                // Show the real candidate UPN in the UPN column instead of the theoretical one.
+                if (candidate) effectiveUpn = candidate.upn
+            }
+        }
+        const department =
+            status === 'matched' || status === 'lazy'
+                ? userByUpn.value.get(effectiveUpn.toLowerCase())?.department || ''
+                : ''
+        return { entry, key, upn: effectiveUpn, count, status, department, candidate }
     })
 )
 
-const matchedRows = computed(() => rows.value.filter((r) => r.status === 'matched'))
+// Category filter: green = gefunden (inkl. bestätigt), orange = fuzzy-Kandidat, gray = nicht gefunden/mehrdeutig.
+const categoryOf = (r) => {
+    if (r.status === 'matched' || r.status === 'lazy') return 'green'
+    if (r.status === 'unmatched' && r.candidate) return 'orange'
+    return 'gray'
+}
+const filters = reactive({ green: true, orange: true, gray: true })
+const visibleRows = computed(() => rows.value.filter((r) => filters[categoryOf(r)]))
+
+// Status-Spalte sortierbar: nach Status-Rang, Richtung umschaltbar
+const statusSortDir = ref('asc')
+// Sort groups in display order; unconfirmed fuzzy candidates always pinned to the very top.
+const statusRank = { candidate: 0, lazy: 1, matched: 2, unmatched: 3, ambiguous: 4 }
+const rankOf = (r) => {
+    if (r.status === 'unmatched' && r.candidate) return statusRank.candidate
+    return statusRank[r.status] ?? 99
+}
+const sortedRows = computed(() => {
+    const dir = statusSortDir.value === 'asc' ? 1 : -1
+    return [...visibleRows.value]
+        .map((r, idx) => [r, idx])
+        .sort(([a, ia], [b, ib]) => {
+            const ra = rankOf(a)
+            const rb = rankOf(b)
+            // Candidates (rank 0) stay on top regardless of direction.
+            if (ra === 0 || rb === 0) {
+                if (ra !== rb) return ra - rb
+                return ia - ib
+            }
+            if (ra !== rb) return (ra - rb) * dir
+            return ia - ib // stable within a group
+        })
+        .map(([r]) => r)
+})
+const toggleStatusSort = () => {
+    statusSortDir.value = statusSortDir.value === 'asc' ? 'desc' : 'asc'
+}
+
+// "matched" for batch actions = exact matches + user-confirmed lazy matches.
+const matchedRows = computed(() => rows.value.filter((r) => r.status === 'matched' || r.status === 'lazy'))
+const lazyRows = computed(() => rows.value.filter((r) => r.status === 'lazy'))
 const unmatchedRows = computed(() => rows.value.filter((r) => r.status === 'unmatched'))
 const ambiguousRows = computed(() => rows.value.filter((r) => r.status === 'ambiguous'))
+
+// Confirm a fuzzy candidate as a real match (used for batch processing).
+function confirmCandidate(row) {
+    if (row.candidate) confirmedMatches[row.key] = row.candidate.upn
+}
+// Undo a confirmed lazy match.
+function unconfirmMatch(row) {
+    delete confirmedMatches[row.key]
+}
 
 const filteredGroups = computed(() => {
     const q = groupModal.search.toLowerCase()
@@ -338,8 +488,8 @@ const filteredGroups = computed(() => {
 })
 
 async function importCsv() {
-    await usersStore.importCsv()
-    if (usersStore.csvEntries.length && !usersStore.users.length) usersStore.fetchUsers()
+    await usersStore.importBatchCsv()
+    if (usersStore.batchEntries.length && !usersStore.users.length) usersStore.fetchUsers()
 }
 
 function openConfirm() {
@@ -358,8 +508,10 @@ async function runDelete() {
         // Drop successfully deleted rows from the CSV list so the preview reflects reality.
         if (res?.deletedUpns?.length) {
             const gone = new Set(res.deletedUpns.map((u) => String(u).toLowerCase()))
-            usersStore.csvEntries = usersStore.csvEntries.filter(
-                (e) => !gone.has(buildUpn(e.vorname, e.nachname, domain.value).toLowerCase())
+            // Map each CSV entry to its effective UPN (incl. confirmed lazy matches) via rows.
+            const upnByKey = new Map(rows.value.map((r) => [r.key, (r.upn || '').toLowerCase()]))
+            usersStore.batchEntries = usersStore.batchEntries.filter(
+                (e) => !gone.has(upnByKey.get(rowKey(e)) || '')
             )
         }
     } finally {
@@ -426,4 +578,35 @@ async function runSetDept() {
 <style scoped>
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Userliste füllt verfügbare Höhe bis zum Log-Terminal */
+.remove-users-view {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.remove-users-view > .content-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.remove-users-view > .content-card > .content-card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.remove-users-view .preview-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.remove-users-view .preview-table-scroll {
+    flex: 1;
+    max-height: none;
+    min-height: 0;
+}
 </style>

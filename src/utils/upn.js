@@ -7,9 +7,13 @@ export function normalizeForUPN(text) {
     if (!text) return ''
     let s = String(text)
     s = s.replace(/[äÄ]/g, 'ae').replace(/[öÖ]/g, 'oe').replace(/[üÜ]/g, 'ue').replace(/[ß]/g, 'ss')
-    s = s.replace(/[àáâãÀÁÂÃ]/g, 'a').replace(/[èéêëÈÉÊË]/g, 'e').replace(/[ìíîïÌÍÎÏ]/g, 'i')
-    s = s.replace(/[òóôõÒÓÔÕ]/g, 'o').replace(/[ùúûÙÚÛ]/g, 'u').replace(/[ýÿÝŸ]/g, 'y')
-    s = s.replace(/[çÇ]/g, 'c').replace(/[ñÑ]/g, 'n')
+    s = s.replace(/[àáâãăÀÁÂÃĂ]/g, 'a').replace(/[èéêëÈÉÊË]/g, 'e').replace(/[ìíîïÌÍÎÏ]/g, 'i')
+    s = s.replace(/[òóôõÒÓÔÕ]/g, 'o').replace(/[ùúûÙÚÛ]/g, 'u').replace(/[ýÿȳÝŸȲ]/g, 'y')
+    s = s.replace(/[çćčÇĆČ]/g, 'c').replace(/[ñÑ]/g, 'n')
+    s = s.replace(/[žŽ]/g, 'z').replace(/[šŠ]/g, 's').replace(/[đĐ]/g, 'd')
+    // Generic fallback for any remaining accented latin letters (ș, ț, î, ...):
+    // decompose and strip combining marks. Runs after the explicit ä->ae etc. rules.
+    s = s.normalize('NFD').replace(/[̀-ͯ]/g, '')
     return s.toLowerCase().replace(/[^a-z0-9.]/g, '')
 }
 

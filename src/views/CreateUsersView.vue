@@ -103,7 +103,7 @@
             <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem;">
               <i class="bi bi-info-circle me-1" style="color:#58a6ff;"></i> Erwartetes CSV-Format
             </div>
-            <pre style="font-family:monospace;font-size:0.78rem;color:#8b949e;margin:0;white-space:pre-wrap;">Vorname;Nachname;Abteilung;UserType;NewPassword;ForceChange
+            <pre style="font-family:monospace;font-size:0.78rem;color:#8b949e;margin:0;white-space:pre-wrap;">Vorname;Familienname;Abteilung;UserType;NewPassword;ForceChange
 Max;Mustermann;3AHIT;Schüler;Passwort123!;1
 Anna;Schmidt;LehrerInnenzimmer;Lehrer;Passwort456!;0</pre>
             <div style="font-size:0.78rem;color:#8b949e;margin-top:0.5rem;">
@@ -161,7 +161,7 @@ Anna;Schmidt;LehrerInnenzimmer;Lehrer;Passwort456!;0</pre>
                   </td>
                   <td><input v-model="entry.newPassword" type="text" class="form-control form-control-sm" /></td>
                   <td class="text-center">
-                    <input type="checkbox" class="form-check-input" v-model="entry.forceChange" />
+                    <input type="checkbox" class="form-check-input" style="width:16px !important;height:16px !important;min-width:16px;display:inline-block;flex:none;float:none;" v-model="entry.forceChange" />
                   </td>
                   <td>
                     <button class="btn-action danger" @click="usersStore.csvEntries.splice(i, 1)">

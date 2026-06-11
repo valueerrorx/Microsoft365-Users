@@ -886,17 +886,40 @@ function normalizeForUPN(text) {
   if (!text) return ''
   let s = String(text)
   s = s.replace(/[äÄ]/g, 'ae').replace(/[öÖ]/g, 'oe').replace(/[üÜ]/g, 'ue').replace(/[ß]/g, 'ss')
-  s = s.replace(/[àáâãÀÁÂÃ]/g, 'a').replace(/[èéêëÈÉÊË]/g, 'e').replace(/[ìíîïÌÍÎÏ]/g, 'i')
-  s = s.replace(/[òóôõÒÓÔÕ]/g, 'o').replace(/[ùúûÙÚÛ]/g, 'u').replace(/[ýÿÝŸ]/g, 'y')
-  s = s.replace(/[çÇ]/g, 'c').replace(/[ñÑ]/g, 'n')
+  s = s.replace(/[àáâãăÀÁÂÃĂ]/g, 'a').replace(/[èéêëÈÉÊË]/g, 'e').replace(/[ìíîïÌÍÎÏ]/g, 'i')
+  s = s.replace(/[òóôõÒÓÔÕ]/g, 'o').replace(/[ùúûÙÚÛ]/g, 'u').replace(/[ýÿȳÝŸȲ]/g, 'y')
+  s = s.replace(/[çćčÇĆČ]/g, 'c').replace(/[ñÑ]/g, 'n')
+  s = s.replace(/[žŽ]/g, 'z').replace(/[šŠ]/g, 's').replace(/[đĐ]/g, 'd')
+  // Generic fallback for any remaining accented latin letters (ș, ț, î, ...):
+  // decompose and strip combining marks. Runs after the explicit ä->ae etc. rules.
+  s = s.normalize('NFD').replace(/[̀-ͯ]/g, '')
   return s.toLowerCase().replace(/[^a-z0-9.]/g, '')
+}
+
+// Decode a CSV buffer: prefer UTF-8, but only if the bytes are valid UTF-8.
+// Falls back to latin1 (Windows-Excel exports) so umlauts/diacritics survive.
+function decodeCsvBuffer(buffer) {
+  let buf = buffer
+  if (buf.length >= 3 && buf[0] === 0xEF && buf[1] === 0xBB && buf[2] === 0xBF) {
+    buf = buf.slice(3) // strip UTF-8 BOM
+  }
+  try {
+    // fatal:true throws on invalid UTF-8 sequences -> not a UTF-8 file.
+    return new TextDecoder('utf-8', { fatal: true }).decode(buf)
+  } catch {
+    return buf.toString('latin1')
+  }
 }
 
 function parseCsvText(text) {
   const lines = String(text).split(/\r?\n/).filter(l => l.trim().length > 0)
   if (lines.length === 0) return []
   const header = lines[0]
-  const delimiter = header.includes(';') && !header.includes(',') ? ';' : ','
+  // Pick whichever common delimiter occurs more often in the header (handles ; , and tab).
+  const counts = { ';': (header.match(/;/g) || []).length, ',': (header.match(/,/g) || []).length, '\t': (header.match(/\t/g) || []).length }
+  const delimiter = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][1] > 0
+    ? Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0]
+    : ','
   const headerParts = header.split(delimiter).map(h => h.trim().toLowerCase())
 
   const getIdx = (names) => {
@@ -912,7 +935,7 @@ function parseCsvText(text) {
     const parts = lines[i].split(delimiter)
     if (parts.length < 2) continue
     const vi = getIdx(['vorname', 'givenname', 'firstname'])
-    const ni = getIdx(['nachname', 'surname', 'lastname'])
+    const ni = getIdx(['familienname', 'nachname', 'surname', 'lastname'])
     const vorname = vi >= 0 ? (parts[vi] || '').trim() : ''
     const nachname = ni >= 0 ? (parts[ni] || '').trim() : ''
     if (!vorname || !nachname) continue
@@ -1114,14 +1137,7 @@ ipcMain.handle('open-csv-dialog', async () => {
   if (canceled || !filePaths?.length) return { status: 'cancelled' }
   try {
     const buffer = await fs.readFile(filePaths[0])
-    let content
-    if (buffer.length >= 3 && buffer[0] === 0xEF && buffer[1] === 0xBB && buffer[2] === 0xBF) {
-      content = buffer.slice(3).toString('utf8')
-    } else {
-      const latin1 = buffer.toString('latin1')
-      content = /[öäüÖÄÜß]/.test(latin1) ? latin1 : buffer.toString('utf8')
-    }
-    csvData = parseCsvText(content)
+    csvData = parseCsvText(decodeCsvBuffer(buffer))
     return { status: 'ok', count: csvData.length }
   } catch (e) {
     return { status: 'error', message: e?.message || 'CSV konnte nicht gelesen werden' }
